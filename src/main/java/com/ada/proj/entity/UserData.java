@@ -2,39 +2,50 @@ package com.ada.proj.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.Instant;
+
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
-@Table(name = "user_data")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@Table(name = "user_data",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_user_data_uuid", columnNames = {"uuid"})
+        })
 public class UserData {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long seq;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "uuid", referencedColumnName = "uuid", nullable = false)
-    private User user;
+    @Column(length = 36, nullable = false)
+    private String uuid; // FK -> users.uuid
 
     @Column(length = 255)
     private String intro;
 
-    @Column(length = 255)
+    @Column(name = "tech_stack", length = 255)
     private String techStack;
 
-    @Column(length = 255)
-    private String githubUrl;
+    // JSON 컬럼: 문자열(JSON)로 저장
+    @Column(columnDefinition = "JSON")
+    private String links;
 
-    @Column(length = 255)
-    private String otherUrl;
+    @Column(length = 50)
+    private String badge;
 
-    @Column(nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    @Column(name = "activity_score", nullable = false)
+    @Builder.Default
+    private Integer activityScore = 0;
 
-    @PreUpdate
-    public void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
+    @Column(name = "contribution_data", columnDefinition = "JSON")
+    private String contributionData;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 }

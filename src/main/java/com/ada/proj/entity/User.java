@@ -2,58 +2,67 @@ package com.ada.proj.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
-import java.util.UUID;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.Instant;
+
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
-@Table(name = "users")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@Table(name = "users",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_users_uuid", columnNames = {"uuid"}),
+                @UniqueConstraint(name = "uk_users_admin_id", columnNames = {"admin_id"}),
+                @UniqueConstraint(name = "uk_users_custom_id", columnNames = {"custom_id"})
+        })
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long seq;
 
-    @Column(nullable = false, unique = true, length = 36)
-    private String uuid = UUID.randomUUID().toString();
+    @Column(length = 36, nullable = false)
+    private String uuid;
 
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(name = "admin_id", length = 50, nullable = false)
     private String adminId;
 
-    @Column(unique = true, length = 50)
+    @Column(name = "custom_id", length = 50)
     private String customId;
 
-    @Column(length = 255)
-    private String customPw;
+    @Column(name = "custom_pw", length = 255)
+    private String customPw; // BCrypt 해시 저장
 
-    @Column(nullable = false, length = 10)
+    @Column(name = "user_realname", length = 10, nullable = false)
     private String userRealname;
 
-    @Column(nullable = false, length = 10)
+    @Column(name = "user_nickname", length = 10, nullable = false)
     private String userNickname;
 
-    @Column(length = 255)
+    @Column(name = "profile_image", length = 255)
     private String profileImage;
 
-    @Column(length = 255)
+    @Column(name = "profile_banner", length = 255)
     private String profileBanner;
 
-    @Column(nullable = false)
-    private boolean isAnonymous = false;
-
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 20)
     private Role role;
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    // 닉네임을 이름으로 표시 여부 (요구 이미지의 토글 기능)
+        @Column(name = "use_nickname", nullable = false)
+        @Builder.Default
+        private boolean useNickname = false;
 
-    @Column(nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false, nullable = false)
+    private Instant createdAt;
 
-    @PreUpdate
-    public void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 }
