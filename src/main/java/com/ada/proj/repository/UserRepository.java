@@ -21,4 +21,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("select u from User u where (:role is null or u.role = :role) and (:query is null or u.userRealname like concat('%', :query, '%') or u.userNickname like concat('%', :query, '%')) order by u.seq desc")
     List<User> search(@Param("role") Role role, @Param("query") String query);
+
+    boolean existsByRole(Role role);
 }

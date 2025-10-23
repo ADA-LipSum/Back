@@ -95,6 +95,63 @@ public class UserService {
         user.setCustomPw(passwordEncoder.encode(req.getPassword()));
     }
 
+    public User createUserByAdmin(CreateUserRequest req, Authentication auth) {
+        ensureAdmin(auth);
+
+        if (userRepository.findByAdminId(req.getAdminId()).isPresent()) {
+            throw new IllegalArgumentException("adminId already exists");
+        }
+
+        if (req.getCustomId() != null && userRepository.existsByCustomId(req.getCustomId())) {
+            throw new IllegalArgumentException("customId already exists");
+        }
+
+        User user = User.builder()
+                .uuid(java.util.UUID.randomUUID().toString())
+                .adminId(req.getAdminId())
+                .customId(req.getCustomId())
+                .customPw(req.getPassword() == null ? null : passwordEncoder.encode(req.getPassword()))
+                .userRealname(req.getUserRealname())
+                .userNickname(req.getUserNickname())
+                .role(req.getRole() == null ? Role.STUDENT : req.getRole())
+                .build();
+
+        return userRepository.save(user);
+    }
+
+    /**
+     * Create the very first ADMIN account when none exists. This can be called without authentication
+     * but will fail if any ADMIN already exists.
+     */
+    public User createInitialAdmin(CreateUserRequest req) {
+        // if any ADMIN exists, disallow unauthenticated init
+        if (userRepository.existsByRole(Role.ADMIN)) {
+            throw new SecurityException("Admin already exists");
+        }
+
+        if (userRepository.findByAdminId(req.getAdminId()).isPresent()) {
+            throw new IllegalArgumentException("adminId already exists");
+        }
+
+        User user = User.builder()
+                .uuid(java.util.UUID.randomUUID().toString())
+                .adminId(req.getAdminId())
+                .customId(req.getCustomId())
+                .customPw(req.getPassword() == null ? null : passwordEncoder.encode(req.getPassword()))
+                .userRealname(req.getUserRealname())
+                .userNickname(req.getUserNickname())
+                .role(Role.ADMIN)
+                .build();
+
+        return userRepository.save(user);
+    }
+
+    private void ensureAdmin(Authentication auth) {
+        if (auth == null) throw new SecurityException("Unauthenticated");
+        boolean isAdmin = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(a -> a.equals("ROLE_ADMIN"));
+        if (!isAdmin) throw new SecurityException("Forbidden");
+    }
+
     public void changeCustomPassword(String uuid, UpdatePasswordRequest req, Authentication auth) {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));

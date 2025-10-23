@@ -2,6 +2,7 @@ package com.ada.proj.controller;
 
 import com.ada.proj.dto.*;
 import com.ada.proj.service.AuthService;
+import com.ada.proj.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -15,9 +16,11 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserService userService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, UserService userService) {
         this.authService = authService;
+        this.userService = userService;
     }
 
     @PostMapping("/login")
@@ -40,5 +43,21 @@ public class AuthController {
         String uuid = authentication.getName();
         authService.logout(uuid);
         return ResponseEntity.ok(ApiResponse.okMessage("logged out"));
+    }
+
+    @PostMapping("/admin/create")
+    @Operation(summary = "관리자: 사용자 생성", description = "관리자가 새로운 사용자 계정을 생성합니다")
+    public ResponseEntity<ApiResponse<CreateUserResponse>> createUserByAdmin(@Valid @RequestBody CreateUserRequest req, Authentication authentication) {
+        var user = userService.createUserByAdmin(req, authentication);
+        CreateUserResponse res = new CreateUserResponse(user.getUuid(), user.getAdminId(), user.getCustomId(), user.getRole());
+        return ResponseEntity.ok(ApiResponse.ok(res));
+    }
+
+    @PostMapping("/admin/init")
+    @Operation(summary = "초기 관리자 생성", description = "시스템에 ADMIN이 하나도 없을 때 최초의 ADMIN 계정을 생성합니다")
+    public ResponseEntity<ApiResponse<CreateUserResponse>> initAdmin(@Valid @RequestBody CreateUserRequest req) {
+        var user = userService.createInitialAdmin(req);
+        CreateUserResponse res = new CreateUserResponse(user.getUuid(), user.getAdminId(), user.getCustomId(), user.getRole());
+        return ResponseEntity.ok(ApiResponse.ok(res));
     }
 }
