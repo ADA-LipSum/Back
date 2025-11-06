@@ -11,7 +11,8 @@ public class PostDetailResponse {
     private Long seq;
     private String writerUuid;
     private String title;
-    private String texts;
+    // 에디터 재편집용: Markdown 원문
+    private String contentMd;
     private String images;
     private String videos;
     private String writer;

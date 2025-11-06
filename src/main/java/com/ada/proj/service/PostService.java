@@ -1,20 +1,29 @@
 
 package com.ada.proj.service;
 
-import com.ada.proj.dto.*;
-import com.ada.proj.entity.Post;
-import com.ada.proj.repository.PostRepository;
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.ada.proj.dto.PostCreateRequest;
+import com.ada.proj.dto.PostDetailResponse;
+import com.ada.proj.dto.PostSummaryResponse;
+import com.ada.proj.dto.PostUpdateRequest;
+import com.ada.proj.entity.Post;
+import com.ada.proj.repository.PostRepository;
+
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class PostService {
 
     private final PostRepository postRepository;
+    // MarkdownService는 더 이상 DB 저장을 위해 사용하지 않습니다 (클라이언트/뷰에서 렌더링).
 
     // 생성
     @Transactional
@@ -22,11 +31,16 @@ public class PostService {
         Post p = Post.builder()
                 .writerUuid(req.getWriterUuid())
                 .title(req.getTitle())
-                .texts(req.getTexts())
                 .images(req.getImages())
                 .videos(req.getVideos())
                 .writer(req.getWriter())
                 .build();
+        // 단일 소스 저장: contentMd만 저장
+        String md = req.getContentMd();
+        if (md != null) {
+            p.setContentMd(md);
+            // 과거 호환을 위해 HTML 렌더링 로직은 서비스 내부에서만 사용하고, DB 저장은 하지 않습니다.
+        }
         return postRepository.save(p).getPostUuid();
     }
 
@@ -53,6 +67,7 @@ public class PostService {
         postRepository.increaseViews(uuid);
         Post p = postRepository.findById(uuid)
                 .orElseThrow(() -> new EntityNotFoundException("Post not found: " + uuid));
+        // 기존 데이터 호환 로직 제거: 이제 contentMd만 사용합니다.
         return toDetail(p);
     }
 
@@ -63,7 +78,12 @@ public class PostService {
                 .orElseThrow(() -> new EntityNotFoundException("Post not found: " + uuid));
 
         if (req.getTitle()  != null) p.setTitle(req.getTitle());
-        if (req.getTexts()  != null) p.setTexts(req.getTexts());
+        // 콘텐츠 갱신: contentMd만 사용
+        if (req.getContentMd() != null) {
+            String md = req.getContentMd();
+            p.setContentMd(md);
+            // DB에 contentHtml은 더 이상 저장하지 않습니다.
+        }
         if (req.getImages() != null) p.setImages(req.getImages());
         if (req.getVideos() != null) p.setVideos(req.getVideos());
         if (req.getWriter() != null) p.setWriter(req.getWriter());
@@ -93,7 +113,7 @@ public class PostService {
                 .seq(p.getSeq())
                 .writerUuid(p.getWriterUuid())
                 .title(p.getTitle())
-                .texts(p.getTexts())
+                .contentMd(p.getContentMd())
                 .images(p.getImages())
                 .videos(p.getVideos())
                 .writer(p.getWriter())

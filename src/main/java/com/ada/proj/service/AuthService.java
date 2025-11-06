@@ -2,6 +2,8 @@ package com.ada.proj.service;
 
 import java.time.Instant;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,7 @@ import com.ada.proj.security.JwtTokenProvider;
 @Service
 @Transactional
 public class AuthService {
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -35,33 +38,11 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        // admin_id 또는 custom_id로 조회
-        User user = userRepository.findByAdminId(request.getId())
-                .or(() -> userRepository.findByCustomId(request.getId()))
-                .orElseThrow(() -> new IllegalArgumentException("Invalid id or password"));
-
-        // 우선 통합 password 사용, 없으면 레거시 custom_pw로 호환 로그인 후 password로 이관
-        String stored = user.getPassword();
-        String legacy = user.getLegacyCustomPw();
-        if (stored == null && legacy == null) {
-            throw new IllegalArgumentException("Invalid id or password");
+        if (log.isInfoEnabled()) {
+            log.info("[AUTH] login attempt id={}", safeId(request.getId()));
         }
-        boolean matched;
-        String candidate = stored != null ? stored : legacy;
-        if (candidate.startsWith("$2a$") || candidate.startsWith("$2b$") || candidate.startsWith("$2y$")) {
-            matched = passwordEncoder.matches(request.getPassword(), candidate);
-        } else {
-            // 초기(평문) 비밀번호 호환: 일치하면 해시로 갱신
-            matched = request.getPassword().equals(candidate);
-            if (matched) {
-                user.setPassword(passwordEncoder.encode(candidate));
-            }
-        }
-        // 레거시에서 인증 성공 시 password로 승격 저장
-        if (matched && stored == null && legacy != null) {
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
-        }
-        if (!matched) throw new IllegalArgumentException("Invalid id or password");
+        User user = findUserForLogin(request.getId());
+        ensurePasswordMatchesAndUpgrade(user, request.getPassword(), request.getId());
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
@@ -76,19 +57,74 @@ public class AuthService {
                 .build();
         refreshTokenRepository.save(entity);
 
-        return LoginResponse.builder()
+        LoginResponse resp = LoginResponse.builder()
                 .tokenType("Bearer")
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .expiresIn(900_000)
                 .build();
+        if (log.isInfoEnabled()) {
+            log.info("[AUTH] login success uuid={} role={}", safeUuid(user.getUuid()), user.getRole());
+        }
+        return resp;
+    }
+
+    private User findUserForLogin(String id) {
+        return userRepository.findByAdminId(id)
+                .or(() -> userRepository.findByCustomId(id))
+                .orElseThrow(() -> {
+                    if (log.isWarnEnabled()) {
+                        log.warn("[AUTH] login failed: user not found id={}", safeId(id));
+                    }
+                    return new IllegalArgumentException("Invalid id or password");
+                });
+    }
+
+    private void ensurePasswordMatchesAndUpgrade(User user, String rawPassword, String idForLog) {
+        String stored = user.getPassword();
+        String legacy = user.getLegacyCustomPw();
+        if (stored == null && legacy == null) {
+            if (log.isWarnEnabled()) {
+                log.warn("[AUTH] login failed: no credential on record id={}", safeId(idForLog));
+            }
+            throw new IllegalArgumentException("Invalid id or password");
+        }
+
+        String candidate = stored != null ? stored : legacy;
+        boolean matched;
+        if (candidate.startsWith("$2a$") || candidate.startsWith("$2b$") || candidate.startsWith("$2y$")) {
+            matched = passwordEncoder.matches(rawPassword, candidate);
+        } else {
+            matched = rawPassword.equals(candidate);
+            if (matched) {
+                user.setPassword(passwordEncoder.encode(candidate));
+            }
+        }
+
+        if (matched && user.getPassword() == null && user.getLegacyCustomPw() != null) {
+            user.setPassword(passwordEncoder.encode(rawPassword));
+        }
+        if (!matched) {
+            if (log.isWarnEnabled()) {
+                log.warn("[AUTH] login failed: bad password id={}", safeId(idForLog));
+            }
+            throw new IllegalArgumentException("Invalid id or password");
+        }
     }
 
     public LoginResponse reissue(TokenReissueRequest request) {
         RefreshToken stored = refreshTokenRepository.findByToken(request.getRefreshToken())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
+                .orElseThrow(() -> {
+                    if (log.isWarnEnabled()) {
+                        log.warn("[AUTH] refresh failed: token not found");
+                    }
+                    return new IllegalArgumentException("Invalid refresh token");
+                });
 
         if (stored.getExpiresAt().isBefore(Instant.now())) {
+            if (log.isWarnEnabled()) {
+                log.warn("[AUTH] refresh failed: token expired uuid={} ", safeUuid(stored.getUuid()));
+            }
             throw new IllegalArgumentException("Refresh token expired");
         }
 
@@ -101,15 +137,33 @@ public class AuthService {
         stored.setToken(newRefresh);
         stored.setExpiresAt(Instant.now().plusMillis(604800000));
 
-        return LoginResponse.builder()
+        LoginResponse resp = LoginResponse.builder()
                 .tokenType("Bearer")
                 .accessToken(newAccess)
                 .refreshToken(newRefresh)
                 .expiresIn(900_000)
                 .build();
+        if (log.isInfoEnabled()) {
+            log.info("[AUTH] refresh success uuid={} ", safeUuid(uuid));
+        }
+        return resp;
     }
 
     public void logout(String uuid) {
         refreshTokenRepository.deleteByUuid(uuid);
+        if (log.isInfoEnabled()) {
+            log.info("[AUTH] logout uuid={}", safeUuid(uuid));
+        }
+    }
+
+    private String safeId(String id) {
+        if (id == null) return "";
+        if (id.length() <= 2) return id;
+        return id.substring(0, Math.min(2, id.length())) + "***";
+    }
+
+    private String safeUuid(String uuid) {
+        if (uuid == null || uuid.length() < 4) return String.valueOf(uuid);
+        return "****" + uuid.substring(uuid.length() - 4);
     }
 }

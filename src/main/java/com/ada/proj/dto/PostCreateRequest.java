@@ -19,7 +19,8 @@ public class PostCreateRequest {
     @NotBlank @Size(max = 20)
     private String title;
 
-    private String texts;
+    // 단일 콘텐츠 필드: 기본은 Markdown 원문 (HTML 포함 가능)
+    private String contentMd;
     private String images;              // URL
     private String videos;              // URL
     private String writer;              // 닉네임

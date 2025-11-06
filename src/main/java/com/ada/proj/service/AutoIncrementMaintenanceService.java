@@ -78,7 +78,7 @@ public class AutoIncrementMaintenanceService {
             try {
                 maintainTable(table);
             } catch (Exception e) {
-                log.warn("[AI-MAINTAIN] phase={}, table={} failed: {}", phase, table, e.getMessage());
+                log.warn("[AI-MAINTAIN] 단계={}, 테이블={} 실패: {}", phase, table, e.getMessage());
             }
         }
     }
@@ -88,7 +88,7 @@ public class AutoIncrementMaintenanceService {
         long next = (count == null || count <= 0) ? 1 : count + 1;
         // MySQL AUTO_INCREMENT는 최소 1입니다. 0을 원하더라도 실제 저장은 1부터 시작합니다.
     jdbcTemplate.execute("ALTER TABLE `" + table + "` AUTO_INCREMENT = " + next);
-        log.info("[AI-MAINTAIN] table={}, rows={}, set AUTO_INCREMENT={} ", table, count, next);
+    log.info("[AI-MAINTAIN] 테이블={}, 행수={}, AUTO_INCREMENT={}로 설정", table, count, next);
         
         // 2) 정렬 번호(order_column) 재계산 (옵션)
         if (resequenceEnabled) {
@@ -96,7 +96,7 @@ public class AutoIncrementMaintenanceService {
                 ensureOrderColumnExists(table);
                 resequenceOrderColumn(table);
             } catch (Exception e) {
-                log.warn("[AI-RESEQUENCE] table={} failed: {}", table, e.getMessage());
+                log.warn("[AI-RESEQUENCE] 테이블={} 실패: {}", table, e.getMessage());
             }
         }
 
@@ -106,7 +106,7 @@ public class AutoIncrementMaintenanceService {
                 // 트랜잭션 프록시를 통해 호출
                 self.resequencePrimaryKey(table);
             } catch (Exception e) {
-                log.warn("[AI-RESEQUENCE-PK] table={} failed: {}", table, e.getMessage());
+                log.warn("[AI-RESEQUENCE-PK] 테이블={} 실패: {}", table, e.getMessage());
             }
         }
     }
@@ -130,7 +130,7 @@ public class AutoIncrementMaintenanceService {
         "ON t.`" + pk + "` = o.k " +
         "SET t.`" + orderColumn + "` = o.rn";
     jdbcTemplate.execute(sql);
-        log.info("[AI-RESEQUENCE] table={} resequenced column={} by {}", table, orderColumn, orderBy);
+    log.info("[AI-RESEQUENCE] 테이블={} 컬럼={} 재정렬 완료, 기준={}", table, orderColumn, orderBy);
     }
 
     private String getPrimaryKeyColumn(String table) {
@@ -190,7 +190,7 @@ public class AutoIncrementMaintenanceService {
         }
         jdbcTemplate.execute(String.format(UPDATE_JOIN_BASE_TEMPLATE, table, map, pk, pk));
 
-        log.info("[AI-RESEQUENCE-PK] table={} resequenced primary key {} starting at 1", table, pk);
+        log.info("[AI-RESEQUENCE-PK] 테이블={} 기본키 {} 재시퀀싱 완료 (시작=1)", table, pk);
     }
 
     private record FkRef(String table, String column) {}

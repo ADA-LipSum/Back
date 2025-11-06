@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>게시물 브라우저</title>
+  <style>
+    :root { --bg:#0f172a; --card:#111827; --muted:#94a3b8; --pri:#60a5fa; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background: var(--bg); color: #e5e7eb; }
+    header { padding: 16px 20px; border-bottom: 1px solid #1f2937; display:flex; align-items:center; gap:12px; }
+    header h1 { font-size: 18px; margin: 0; }
+    main { padding: 20px; display:grid; grid-template-columns: 320px 1fr; gap: 16px; }
+    .card { background: var(--card); border: 1px solid #1f2937; border-radius: 10px; padding: 16px; }
+    .card h2 { font-size: 16px; margin: 0 0 12px; }
+    label { display:block; font-size: 12px; color: var(--muted); margin: 10px 0 6px; }
+    input[type="text"] { width:100%; background: #0b1220; color:#e5e7eb; border:1px solid #1f2937; border-radius:8px; padding:10px 12px; outline:none; }
+    button { background:#1d4ed8; border:none; color:#fff; padding:8px 12px; border-radius:8px; cursor:pointer; }
+    button.secondary { background:#334155; }
+    .muted { color: var(--muted); font-size: 12px; }
+    .list { display:flex; flex-direction: column; gap: 10px; }
+    .item { border:1px solid #1f2937; border-radius:8px; padding:10px; background:#0b1220; cursor:pointer; }
+    .item h3 { margin:0 0 6px; font-size:14px; }
+    .controls { display:flex; gap:8px; }
+    .md { white-space: pre-wrap; background:#0b1220; border:1px solid #1f2937; border-radius:8px; padding:10px; min-height:160px; }
+    .md img, .md video { max-width: 100%; height: auto; }
+  </style>
+  <!-- 클라이언트 렌더링: Markdown + Sanitizer (테스트 페이지 전용) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>게시물 브라우저</h1>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>목록</h2>
+  <label for="baseUrl">백엔드 베이스 URL (비우면 현재 오리진)</label>
+  <input id="baseUrl" type="text" placeholder="예: https://abcd1234.ngrok.io" />
+      <div class="controls" style="margin-top:8px;">
+        <button id="btnReload">/post/list 불러오기</button>
+        <button class="secondary" id="btnPrev">이전</button>
+        <button class="secondary" id="btnNext">다음</button>
+      </div>
+      <div class="muted" style="margin-top:6px;">page=<span id="page">0</span>, size=<span id="size">10</span></div>
+      <div id="list" class="list" style="margin-top:10px;"></div>
+    </section>
+
+    <section class="card">
+      <h2>상세</h2>
+      <div class="muted">선택된 uuid: <span id="sel"></span></div>
+      <div id="title" style="margin-top:8px; font-weight:600;"></div>
+      <div id="writer" class="muted" style="margin-top:2px;"></div>
+      <div id="meta" class="muted" style="margin-top:2px;"></div>
+      <div class="md" id="content" style="margin-top:10px;"></div>
+    </section>
+  </main>
+
+<script>
+(function(){
+  const $ = (id) => document.getElementById(id);
+  const state = { page: 0, size: 10, last: false };
+  const base = () => { const v = $("baseUrl").value.trim(); return v || globalThis.location.origin; };
+
+  async function loadList() {
+    const url = `${base()}/post/list?page=${state.page}&size=${state.size}`;
+    const res = await fetch(url);
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message || 'list failed');
+    const page = json.data;
+    state.last = !!page.last;
+    $("page").textContent = page.number ?? state.page;
+    $("size").textContent = page.size ?? state.size;
+
+    const list = $("list");
+    list.innerHTML = '';
+    for (const item of (page.content || [])) {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `<h3>${escapeHtml(item.title || '')}</h3>
+        <div class="muted">uuid=${item.postUuid}, 작성자=${escapeHtml(item.writer || '')}</div>
+        <div class="muted">작성일=${item.writedAt || ''} | 좋아요=${item.likes || 0} | 조회=${item.views || 0} | 댓글=${item.comments || 0}</div>`;
+      div.addEventListener('click', () => loadDetail(item.postUuid));
+      list.appendChild(div);
+    }
+  }
+
+  async function loadDetail(uuid) {
+    $("sel").textContent = uuid;
+    const url = `${base()}/post/view?uuid=${encodeURIComponent(uuid)}`;
+    const res = await fetch(url);
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message || 'detail failed');
+    const d = json.data || {};
+    $("title").textContent = d.title || '';
+    $("writer").textContent = `작성자: ${d.writer || ''}`;
+    $("meta").textContent = `작성일: ${d.writedAt || ''} | 좋아요: ${d.likes || 0} | 조회: ${d.views || 0}`;
+    const md = d.contentMd || '';
+    const raw = globalThis.marked ? globalThis.marked.parse(md) : md;
+    const safe = globalThis.DOMPurify ? globalThis.DOMPurify.sanitize(raw, {
+      ADD_TAGS: ['video','source'],
+      ADD_ATTR: ['controls','src','style']
+    }) : raw;
+    $("content").innerHTML = safe;
+  }
+
+  function escapeHtml(s){
+    const div = document.createElement('div');
+    div.textContent = String(s ?? '');
+    return div.innerHTML;
+  }
+
+  $("btnReload").addEventListener('click', () => { state.page = 0; loadList().catch(e=>alert(e.message)); });
+  $("btnPrev").addEventListener('click', () => { if (state.page>0) { state.page--; loadList().catch(e=>alert(e.message)); } });
+  $("btnNext").addEventListener('click', () => { if (!state.last) { state.page++; loadList().catch(e=>alert(e.message)); } });
+
+  // 쿼리 파라미터 처리: ?base=... 또는 ?baseUrl=..., ?uuid=...
+  try {
+    const params = new URLSearchParams(globalThis.location.search);
+    const initialBase = params.get('base') || params.get('baseUrl') || '';
+    if (initialBase) {
+      $("baseUrl").value = initialBase;
+    }
+    const initialUuid = params.get('uuid');
+    if (initialUuid) {
+      loadDetail(initialUuid).catch(e => alert(e.message));
+    }
+  } catch (e) {
+    // 구형 브라우저 방어: 파라미터 파싱 실패 시 무시하고 계속
+    console.warn('URL params parsing failed:', e);
+  }
+
+  loadList().catch(e=>alert(e.message));
+})();
+</script>
+</body>
+</html>
