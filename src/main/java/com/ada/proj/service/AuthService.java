@@ -1,5 +1,11 @@
 package com.ada.proj.service;
 
+import java.time.Instant;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.ada.proj.dto.LoginRequest;
 import com.ada.proj.dto.LoginResponse;
 import com.ada.proj.dto.TokenReissueRequest;
@@ -8,11 +14,6 @@ import com.ada.proj.entity.User;
 import com.ada.proj.repository.RefreshTokenRepository;
 import com.ada.proj.repository.UserRepository;
 import com.ada.proj.security.JwtTokenProvider;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
 
 @Service
 @Transactional
@@ -39,19 +40,26 @@ public class AuthService {
                 .or(() -> userRepository.findByCustomId(request.getId()))
                 .orElseThrow(() -> new IllegalArgumentException("Invalid id or password"));
 
-        if (user.getCustomPw() == null) {
+        // 우선 통합 password 사용, 없으면 레거시 custom_pw로 호환 로그인 후 password로 이관
+        String stored = user.getPassword();
+        String legacy = user.getLegacyCustomPw();
+        if (stored == null && legacy == null) {
             throw new IllegalArgumentException("Invalid id or password");
         }
         boolean matched;
-        String stored = user.getCustomPw();
-        if (stored.startsWith("$2a$") || stored.startsWith("$2b$") || stored.startsWith("$2y$")) {
-            matched = passwordEncoder.matches(request.getPassword(), stored);
+        String candidate = stored != null ? stored : legacy;
+        if (candidate.startsWith("$2a$") || candidate.startsWith("$2b$") || candidate.startsWith("$2y$")) {
+            matched = passwordEncoder.matches(request.getPassword(), candidate);
         } else {
             // 초기(평문) 비밀번호 호환: 일치하면 해시로 갱신
-            matched = request.getPassword().equals(stored);
+            matched = request.getPassword().equals(candidate);
             if (matched) {
-                user.setCustomPw(passwordEncoder.encode(stored));
+                user.setPassword(passwordEncoder.encode(candidate));
             }
+        }
+        // 레거시에서 인증 성공 시 password로 승격 저장
+        if (matched && stored == null && legacy != null) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
         if (!matched) throw new IllegalArgumentException("Invalid id or password");
 

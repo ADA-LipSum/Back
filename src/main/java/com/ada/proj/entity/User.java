@@ -1,11 +1,24 @@
 package com.ada.proj.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
+import java.time.Instant;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.Instant;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -34,8 +47,13 @@ public class User {
     @Column(name = "custom_id", length = 50)
     private String customId;
 
-    @Column(name = "custom_pw", length = 255)
-    private String customPw; // BCrypt 해시 저장
+    // 통합 비밀번호 컬럼
+    @Column(name = "password", length = 255)
+    private String password; // BCrypt 해시 저장
+
+    // 마이그레이션 호환용(읽기 전용). 기존 custom_pw 값이 있는 경우 로그인 시 password로 이관합니다.
+    @Column(name = "custom_pw", length = 255, insertable = false, updatable = false)
+    private String legacyCustomPw;
 
     @Column(name = "user_realname", length = 10, nullable = false)
     private String userRealname;
@@ -43,10 +61,10 @@ public class User {
     @Column(name = "user_nickname", length = 10, nullable = false)
     private String userNickname;
 
-    @Column(name = "profile_image", length = 255)
+    @Column(name = "profile_image", length = 455)
     private String profileImage;
 
-    @Column(name = "profile_banner", length = 255)
+    @Column(name = "profile_banner", length = 455)
     private String profileBanner;
 
     @Enumerated(EnumType.STRING)

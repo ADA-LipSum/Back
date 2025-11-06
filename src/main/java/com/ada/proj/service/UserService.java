@@ -1,19 +1,24 @@
 package com.ada.proj.service;
 
-import com.ada.proj.dto.*;
-import com.ada.proj.entity.Role;
-import com.ada.proj.entity.User;
-import com.ada.proj.entity.UserData;
-import com.ada.proj.repository.UserDataRepository;
-import com.ada.proj.repository.UserRepository;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import com.ada.proj.dto.CreateCustomLoginRequest;
+import com.ada.proj.dto.CreateUserRequest;
+import com.ada.proj.dto.UpdatePasswordRequest;
+import com.ada.proj.dto.UpdateProfileRequest;
+import com.ada.proj.dto.UserProfileResponse;
+import com.ada.proj.entity.Role;
+import com.ada.proj.entity.User;
+import com.ada.proj.entity.UserData;
+import com.ada.proj.repository.UserDataRepository;
+import com.ada.proj.repository.UserRepository;
 
 @Service
 @Transactional
@@ -92,7 +97,7 @@ public class UserService {
             throw new IllegalArgumentException("Custom ID already exists");
         }
         user.setCustomId(req.getCustomId());
-        user.setCustomPw(passwordEncoder.encode(req.getPassword()));
+        user.setPassword(passwordEncoder.encode(req.getPassword()));
     }
 
     public User createUserByAdmin(CreateUserRequest req, Authentication auth) {
@@ -106,11 +111,11 @@ public class UserService {
             throw new IllegalArgumentException("customId already exists");
         }
 
-        User user = User.builder()
+    User user = User.builder()
                 .uuid(java.util.UUID.randomUUID().toString())
                 .adminId(req.getAdminId())
                 .customId(req.getCustomId())
-                .customPw(req.getPassword() == null ? null : passwordEncoder.encode(req.getPassword()))
+        .password(req.getPassword() == null ? null : passwordEncoder.encode(req.getPassword()))
                 .userRealname(req.getUserRealname())
                 .userNickname(req.getUserNickname())
                 .role(req.getRole() == null ? Role.STUDENT : req.getRole())
@@ -133,11 +138,11 @@ public class UserService {
             throw new IllegalArgumentException("adminId already exists");
         }
 
-        User user = User.builder()
+    User user = User.builder()
                 .uuid(java.util.UUID.randomUUID().toString())
                 .adminId(req.getAdminId())
                 .customId(req.getCustomId())
-                .customPw(req.getPassword() == null ? null : passwordEncoder.encode(req.getPassword()))
+        .password(req.getPassword() == null ? null : passwordEncoder.encode(req.getPassword()))
                 .userRealname(req.getUserRealname())
                 .userNickname(req.getUserNickname())
                 .role(Role.ADMIN)
@@ -156,10 +161,10 @@ public class UserService {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         ensureSelfOrAdmin(auth, uuid);
-        if (user.getCustomPw() == null || !passwordEncoder.matches(req.getCurrentPassword(), user.getCustomPw())) {
+        if (user.getPassword() == null || !passwordEncoder.matches(req.getCurrentPassword(), user.getPassword())) {
             throw new IllegalArgumentException("Current password does not match");
         }
-        user.setCustomPw(passwordEncoder.encode(req.getNewPassword()));
+        user.setPassword(passwordEncoder.encode(req.getNewPassword()));
     }
 
     private void ensureSelfOrAdmin(Authentication auth, String uuid) {
