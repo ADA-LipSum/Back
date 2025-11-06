@@ -16,7 +16,7 @@ public class ApiResponse<T> {
     private T data;
     private String message;
 
-    // ✅ 데이터 포함 성공 응답
+    // 데이터 포함 성공 응답
     public static <T> ApiResponse<T> success(T data) {
         return ApiResponse.<T>builder()
                 .success(true)
@@ -25,7 +25,7 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    // ✅ 데이터 없는 성공 응답 (에러 해결)
+    // 데이터 없는 성공 응답 (에러 해결)
     public static <T> ApiResponse<T> success() {
         return ApiResponse.<T>builder()
                 .success(true)
