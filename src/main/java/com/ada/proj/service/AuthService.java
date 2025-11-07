@@ -12,6 +12,7 @@ import com.ada.proj.dto.LoginRequest;
 import com.ada.proj.dto.LoginResponse;
 import com.ada.proj.dto.TokenReissueRequest;
 import com.ada.proj.entity.RefreshToken;
+import com.ada.proj.entity.Role;
 import com.ada.proj.entity.User;
 import com.ada.proj.repository.RefreshTokenRepository;
 import com.ada.proj.repository.UserRepository;
@@ -65,6 +66,46 @@ public class AuthService {
                 .build();
         if (log.isInfoEnabled()) {
             log.info("[AUTH] login success uuid={} role={}", safeUuid(user.getUuid()), user.getRole());
+        }
+        return resp;
+    }
+
+    public LoginResponse adminLogin(LoginRequest request) {
+        if (log.isInfoEnabled()) {
+            log.info("[AUTH] admin login attempt id={}", safeId(request.getId()));
+        }
+        User user = findUserForLogin(request.getId());
+        ensurePasswordMatchesAndUpgrade(user, request.getPassword(), request.getId());
+
+        // 관리자 전용 체크
+        if (user.getRole() != Role.ADMIN) {
+            if (log.isWarnEnabled()) {
+                log.warn("[AUTH] admin login rejected: not admin uuid={} role={}", safeUuid(user.getUuid()), user.getRole());
+            }
+            // 일반 메시지로 응답(보안상 상세 노출 회피)
+            throw new IllegalArgumentException("Invalid id or password");
+        }
+
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
+
+        refreshTokenRepository.findByUuid(user.getUuid()).ifPresent(rt -> refreshTokenRepository.deleteByUuid(user.getUuid()));
+
+        RefreshToken entity = RefreshToken.builder()
+                .uuid(user.getUuid())
+                .token(refreshToken)
+                .expiresAt(Instant.now().plusMillis(604800000))
+                .build();
+        refreshTokenRepository.save(entity);
+
+        LoginResponse resp = LoginResponse.builder()
+                .tokenType("Bearer")
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .expiresIn(900_000)
+                .build();
+        if (log.isInfoEnabled()) {
+            log.info("[AUTH] admin login success uuid={} role={}", safeUuid(user.getUuid()), user.getRole());
         }
         return resp;
     }

@@ -30,6 +30,13 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok(res));
     }
 
+    @PostMapping("/admin/login")
+    @Operation(summary = "관리자 전용 로그인", description = "ADMIN 역할 계정만 로그인 허용. 일반 계정은 여기서 인증 불가")
+    public ResponseEntity<ApiResponse<LoginResponse>> adminLogin(@Valid @RequestBody LoginRequest request) {
+        LoginResponse res = authService.adminLogin(request);
+        return ResponseEntity.ok(ApiResponse.ok(res));
+    }
+
     @PostMapping("/reissue")
     @Operation(summary = "토큰 재발급", description = "Refresh Token으로 Access/Refresh 재발급")
     public ResponseEntity<ApiResponse<LoginResponse>> reissue(@Valid @RequestBody TokenReissueRequest request) {
