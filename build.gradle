@@ -50,3 +50,15 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(ProcessResources) {
+    filteringCharset = 'UTF-8'
+}
+
+tasks.named('bootRun') {
+    jvmArgs '-Dsun.stdout.encoding=UTF-8', '-Dsun.stderr.encoding=UTF-8'
+}

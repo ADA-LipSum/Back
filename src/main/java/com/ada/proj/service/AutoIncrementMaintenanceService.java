@@ -66,7 +66,6 @@ public class AutoIncrementMaintenanceService {
         safeMaintain("shutdown");
     }
 
-    // 5분마다 실행 (고정 지연: 마지막 실행 끝난 후 5분)
     @Scheduled(fixedDelayString = "PT5M")
     public void periodic() {
         if (!enabled) return;
@@ -84,13 +83,12 @@ public class AutoIncrementMaintenanceService {
     }
 
     private void maintainTable(String table) {
-    Long count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM `" + table + "`", Long.class);
-        long next = (count == null || count <= 0) ? 1 : count + 1;
-        // MySQL AUTO_INCREMENT는 최소 1입니다. 0을 원하더라도 실제 저장은 1부터 시작합니다.
-    jdbcTemplate.execute("ALTER TABLE `" + table + "` AUTO_INCREMENT = " + next);
-    log.info("[AI-MAINTAIN] 테이블={}, 행수={}, AUTO_INCREMENT={}로 설정", table, count, next);
+        String pk = getPrimaryKeyColumn(table);
+        Long maxPk = jdbcTemplate.queryForObject("SELECT MAX(`" + pk + "`) FROM `" + table + "`", Long.class);
+        long next = (maxPk == null || maxPk <= 0) ? 1 : maxPk + 1;
+        jdbcTemplate.execute("ALTER TABLE `" + table + "` AUTO_INCREMENT = " + next);
+        log.info("[AI-MAINTAIN] 테이블={}, 최대PK={}, AUTO_INCREMENT={}로 설정", table, maxPk, next);
         
-        // 2) 정렬 번호(order_column) 재계산 (옵션)
         if (resequenceEnabled) {
             try {
                 ensureOrderColumnExists(table);
@@ -100,10 +98,8 @@ public class AutoIncrementMaintenanceService {
             }
         }
 
-        // 3) (옵션) PK 재시퀀싱: 매우 주의! FK를 모두 업데이트한 후 PK를 변경
         if (resequencePrimaryEnabled && resequencePrimaryTables.contains(table)) {
             try {
-                // 트랜잭션 프록시를 통해 호출
                 self.resequencePrimaryKey(table);
             } catch (Exception e) {
                 log.warn("[AI-RESEQUENCE-PK] 테이블={} 실패: {}", table, e.getMessage());
@@ -112,7 +108,6 @@ public class AutoIncrementMaintenanceService {
     }
 
     private void ensureOrderColumnExists(String table) {
-        // 호환성을 위해 IF NOT EXISTS 사용 대신 사전 존재 여부 확인 후 추가
         if (!columnExists(table, orderColumn)) {
             String sql = "ALTER TABLE `" + table + "` ADD COLUMN `" + orderColumn + "` BIGINT NOT NULL DEFAULT 0";
             jdbcTemplate.execute(sql);
@@ -124,7 +119,6 @@ public class AutoIncrementMaintenanceService {
         boolean hasCreatedAt = columnExists(table, "created_at");
         String orderBy = hasCreatedAt ? "`created_at`, `" + pk + "`" : "`" + pk + "`";
 
-    // CTE 대신 서브쿼리 JOIN을 사용해 호환성 향상
     String sql = "UPDATE `" + table + "` t " +
         "JOIN (SELECT `" + pk + "` AS k, ROW_NUMBER() OVER (ORDER BY " + orderBy + ") AS rn FROM `" + table + "`) o " +
         "ON t.`" + pk + "` = o.k " +
@@ -152,7 +146,6 @@ public class AutoIncrementMaintenanceService {
 
     @Transactional
     protected void resequencePrimaryKey(String table) {
-        // SQL 템플릿 상수로 중복 문자열 경고 제거
         final String UPDATE_JOIN_REF_TEMPLATE = "UPDATE `%s` r JOIN `%s` m ON r.`%s` = m.old_pk SET r.`%s` = m.new_pk";
         final String UPDATE_JOIN_BASE_TEMPLATE = "UPDATE `%s` t JOIN `%s` m ON t.`%s` = m.old_pk SET t.`%s` = m.new_pk";
         final String UPDATE_MAP_ADD_OFFSET_TEMPLATE = "UPDATE `%s` SET new_pk = new_pk + %d";
@@ -165,24 +158,19 @@ public class AutoIncrementMaintenanceService {
         final String map = "tmp_pk_map_" + table;
         final long offset = 1_000_000_000L;
 
-        // 1) 매핑 테이블 준비 (TEMPORARY TABLE 사용)
         jdbcTemplate.execute("DROP TEMPORARY TABLE IF EXISTS `" + map + "`");
         jdbcTemplate.execute("CREATE TEMPORARY TABLE `" + map + "` (old_pk BIGINT PRIMARY KEY, new_pk BIGINT NOT NULL)");
         jdbcTemplate.execute("INSERT INTO `" + map + "` (old_pk, new_pk) " +
                 "SELECT `" + pk + "`, ROW_NUMBER() OVER (ORDER BY " + orderBy + ") FROM `" + table + "`");
 
-        // 2) 중복 충돌 회피를 위해 큰 offset을 더한 값으로 1차 업데이트
     jdbcTemplate.execute(String.format(UPDATE_MAP_ADD_OFFSET_TEMPLATE, map, offset));
 
-        // 2-1) FK 참조 업데이트 (참조 테이블/컬럼 탐색)
         for (FkRef fk : getReferencingFks(table, pk)) {
         jdbcTemplate.execute(String.format(UPDATE_JOIN_REF_TEMPLATE, fk.table, map, fk.column, fk.column));
         }
 
-        // 2-2) 본 테이블 PK 업데이트 (offset 적용 값으로)
     jdbcTemplate.execute(String.format(UPDATE_JOIN_BASE_TEMPLATE, table, map, pk, pk));
 
-        // 3) 최종 값으로 2차 업데이트 (offset 원복)
     jdbcTemplate.execute(String.format(UPDATE_MAP_TO_FINAL_TEMPLATE, map, offset));
 
         for (FkRef fk : getReferencingFks(table, pk)) {
