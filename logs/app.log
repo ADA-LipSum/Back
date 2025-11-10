@@ -314,3 +314,310 @@
 2025-11-10 10:19:42.339 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE] 테이블=refresh_token 컬럼=order_no 재정렬 완료, 기준=`created_at`, `id`
 2025-11-10 10:19:42.693 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=user_data, 최대PK=null, AUTO_INCREMENT=1로 설정
 2025-11-10 10:19:43.137 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE] 테이블=user_data 컬럼=order_no 재정렬 완료, 기준=`seq`
+2025-11-10 10:57:28.067 INFO  [background-preinit] o.h.validator.internal.util.Version - HV000001: Hibernate Validator 8.0.2.Final
+2025-11-10 10:57:28.116 INFO  [main] com.ada.proj.ProjApplication - Starting ProjApplication using Java 17.0.12 with PID 25972 (C:\Users\Haryu5412\Documents\Github\Back\build\classes\java\main started by Haryu5412 in C:\Users\Haryu5412\Documents\Github\Back)
+2025-11-10 10:57:28.117 INFO  [main] com.ada.proj.ProjApplication - No active profile set, falling back to 1 default profile: "default"
+2025-11-10 10:57:28.973 INFO  [main] o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-11-10 10:57:29.052 INFO  [main] o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 69 ms. Found 5 JPA repository interfaces.
+2025-11-10 10:57:29.665 INFO  [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-10 10:57:29.674 INFO  [main] o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-0.0.0.0-8080"]
+2025-11-10 10:57:29.675 INFO  [main] o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-10 10:57:29.676 INFO  [main] o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
+2025-11-10 10:57:29.748 INFO  [main] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-10 10:57:29.749 INFO  [main] o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1583 ms
+2025-11-10 10:57:29.915 INFO  [main] o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-11-10 10:57:29.966 INFO  [main] org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-11-10 10:57:30.006 INFO  [main] o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2025-11-10 10:57:30.233 INFO  [main] o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-11-10 10:57:30.258 INFO  [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-11-10 10:57:32.095 INFO  [main] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@4dffff9
+2025-11-10 10:57:32.096 INFO  [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2025-11-10 10:57:32.511 WARN  [main] org.hibernate.orm.deprecation - HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-11-10 10:57:32.526 INFO  [main] o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 8.0.35
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-11-10 10:57:33.267 INFO  [main] o.h.e.t.j.p.i.JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-11-10 10:57:36.250 INFO  [main] o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-11-10 10:57:36.418 INFO  [main] o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-11-10 10:57:37.720 WARN  [main] o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-11-10 10:57:37.746 INFO  [main] o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2025-11-10 10:57:38.563 INFO  [main] o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-0.0.0.0-8080"]
+2025-11-10 10:57:38.588 INFO  [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-10 10:57:38.602 INFO  [main] com.ada.proj.ProjApplication - Started ProjApplication in 11.005 seconds (process running for 11.338)
+2025-11-10 10:57:39.438 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=users, 최대PK=2, AUTO_INCREMENT=3로 설정
+2025-11-10 10:57:39.438 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=users, 최대PK=2, AUTO_INCREMENT=3로 설정
+2025-11-10 10:57:40.245 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE] 테이블=users 컬럼=order_no 재정렬 완료, 기준=`created_at`, `seq`
+2025-11-10 10:57:40.245 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE] 테이블=users 컬럼=order_no 재정렬 완료, 기준=`created_at`, `seq`
+2025-11-10 10:57:40.616 WARN  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 단계=startup, 테이블=posts 실패: For input string: "5ca68e77-feb0-4b2e-a953-169743979980"
+2025-11-10 10:57:40.616 WARN  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 단계=scheduled, 테이블=posts 실패: For input string: "5ca68e77-feb0-4b2e-a953-169743979980"
+2025-11-10 10:57:41.246 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=comments, 최대PK=1, AUTO_INCREMENT=2로 설정
+2025-11-10 10:57:41.251 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=comments, 최대PK=1, AUTO_INCREMENT=2로 설정
+2025-11-10 10:57:42.147 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE] 테이블=comments 컬럼=order_no 재정렬 완료, 기준=`created_at`, `id`
+2025-11-10 10:57:42.147 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE] 테이블=comments 컬럼=order_no 재정렬 완료, 기준=`created_at`, `id`
+2025-11-10 10:57:42.879 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=refresh_token, 최대PK=31, AUTO_INCREMENT=32로 설정
+2025-11-10 10:57:42.986 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=refresh_token, 최대PK=31, AUTO_INCREMENT=32로 설정
+2025-11-10 10:57:44.011 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE] 테이블=refresh_token 컬럼=order_no 재정렬 완료, 기준=`created_at`, `id`
+2025-11-10 10:57:44.011 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE] 테이블=refresh_token 컬럼=order_no 재정렬 완료, 기준=`created_at`, `id`
+2025-11-10 10:57:44.926 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=user_data, 최대PK=null, AUTO_INCREMENT=1로 설정
+2025-11-10 10:57:44.926 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=user_data, 최대PK=null, AUTO_INCREMENT=1로 설정
+2025-11-10 10:57:46.060 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE] 테이블=user_data 컬럼=order_no 재정렬 완료, 기준=`seq`
+2025-11-10 10:57:46.060 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE] 테이블=user_data 컬럼=order_no 재정렬 완료, 기준=`seq`
+2025-11-10 11:01:37.239 INFO  [background-preinit] o.h.validator.internal.util.Version - HV000001: Hibernate Validator 8.0.2.Final
+2025-11-10 11:01:37.275 INFO  [main] com.ada.proj.ProjApplication - Starting ProjApplication using Java 17.0.12 with PID 6236 (C:\Users\Haryu5412\Documents\Github\Back\build\classes\java\main started by Haryu5412 in C:\Users\Haryu5412\Documents\Github\Back)
+2025-11-10 11:01:37.279 INFO  [main] com.ada.proj.ProjApplication - No active profile set, falling back to 1 default profile: "default"
+2025-11-10 11:01:37.867 INFO  [main] o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-11-10 11:01:37.922 INFO  [main] o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 49 ms. Found 5 JPA repository interfaces.
+2025-11-10 11:01:38.402 INFO  [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-10 11:01:38.409 INFO  [main] o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-0.0.0.0-8080"]
+2025-11-10 11:01:38.412 INFO  [main] o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-10 11:01:38.412 INFO  [main] o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
+2025-11-10 11:01:38.469 INFO  [main] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-10 11:01:38.470 INFO  [main] o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1158 ms
+2025-11-10 11:01:38.564 INFO  [main] o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-11-10 11:01:38.605 INFO  [main] org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-11-10 11:01:38.629 INFO  [main] o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2025-11-10 11:01:38.833 INFO  [main] o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-11-10 11:01:38.855 INFO  [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-11-10 11:01:40.225 INFO  [main] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@2904bc56
+2025-11-10 11:01:40.227 INFO  [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2025-11-10 11:01:40.441 WARN  [main] org.hibernate.orm.deprecation - HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-11-10 11:01:40.453 INFO  [main] o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 8.0.35
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-11-10 11:01:41.146 INFO  [main] o.h.e.t.j.p.i.JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-11-10 11:01:42.682 INFO  [main] o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-11-10 11:01:42.833 INFO  [main] o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-11-10 11:01:43.788 WARN  [main] o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-11-10 11:01:43.806 INFO  [main] o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2025-11-10 11:01:44.270 INFO  [main] o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-0.0.0.0-8080"]
+2025-11-10 11:01:44.282 INFO  [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-10 11:01:44.291 INFO  [main] com.ada.proj.ProjApplication - Started ProjApplication in 7.383 seconds (process running for 7.638)
+2025-11-10 11:01:44.779 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=users, 최대PK=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:01:44.789 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=users, 최대PK=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:01:44.964 WARN  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 단계=scheduled, 테이블=posts 실패: For input string: "5ca68e77-feb0-4b2e-a953-169743979980"
+2025-11-10 11:01:44.972 WARN  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 단계=startup, 테이블=posts 실패: For input string: "5ca68e77-feb0-4b2e-a953-169743979980"
+2025-11-10 11:01:45.347 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=comments, 최대PK=1, AUTO_INCREMENT=2로 설정
+2025-11-10 11:01:45.357 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=comments, 최대PK=1, AUTO_INCREMENT=2로 설정
+2025-11-10 11:01:45.762 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=refresh_token, 최대PK=31, AUTO_INCREMENT=32로 설정
+2025-11-10 11:01:45.764 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=refresh_token, 최대PK=31, AUTO_INCREMENT=32로 설정
+2025-11-10 11:01:47.413 WARN  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE-PK] 테이블=refresh_token 실패: StatementCallback; SQL [UPDATE `refresh_token` t JOIN `tmp_pk_map_refresh_token` m ON t.`id` = m.old_pk SET t.`id` = m.new_pk]; Deadlock found when trying to get lock; try restarting transaction
+2025-11-10 11:01:47.688 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE-PK] 테이블=refresh_token 기본키 id 재시퀀싱 완료 (시작=1)
+2025-11-10 11:01:47.811 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=user_data, 최대PK=null, AUTO_INCREMENT=1로 설정
+2025-11-10 11:01:48.305 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=user_data, 최대PK=null, AUTO_INCREMENT=1로 설정
+2025-11-10 11:06:48.318 WARN  [scheduling-1] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@3b379ad0 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-11-10 11:06:48.320 WARN  [scheduling-1] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@2904bc56 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-11-10 11:06:48.320 WARN  [scheduling-1] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@267e0e8c (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-11-10 11:06:48.321 WARN  [scheduling-1] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@2198e189 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-11-10 11:06:48.322 WARN  [scheduling-1] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@379b32f5 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-11-10 11:06:48.323 WARN  [scheduling-1] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@6809cdf6 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-11-10 11:06:48.324 WARN  [scheduling-1] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@3e55b415 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-11-10 11:06:48.324 WARN  [scheduling-1] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@58a79eff (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-11-10 11:06:48.324 WARN  [scheduling-1] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@36451384 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-11-10 11:06:48.325 WARN  [scheduling-1] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@10850ec7 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-11-10 11:06:49.820 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=users, 최대PK=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:06:50.019 WARN  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 단계=scheduled, 테이블=posts 실패: For input string: "5ca68e77-feb0-4b2e-a953-169743979980"
+2025-11-10 11:06:50.512 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=comments, 최대PK=1, AUTO_INCREMENT=2로 설정
+2025-11-10 11:06:50.940 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=refresh_token, 최대PK=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:06:52.860 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE-PK] 테이블=refresh_token 기본키 id 재시퀀싱 완료 (시작=1)
+2025-11-10 11:06:53.514 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=user_data, 최대PK=null, AUTO_INCREMENT=1로 설정
+2025-11-10 11:08:12.283 INFO  [background-preinit] o.h.validator.internal.util.Version - HV000001: Hibernate Validator 8.0.2.Final
+2025-11-10 11:08:12.320 INFO  [main] com.ada.proj.ProjApplication - Starting ProjApplication using Java 17.0.12 with PID 23264 (C:\Users\Haryu5412\Documents\Github\Back\build\classes\java\main started by Haryu5412 in C:\Users\Haryu5412\Documents\Github\Back)
+2025-11-10 11:08:12.320 INFO  [main] com.ada.proj.ProjApplication - No active profile set, falling back to 1 default profile: "default"
+2025-11-10 11:08:13.147 INFO  [main] o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-11-10 11:08:13.196 INFO  [main] o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 42 ms. Found 5 JPA repository interfaces.
+2025-11-10 11:08:13.684 INFO  [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-10 11:08:13.694 INFO  [main] o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-0.0.0.0-8080"]
+2025-11-10 11:08:13.696 INFO  [main] o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-10 11:08:13.696 INFO  [main] o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
+2025-11-10 11:08:13.752 INFO  [main] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-10 11:08:13.753 INFO  [main] o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1400 ms
+2025-11-10 11:08:13.912 INFO  [main] o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-11-10 11:08:13.955 INFO  [main] org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-11-10 11:08:13.981 INFO  [main] o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2025-11-10 11:08:14.177 INFO  [main] o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-11-10 11:08:14.197 INFO  [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-11-10 11:08:15.519 INFO  [main] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@1e000a17
+2025-11-10 11:08:15.521 INFO  [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2025-11-10 11:08:15.725 WARN  [main] org.hibernate.orm.deprecation - HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-11-10 11:08:15.739 INFO  [main] o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 8.0.35
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-11-10 11:08:16.487 INFO  [main] o.h.e.t.j.p.i.JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-11-10 11:08:18.062 INFO  [main] o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-11-10 11:08:18.251 INFO  [main] o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-11-10 11:08:19.336 WARN  [main] o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-11-10 11:08:19.355 INFO  [main] o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2025-11-10 11:08:19.855 INFO  [main] o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-0.0.0.0-8080"]
+2025-11-10 11:08:19.871 INFO  [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-10 11:08:19.879 INFO  [main] com.ada.proj.ProjApplication - Started ProjApplication in 7.956 seconds (process running for 8.22)
+2025-11-10 11:08:20.415 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=users, AI컬럼=seq, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:08:20.920 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=comments, AI컬럼=id, 최대값=1, AUTO_INCREMENT=2로 설정
+2025-11-10 11:08:21.334 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=refresh_token, AI컬럼=id, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:08:23.381 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE-PK] 테이블=refresh_token 기본키 id 재시퀀싱 완료 (시작=1)
+2025-11-10 11:08:24.226 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=user_data, AI컬럼=seq, 최대값=null, AUTO_INCREMENT=1로 설정
+2025-11-10 11:08:24.714 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=users, AI컬럼=seq, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:08:25.216 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=comments, AI컬럼=id, 최대값=1, AUTO_INCREMENT=2로 설정
+2025-11-10 11:08:25.626 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=refresh_token, AI컬럼=id, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:08:27.569 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE-PK] 테이블=refresh_token 기본키 id 재시퀀싱 완료 (시작=1)
+2025-11-10 11:08:28.166 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=user_data, AI컬럼=seq, 최대값=null, AUTO_INCREMENT=1로 설정
+2025-11-10 11:12:54.532 INFO  [background-preinit] o.h.validator.internal.util.Version - HV000001: Hibernate Validator 8.0.2.Final
+2025-11-10 11:12:54.576 INFO  [main] com.ada.proj.ProjApplication - Starting ProjApplication using Java 17.0.12 with PID 29460 (C:\Users\Haryu5412\Documents\Github\Back\build\classes\java\main started by Haryu5412 in C:\Users\Haryu5412\Documents\Github\Back)
+2025-11-10 11:12:54.577 INFO  [main] com.ada.proj.ProjApplication - No active profile set, falling back to 1 default profile: "default"
+2025-11-10 11:12:55.460 INFO  [main] o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-11-10 11:12:55.541 INFO  [main] o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 70 ms. Found 5 JPA repository interfaces.
+2025-11-10 11:12:56.362 INFO  [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-10 11:12:56.375 INFO  [main] o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-0.0.0.0-8080"]
+2025-11-10 11:12:56.378 INFO  [main] o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-10 11:12:56.378 INFO  [main] o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
+2025-11-10 11:12:56.480 INFO  [main] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-10 11:12:56.482 INFO  [main] o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1869 ms
+2025-11-10 11:12:56.787 INFO  [main] o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-11-10 11:12:56.895 INFO  [main] org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-11-10 11:12:56.946 INFO  [main] o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2025-11-10 11:12:57.303 INFO  [main] o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-11-10 11:12:57.340 INFO  [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-11-10 11:12:59.050 INFO  [main] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@4b22214d
+2025-11-10 11:12:59.053 INFO  [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2025-11-10 11:12:59.287 WARN  [main] org.hibernate.orm.deprecation - HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-11-10 11:12:59.311 INFO  [main] o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 8.0.35
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-11-10 11:13:00.595 INFO  [main] o.h.e.t.j.p.i.JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-11-10 11:13:02.057 INFO  [main] o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-11-10 11:13:02.330 INFO  [main] o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-11-10 11:13:04.264 WARN  [main] o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-11-10 11:13:04.301 INFO  [main] o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2025-11-10 11:13:05.227 INFO  [main] o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-0.0.0.0-8080"]
+2025-11-10 11:13:05.272 INFO  [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-10 11:13:05.290 INFO  [main] com.ada.proj.ProjApplication - Started ProjApplication in 11.168 seconds (process running for 11.509)
+2025-11-10 11:13:05.778 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=users, AI컬럼=seq, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:13:06.294 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=comments, AI컬럼=id, 최대값=1, AUTO_INCREMENT=2로 설정
+2025-11-10 11:13:06.740 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=refresh_token, AI컬럼=id, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:13:08.571 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE-PK] 테이블=refresh_token 기본키 id 재시퀀싱 완료 (시작=1)
+2025-11-10 11:13:09.217 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=user_data, AI컬럼=seq, 최대값=null, AUTO_INCREMENT=1로 설정
+2025-11-10 11:13:09.589 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=users, AI컬럼=seq, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:13:10.083 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=comments, AI컬럼=id, 최대값=1, AUTO_INCREMENT=2로 설정
+2025-11-10 11:13:10.474 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=refresh_token, AI컬럼=id, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:13:12.329 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE-PK] 테이블=refresh_token 기본키 id 재시퀀싱 완료 (시작=1)
+2025-11-10 11:13:12.874 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=user_data, AI컬럼=seq, 최대값=null, AUTO_INCREMENT=1로 설정
+2025-11-10 11:13:17.711 INFO  [http-nio-0.0.0.0-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-10 11:13:17.712 INFO  [http-nio-0.0.0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-10 11:13:17.713 INFO  [http-nio-0.0.0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-10 11:13:21.868 INFO  [http-nio-0.0.0.0-8080-exec-10] o.s.api.AbstractOpenApiResource - Init duration for springdoc-openapi is: 595 ms
+2025-11-10 11:16:35.808 INFO  [background-preinit] o.h.validator.internal.util.Version - HV000001: Hibernate Validator 8.0.2.Final
+2025-11-10 11:16:35.893 INFO  [main] com.ada.proj.ProjApplication - Starting ProjApplication using Java 17.0.12 with PID 29976 (C:\Users\Haryu5412\Documents\Github\Back\build\classes\java\main started by Haryu5412 in C:\Users\Haryu5412\Documents\Github\Back)
+2025-11-10 11:16:35.893 INFO  [main] com.ada.proj.ProjApplication - No active profile set, falling back to 1 default profile: "default"
+2025-11-10 11:16:37.028 INFO  [main] o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-11-10 11:16:37.116 INFO  [main] o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 78 ms. Found 5 JPA repository interfaces.
+2025-11-10 11:16:38.003 INFO  [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-10 11:16:38.014 INFO  [main] o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-0.0.0.0-8080"]
+2025-11-10 11:16:38.017 INFO  [main] o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-10 11:16:38.017 INFO  [main] o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
+2025-11-10 11:16:38.098 INFO  [main] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-10 11:16:38.099 INFO  [main] o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 2156 ms
+2025-11-10 11:16:38.210 INFO  [main] o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-11-10 11:16:38.261 INFO  [main] org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-11-10 11:16:38.290 INFO  [main] o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2025-11-10 11:16:38.554 INFO  [main] o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-11-10 11:16:38.588 INFO  [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-11-10 11:16:39.958 INFO  [main] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@432f4626
+2025-11-10 11:16:39.960 INFO  [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2025-11-10 11:16:40.182 WARN  [main] org.hibernate.orm.deprecation - HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-11-10 11:16:40.198 INFO  [main] o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 8.0.35
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-11-10 11:16:40.982 INFO  [main] o.h.e.t.j.p.i.JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-11-10 11:16:42.960 INFO  [main] o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-11-10 11:16:43.250 INFO  [main] o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-11-10 11:16:44.981 WARN  [main] o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-11-10 11:16:45.015 INFO  [main] o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2025-11-10 11:16:45.910 INFO  [main] o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-0.0.0.0-8080"]
+2025-11-10 11:16:45.930 INFO  [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-10 11:16:45.943 INFO  [main] com.ada.proj.ProjApplication - Started ProjApplication in 10.724 seconds (process running for 11.24)
+2025-11-10 11:16:47.365 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=users, AI컬럼=seq, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:16:48.486 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=comments, AI컬럼=id, 최대값=1, AUTO_INCREMENT=2로 설정
+2025-11-10 11:16:49.408 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=refresh_token, AI컬럼=id, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:16:52.992 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE-PK] 테이블=refresh_token 기본키 id 재시퀀싱 완료 (시작=1)
+2025-11-10 11:16:53.809 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=user_data, AI컬럼=seq, 최대값=null, AUTO_INCREMENT=1로 설정
+2025-11-10 11:16:54.264 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=users, AI컬럼=seq, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:16:54.830 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=comments, AI컬럼=id, 최대값=1, AUTO_INCREMENT=2로 설정
+2025-11-10 11:16:55.200 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=refresh_token, AI컬럼=id, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:16:57.266 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE-PK] 테이블=refresh_token 기본키 id 재시퀀싱 완료 (시작=1)
+2025-11-10 11:16:57.858 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=user_data, AI컬럼=seq, 최대값=null, AUTO_INCREMENT=1로 설정
+2025-11-10 11:17:37.581 INFO  [http-nio-0.0.0.0-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-10 11:17:37.581 INFO  [http-nio-0.0.0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-10 11:17:37.583 INFO  [http-nio-0.0.0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
+2025-11-10 11:17:41.515 INFO  [http-nio-0.0.0.0-8080-exec-3] o.s.api.AbstractOpenApiResource - Init duration for springdoc-openapi is: 583 ms
+2025-11-10 11:21:46.962 INFO  [background-preinit] o.h.validator.internal.util.Version - HV000001: Hibernate Validator 8.0.2.Final
+2025-11-10 11:21:47.005 INFO  [main] com.ada.proj.ProjApplication - Starting ProjApplication using Java 17.0.12 with PID 20936 (C:\Users\Haryu5412\Documents\Github\Back\build\classes\java\main started by Haryu5412 in C:\Users\Haryu5412\Documents\Github\Back)
+2025-11-10 11:21:47.006 INFO  [main] com.ada.proj.ProjApplication - No active profile set, falling back to 1 default profile: "default"
+2025-11-10 11:21:47.687 INFO  [main] o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-11-10 11:21:47.741 INFO  [main] o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 46 ms. Found 5 JPA repository interfaces.
+2025-11-10 11:21:48.425 INFO  [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-10 11:21:48.437 INFO  [main] o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-0.0.0.0-8080"]
+2025-11-10 11:21:48.439 INFO  [main] o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-10 11:21:48.439 INFO  [main] o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
+2025-11-10 11:21:48.517 INFO  [main] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-10 11:21:48.519 INFO  [main] o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1476 ms
+2025-11-10 11:21:48.703 INFO  [main] o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-11-10 11:21:48.770 INFO  [main] org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-11-10 11:21:48.812 INFO  [main] o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2025-11-10 11:21:49.132 INFO  [main] o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-11-10 11:21:49.173 INFO  [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-11-10 11:21:50.816 INFO  [main] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@537451d5
+2025-11-10 11:21:50.817 INFO  [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2025-11-10 11:21:51.085 WARN  [main] org.hibernate.orm.deprecation - HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-11-10 11:21:51.104 INFO  [main] o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 8.0.35
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-11-10 11:21:52.447 INFO  [main] o.h.e.t.j.p.i.JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-11-10 11:21:54.191 INFO  [main] o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-11-10 11:21:54.373 INFO  [main] o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-11-10 11:21:55.461 WARN  [main] o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-11-10 11:21:55.479 INFO  [main] o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2025-11-10 11:21:56.042 INFO  [main] o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-0.0.0.0-8080"]
+2025-11-10 11:21:56.055 INFO  [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-10 11:21:56.064 INFO  [main] com.ada.proj.ProjApplication - Started ProjApplication in 9.524 seconds (process running for 9.816)
+2025-11-10 11:21:57.124 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=users, AI컬럼=seq, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:21:57.590 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=comments, AI컬럼=id, 최대값=1, AUTO_INCREMENT=2로 설정
+2025-11-10 11:21:57.959 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=refresh_token, AI컬럼=id, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:21:59.836 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE-PK] 테이블=refresh_token 기본키 id 재시퀀싱 완료 (시작=1)
+2025-11-10 11:22:00.421 INFO  [main] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=user_data, AI컬럼=seq, 최대값=null, AUTO_INCREMENT=1로 설정
+2025-11-10 11:22:00.831 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=users, AI컬럼=seq, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:22:01.341 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=comments, AI컬럼=id, 최대값=1, AUTO_INCREMENT=2로 설정
+2025-11-10 11:22:01.713 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=refresh_token, AI컬럼=id, 최대값=2, AUTO_INCREMENT=3로 설정
+2025-11-10 11:22:03.609 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-RESEQUENCE-PK] 테이블=refresh_token 기본키 id 재시퀀싱 완료 (시작=1)
+2025-11-10 11:22:04.203 INFO  [scheduling-1] c.a.p.s.AutoIncrementMaintenanceService - [AI-MAINTAIN] 테이블=user_data, AI컬럼=seq, 최대값=null, AUTO_INCREMENT=1로 설정
+2025-11-10 11:22:11.303 INFO  [http-nio-0.0.0.0-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-10 11:22:11.303 INFO  [http-nio-0.0.0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-10 11:22:11.306 INFO  [http-nio-0.0.0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet - Completed initialization in 3 ms

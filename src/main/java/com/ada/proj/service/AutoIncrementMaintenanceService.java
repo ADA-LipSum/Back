@@ -27,6 +27,7 @@ public class AutoIncrementMaintenanceService {
     private final boolean resequencePrimaryEnabled;
     private final List<String> resequencePrimaryTables;
     private final AutoIncrementMaintenanceService self;
+    private final Object maintainMutex = new Object();
 
     public AutoIncrementMaintenanceService(
         JdbcTemplate jdbcTemplate,
@@ -73,21 +74,38 @@ public class AutoIncrementMaintenanceService {
     }
 
     private void safeMaintain(String phase) {
-        for (String table : tables) {
-            try {
-                maintainTable(table);
-            } catch (Exception e) {
-                log.warn("[AI-MAINTAIN] 단계={}, 테이블={} 실패: {}", phase, table, e.getMessage());
+        synchronized (maintainMutex) {
+            for (String table : tables) {
+                try {
+                    maintainTable(table);
+                } catch (Exception e) {
+                    log.warn("[AI-MAINTAIN] 단계={}, 테이블={} 실패: {}", phase, table, e.getMessage());
+                }
             }
         }
     }
 
     private void maintainTable(String table) {
-        String pk = getPrimaryKeyColumn(table);
-        Long maxPk = jdbcTemplate.queryForObject("SELECT MAX(`" + pk + "`) FROM `" + table + "`", Long.class);
-        long next = (maxPk == null || maxPk <= 0) ? 1 : maxPk + 1;
-        jdbcTemplate.execute("ALTER TABLE `" + table + "` AUTO_INCREMENT = " + next);
-        log.info("[AI-MAINTAIN] 테이블={}, 최대PK={}, AUTO_INCREMENT={}로 설정", table, maxPk, next);
+    // PK 컬럼명은 이후 resequence 로직에서 필요할 때 별도로 조회한다.
+    // (AUTO_INCREMENT 컬럼과 PK가 다를 수 있으므로 여기서는 조회하지 않음)
+            // 1) 테이블의 AUTO_INCREMENT 대상 컬럼을 정보 스키마에서 조회
+            String aiColumn = getAutoIncrementColumn(table);
+            if (aiColumn == null) {
+                // 자동 증가 컬럼이 없는 테이블이면 스킵 (예: PK가 UUID인 테이블)
+                log.debug("[AI-MAINTAIN] 테이블={} 자동증가 컬럼 없음 – 건너뜀", table);
+                return;
+            }
+
+            // 2) 해당 컬럼의 최대값을 기준으로 다음 AUTO_INCREMENT 값을 계산
+            Long maxVal = jdbcTemplate.queryForObject(
+                "SELECT MAX(`" + aiColumn + "`) FROM `" + table + "`",
+                Long.class
+            );
+            long next = (maxVal == null || maxVal <= 0) ? 1 : maxVal + 1;
+
+            // 3) AUTO_INCREMENT 적용 (최소값은 1)
+            jdbcTemplate.execute("ALTER TABLE `" + table + "` AUTO_INCREMENT = " + next);
+            log.info("[AI-MAINTAIN] 테이블={}, AI컬럼={}, 최대값={}, AUTO_INCREMENT={}로 설정", table, aiColumn, maxVal, next);
         
         if (resequenceEnabled) {
             try {
@@ -135,6 +153,13 @@ public class AutoIncrementMaintenanceService {
                 " WHERE t.CONSTRAINT_TYPE = 'PRIMARY KEY'" +
                 " AND t.TABLE_SCHEMA = DATABASE() AND t.TABLE_NAME = ?";
         return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> rs.getString(1), table);
+    }
+
+    private String getAutoIncrementColumn(String table) {
+        String sql = "SELECT COLUMN_NAME FROM information_schema.COLUMNS " +
+                "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND EXTRA LIKE '%auto_increment%'";
+        List<String> cols = jdbcTemplate.query(sql, (rs, rn) -> rs.getString(1), table);
+        return cols.isEmpty() ? null : cols.get(0);
     }
 
     private boolean columnExists(String table, String column) {
