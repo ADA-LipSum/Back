@@ -1,5 +1,7 @@
 package com.ada.proj.service;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
 import org.slf4j.Logger;
@@ -48,8 +50,15 @@ public class AuthService {
         User user = findUserForLogin(request.getId());
         ensurePasswordMatchesAndUpgrade(user, request.getPassword(), request.getId());
 
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
+    // 첫 로그인 여부 판단 및 업데이트
+    boolean isFirstLogin = (user.getLoginCount() == 0L);
+    user.setLoginCount(user.getLoginCount() + 1);
+    user.setLastLoginAt(Instant.now());
+    // 첫 로그인 시 프로필 이미지 기본값(identicon) 설정
+    setDefaultAvatarIfFirstLogin(user, isFirstLogin);
+
+    String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
+    String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
 
         // 기존 refresh 삭제 후 저장(1인 1개 정책)
         refreshTokenRepository.findByUuid(user.getUuid()).ifPresent(rt -> refreshTokenRepository.deleteByUuid(user.getUuid()));
@@ -61,12 +70,18 @@ public class AuthService {
                 .build();
         refreshTokenRepository.save(entity);
 
-        LoginResponse resp = LoginResponse.builder()
-                .tokenType("Bearer")
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .expiresIn(900_000)
-                .build();
+    LoginResponse resp = LoginResponse.builder()
+        .tokenType("Bearer")
+        .accessToken(accessToken)
+        .refreshToken(refreshToken)
+        .expiresIn(900_000)
+        .uuid(user.getUuid())
+        .role(user.getRole())
+        .userRealname(user.getUserRealname())
+        .userNickname(user.getUserNickname())
+        .profileImage(user.getProfileImage())
+        .firstLogin(isFirstLogin)
+        .build();
         if (log.isInfoEnabled()) {
             log.info("[AUTH] login success uuid={} role={}", safeUuid(user.getUuid()), user.getRole());
         }
@@ -89,8 +104,14 @@ public class AuthService {
             throw new IllegalArgumentException("Invalid id or password");
         }
 
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
+    boolean isFirstLogin = (user.getLoginCount() == 0L);
+    user.setLoginCount(user.getLoginCount() + 1);
+    user.setLastLoginAt(Instant.now());
+    // 첫 로그인 시 프로필 이미지 기본값(identicon) 설정
+    setDefaultAvatarIfFirstLogin(user, isFirstLogin);
+
+    String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
+    String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
 
         refreshTokenRepository.findByUuid(user.getUuid()).ifPresent(rt -> refreshTokenRepository.deleteByUuid(user.getUuid()));
 
@@ -101,12 +122,18 @@ public class AuthService {
                 .build();
         refreshTokenRepository.save(entity);
 
-        LoginResponse resp = LoginResponse.builder()
-                .tokenType("Bearer")
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .expiresIn(900_000)
-                .build();
+    LoginResponse resp = LoginResponse.builder()
+        .tokenType("Bearer")
+        .accessToken(accessToken)
+        .refreshToken(refreshToken)
+        .expiresIn(900_000)
+        .uuid(user.getUuid())
+        .role(user.getRole())
+        .userRealname(user.getUserRealname())
+        .userNickname(user.getUserNickname())
+        .profileImage(user.getProfileImage())
+        .firstLogin(isFirstLogin)
+        .build();
         if (log.isInfoEnabled()) {
             log.info("[AUTH] admin login success uuid={} role={}", safeUuid(user.getUuid()), user.getRole());
         }
@@ -128,8 +155,14 @@ public class AuthService {
             throw new IllegalArgumentException("Invalid id or password");
         }
 
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
+    boolean isFirstLogin = (user.getLoginCount() == 0L);
+    user.setLoginCount(user.getLoginCount() + 1);
+    user.setLastLoginAt(Instant.now());
+    // 첫 로그인 시 프로필 이미지 기본값(identicon) 설정
+    setDefaultAvatarIfFirstLogin(user, isFirstLogin);
+
+    String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
+    String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
 
         refreshTokenRepository.findByUuid(user.getUuid()).ifPresent(rt -> refreshTokenRepository.deleteByUuid(user.getUuid()));
 
@@ -140,12 +173,18 @@ public class AuthService {
                 .build();
         refreshTokenRepository.save(entity);
 
-        LoginResponse resp = LoginResponse.builder()
-                .tokenType("Bearer")
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .expiresIn(900_000)
-                .build();
+    LoginResponse resp = LoginResponse.builder()
+        .tokenType("Bearer")
+        .accessToken(accessToken)
+        .refreshToken(refreshToken)
+        .expiresIn(900_000)
+        .uuid(user.getUuid())
+        .role(user.getRole())
+        .userRealname(user.getUserRealname())
+        .userNickname(user.getUserNickname())
+        .profileImage(user.getProfileImage())
+        .firstLogin(isFirstLogin)
+        .build();
         if (log.isInfoEnabled()) {
             log.info("[AUTH] teacher login success uuid={} role={}", safeUuid(user.getUuid()), user.getRole());
         }
@@ -220,12 +259,25 @@ public class AuthService {
         stored.setToken(newRefresh);
         stored.setExpiresAt(Instant.now().plusMillis(604800000));
 
-        LoginResponse resp = LoginResponse.builder()
-                .tokenType("Bearer")
-                .accessToken(newAccess)
-                .refreshToken(newRefresh)
-                .expiresIn(900_000)
-                .build();
+    // uuid / role 로 사용자 조회하여 프로필 포함 (토큰 재발급에도 일관된 응답)
+    User user = userRepository.findByUuid(uuid)
+        .orElse(null); // 없어도 토큰은 재발급 가능하지만 일반적으로 존재해야 함
+
+    LoginResponse.LoginResponseBuilder builder = LoginResponse.builder()
+        .tokenType("Bearer")
+        .accessToken(newAccess)
+        .refreshToken(newRefresh)
+        .expiresIn(900_000)
+        .uuid(uuid)
+        .role(role == null ? null : com.ada.proj.entity.Role.valueOf(role));
+
+    if (user != null) {
+        builder.userRealname(user.getUserRealname())
+           .userNickname(user.getUserNickname())
+           .profileImage(user.getProfileImage())
+           .firstLogin(user.getLoginCount() == 0L);
+    }
+    LoginResponse resp = builder.build();
         if (log.isInfoEnabled()) {
             log.info("[AUTH] refresh success uuid={} ", safeUuid(uuid));
         }
@@ -285,5 +337,20 @@ public class AuthService {
     private String safeUuid(String uuid) {
         if (uuid == null || uuid.length() < 4) return String.valueOf(uuid);
         return "****" + uuid.substring(uuid.length() - 4);
+    }
+    /**
+     * 첫 로그인 시 기본 identicon 아바타를 설정합니다.
+     * seed 재사용을 방지하기 위해 사용자 UUID를 시드로 사용합니다(전역 유일).
+     * 이미 프로필 이미지가 있는 경우 건드리지 않습니다.
+     */
+    private void setDefaultAvatarIfFirstLogin(User user, boolean isFirstLogin) {
+        if (!isFirstLogin) return;
+        String current = user.getProfileImage();
+        if (current != null && !current.isBlank()) return;
+        // DiceBear identicon URL 생성 (seed는 사용자 UUID 사용: 전역 유일, 재사용 방지)
+        String seed = user.getUuid() == null ? java.util.UUID.randomUUID().toString() : user.getUuid().replace("-", "");
+        String encodedSeed = URLEncoder.encode(seed, StandardCharsets.UTF_8);
+        String url = "https://api.dicebear.com/9.x/identicon/svg?seed=" + encodedSeed;
+        user.setProfileImage(url);
     }
 }

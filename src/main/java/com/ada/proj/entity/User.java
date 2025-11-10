@@ -76,6 +76,14 @@ public class User {
         @Builder.Default
         private boolean useNickname = false;
 
+    // 로그인 추적: 첫 로그인 여부 판단을 위해 사용
+    @Column(name = "login_count", nullable = false)
+    @Builder.Default
+    private long loginCount = 0L;
+
+    @Column(name = "last_login_at")
+    private Instant lastLoginAt;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false)
     private Instant createdAt;

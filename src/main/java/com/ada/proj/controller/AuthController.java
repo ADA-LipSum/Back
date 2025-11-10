@@ -41,17 +41,20 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok(res));
     }
 
+    // 통합 로그인으로 전환됨: 하위 호환을 위해 기존 엔드포인트는 동일 동작으로 위임합니다.
+    @Deprecated
     @PostMapping("/admin/login")
-    @Operation(summary = "관리자 전용 로그인", description = "ADMIN 역할 계정만 로그인 허용. 일반 계정은 여기서 인증 불가")
+    @Operation(summary = "[Deprecated] 관리자 전용 로그인", description = "통합 로그인으로 대체됨. /auth/login 사용. 응답의 role 로 분기")
     public ResponseEntity<ApiResponse<LoginResponse>> adminLogin(@Valid @RequestBody LoginRequest request) {
-        LoginResponse res = authService.adminLogin(request);
+        LoginResponse res = authService.login(request);
         return ResponseEntity.ok(ApiResponse.ok(res));
     }
 
+    @Deprecated
     @PostMapping("/teacher/login")
-    @Operation(summary = "선생님 전용 로그인", description = "TEACHER 역할 계정만 로그인 허용")
+    @Operation(summary = "[Deprecated] 선생님 전용 로그인", description = "통합 로그인으로 대체됨. /auth/login 사용. 응답의 role 로 분기")
     public ResponseEntity<ApiResponse<LoginResponse>> teacherLogin(@Valid @RequestBody LoginRequest request) {
-        LoginResponse res = authService.teacherLogin(request);
+        LoginResponse res = authService.login(request);
         return ResponseEntity.ok(ApiResponse.ok(res));
     }
 
