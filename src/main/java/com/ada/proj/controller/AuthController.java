@@ -1,14 +1,25 @@
 package com.ada.proj.controller;
 
-import com.ada.proj.dto.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.ada.proj.dto.ApiResponse;
+import com.ada.proj.dto.CreateUserRequest;
+import com.ada.proj.dto.CreateUserResponse;
+import com.ada.proj.dto.LoginRequest;
+import com.ada.proj.dto.LoginResponse;
+import com.ada.proj.dto.TeacherSignupRequest;
+import com.ada.proj.dto.TokenReissueRequest;
 import com.ada.proj.service.AuthService;
 import com.ada.proj.service.UserService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
@@ -37,6 +48,13 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok(res));
     }
 
+    @PostMapping("/teacher/login")
+    @Operation(summary = "선생님 전용 로그인", description = "TEACHER 역할 계정만 로그인 허용")
+    public ResponseEntity<ApiResponse<LoginResponse>> teacherLogin(@Valid @RequestBody LoginRequest request) {
+        LoginResponse res = authService.teacherLogin(request);
+        return ResponseEntity.ok(ApiResponse.ok(res));
+    }
+
     @PostMapping("/reissue")
     @Operation(summary = "토큰 재발급", description = "Refresh Token으로 Access/Refresh 재발급")
     public ResponseEntity<ApiResponse<LoginResponse>> reissue(@Valid @RequestBody TokenReissueRequest request) {
@@ -50,6 +68,22 @@ public class AuthController {
         String uuid = authentication.getName();
         authService.logout(uuid);
         return ResponseEntity.ok(ApiResponse.okMessage("logged out"));
+    }
+
+    @PostMapping("/logout/all")
+    @Operation(summary = "전체 로그아웃", description = "역할 무관 전체 사용자 로그아웃 (관리자 전용). 모든 refresh 토큰 폐기")
+    public ResponseEntity<ApiResponse<Void>> globalLogout(Authentication authentication) {
+        // 관리자 권한 체크는 서비스 내부 혹은 여기서 수행
+        authService.globalLogout(authentication);
+        return ResponseEntity.ok(ApiResponse.okMessage("all users logged out"));
+    }
+
+    @PostMapping("/signup/teacher")
+    @Operation(summary = "선생님 회원가입", description = "선생님 역할 계정을 직접 생성")
+    public ResponseEntity<ApiResponse<CreateUserResponse>> signupTeacher(@Valid @RequestBody TeacherSignupRequest req) {
+        var user = authService.signupTeacher(req);
+        CreateUserResponse res = new CreateUserResponse(user.getUuid(), user.getAdminId(), user.getCustomId(), user.getRole());
+        return ResponseEntity.ok(ApiResponse.ok(res));
     }
 
     @PostMapping("/admin/create")

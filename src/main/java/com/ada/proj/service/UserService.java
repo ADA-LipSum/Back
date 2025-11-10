@@ -1,5 +1,6 @@
 package com.ada.proj.service;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -8,6 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.ada.proj.dto.CreateCustomLoginRequest;
 import com.ada.proj.dto.CreateUserRequest;
@@ -19,6 +21,7 @@ import com.ada.proj.entity.User;
 import com.ada.proj.entity.UserData;
 import com.ada.proj.repository.UserDataRepository;
 import com.ada.proj.repository.UserRepository;
+import com.ada.proj.service.FileStorageService.StoredFile;
 
 @Service
 @Transactional
@@ -27,13 +30,16 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserDataRepository userDataRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FileStorageService fileStorageService;
 
     public UserService(UserRepository userRepository,
                        UserDataRepository userDataRepository,
-                       PasswordEncoder passwordEncoder) {
+                       PasswordEncoder passwordEncoder,
+                       FileStorageService fileStorageService) {
         this.userRepository = userRepository;
         this.userDataRepository = userDataRepository;
         this.passwordEncoder = passwordEncoder;
+        this.fileStorageService = fileStorageService;
     }
 
     public List<User> listUsers(Role role, String query) {
@@ -83,6 +89,30 @@ public class UserService {
         if (req.getNickname() != null) user.setUserNickname(req.getNickname());
         if (req.getProfileImage() != null) user.setProfileImage(req.getProfileImage());
         if (req.getProfileBanner() != null) user.setProfileBanner(req.getProfileBanner());
+    }
+
+    /**
+     * 프로필 이미지 업로드 + DB 저장 (서버 저장 → URL 반환 → DB 저장 일괄 처리)
+     */
+    public UserProfileResponse uploadProfileImage(String uuid, MultipartFile file, Authentication auth) throws IOException {
+        ensureSelfOrAdmin(auth, uuid);
+        User user = userRepository.findByUuid(uuid)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        StoredFile saved = fileStorageService.storeImage(file);
+        user.setProfileImage(saved.url());
+        return getUserProfile(uuid);
+    }
+
+    /**
+     * 프로필 배너 업로드 + DB 저장 (서버 저장 → URL 반환 → DB 저장 일괄 처리)
+     */
+    public UserProfileResponse uploadProfileBanner(String uuid, MultipartFile file, Authentication auth) throws IOException {
+        ensureSelfOrAdmin(auth, uuid);
+        User user = userRepository.findByUuid(uuid)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        StoredFile saved = fileStorageService.storeImage(file);
+        user.setProfileBanner(saved.url());
+        return getUserProfile(uuid);
     }
 
     public void createCustomLogin(String uuid, CreateCustomLoginRequest req, Authentication auth) {

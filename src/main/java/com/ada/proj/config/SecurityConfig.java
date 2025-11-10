@@ -43,14 +43,14 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
             .requestMatchers(
                 "/auth/**",
-                "/healthz",
+                "/health",
                 "/api/health",
                 "/v3/api-docs",
                 "/v3/api-docs/**",
                 "/swagger-ui/**",
                 "/swagger-ui.html",
-                "/files/**", // 업로드된 정적 파일 공개 제공
-                "/tools/**",  // 테스트 템플릿 정적 페이지 허용
+                "/files/**",
+                "/tools/**",
                 "/post/list",
                 "/post/view"
             ).permitAll()

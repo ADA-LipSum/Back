@@ -4,12 +4,15 @@ import java.time.Instant;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ada.proj.dto.LoginRequest;
 import com.ada.proj.dto.LoginResponse;
+import com.ada.proj.dto.TeacherSignupRequest;
 import com.ada.proj.dto.TokenReissueRequest;
 import com.ada.proj.entity.RefreshToken;
 import com.ada.proj.entity.Role;
@@ -110,6 +113,45 @@ public class AuthService {
         return resp;
     }
 
+    public LoginResponse teacherLogin(LoginRequest request) {
+        if (log.isInfoEnabled()) {
+            log.info("[AUTH] teacher login attempt id={}", safeId(request.getId()));
+        }
+        User user = findUserForLogin(request.getId());
+        ensurePasswordMatchesAndUpgrade(user, request.getPassword(), request.getId());
+
+        // 선생님 전용 체크
+        if (user.getRole() != Role.TEACHER) {
+            if (log.isWarnEnabled()) {
+                log.warn("[AUTH] teacher login rejected: not teacher uuid={} role={}", safeUuid(user.getUuid()), user.getRole());
+            }
+            throw new IllegalArgumentException("Invalid id or password");
+        }
+
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
+
+        refreshTokenRepository.findByUuid(user.getUuid()).ifPresent(rt -> refreshTokenRepository.deleteByUuid(user.getUuid()));
+
+        RefreshToken entity = RefreshToken.builder()
+                .uuid(user.getUuid())
+                .token(refreshToken)
+                .expiresAt(Instant.now().plusMillis(604800000))
+                .build();
+        refreshTokenRepository.save(entity);
+
+        LoginResponse resp = LoginResponse.builder()
+                .tokenType("Bearer")
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .expiresIn(900_000)
+                .build();
+        if (log.isInfoEnabled()) {
+            log.info("[AUTH] teacher login success uuid={} role={}", safeUuid(user.getUuid()), user.getRole());
+        }
+        return resp;
+    }
+
     private User findUserForLogin(String id) {
         return userRepository.findByAdminId(id)
                 .or(() -> userRepository.findByCustomId(id))
@@ -195,6 +237,43 @@ public class AuthService {
         if (log.isInfoEnabled()) {
             log.info("[AUTH] logout uuid={}", safeUuid(uuid));
         }
+    }
+
+    /**
+     * 관리자 전용: 모든 사용자의 refresh 토큰을 일괄 폐기 (사실상 전체 로그아웃)
+     */
+    public void globalLogout(Authentication authentication) {
+        if (authentication == null || authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).noneMatch(a -> a.equals("ROLE_ADMIN"))) {
+            throw new SecurityException("Forbidden");
+        }
+        refreshTokenRepository.deleteAll();
+        if (log.isWarnEnabled()) {
+            log.warn("[AUTH] global logout executed by admin uuid={}", authentication.getName());
+        }
+    }
+
+    /**
+     * 선생님 자가 회원가입
+     */
+    public User signupTeacher(TeacherSignupRequest req) {
+        // teacherId 를 adminId 로 사용
+        userRepository.findByAdminId(req.getTeacherId()).ifPresent(u -> {
+            throw new IllegalArgumentException("teacherId already exists");
+        });
+        if (userRepository.existsByCustomId(req.getCustomId())) {
+            throw new IllegalArgumentException("customId already exists");
+        }
+
+        User user = User.builder()
+                .uuid(java.util.UUID.randomUUID().toString())
+                .adminId(req.getTeacherId())
+                .customId(req.getCustomId())
+                .password(passwordEncoder.encode(req.getPassword()))
+                .userRealname(req.getUserRealname())
+                .userNickname(req.getUserNickname())
+                .role(Role.TEACHER)
+                .build();
+        return userRepository.save(user);
     }
 
     private String safeId(String id) {
