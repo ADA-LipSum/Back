@@ -35,3 +35,10 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Logs ###
+# Log files
+*.log
+*.log.*
+# Log directory
+/logs/
