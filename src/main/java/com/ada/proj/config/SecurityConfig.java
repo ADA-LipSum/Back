@@ -41,19 +41,19 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-            .requestMatchers(
-                "/auth/**",
-                "/health",
-                "/api/health",
-                "/v3/api-docs",
-                "/v3/api-docs/**",
-                "/swagger-ui/**",
-                "/swagger-ui.html",
-                "/files/**",
-                "/tools/**",
-                "/post/list",
-                "/post/view"
-            ).permitAll()
+                        .requestMatchers(
+                                "/auth/**",
+                                "/health",
+                                "/api/health",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/files/**",
+                                "/tools/**",
+                                "/post/list",
+                                "/post/view"
+                        ).permitAll()
                         .requestMatchers("/users", "/users/*/role").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
