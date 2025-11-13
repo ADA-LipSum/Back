@@ -18,7 +18,10 @@ public class OpenApiConfig {
     public OpenAPI openAPI() {
         String schemeName = "bearerAuth";
         return new OpenAPI()
-                .info(new Info().title("ADA Proj API").version("v1"))
+                .info(new Info()
+                        .title("ADA 프로젝트 API")
+                        .version("v1")
+                        .description("JWT Bearer 토큰으로 Authorize 후 포인트/게시물/사용자 API를 이용하세요."))
         .servers(List.of(new Server().url("/")))
                 .addSecurityItem(new SecurityRequirement().addList(schemeName))
                 .components(new Components().addSecuritySchemes(schemeName,
