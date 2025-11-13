@@ -1,7 +1,9 @@
 package com.ada.proj.controller;
 
 import java.util.List;
+import java.util.Map;
 
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -44,21 +46,37 @@ public class CommentController {
         return ResponseEntity.ok(commentService.getCommentsByPost(postId));
     }
 
-    @PreAuthorize("isAuthenticated()")
-    @PutMapping("/{id}")
-    @Operation(summary = "댓글 수정", description = "본인이 작성한 댓글만 수정할 수 있습니다.")
+    @PutMapping("/comments/{commentId}")
+    @Operation(summary = "댓글 수정", description = "로그인한 사용자가 자신의 댓글 내용을 수정합니다. 본인이 작성한 댓글만 수정할 수 있습니다.")
     public ResponseEntity<CommentResponse> updateComment(
-            @Parameter(description = "댓글 ID (PK)") @PathVariable Long id,
-            @RequestBody CommentUpdateRequest request) {
-        return ResponseEntity.ok(commentService.updateComment(id, request));
+            @PathVariable Long commentId,
+            @Valid @RequestBody CommentUpdateRequest req
+    ) {
+        return ResponseEntity.ok(commentService.updateComment(commentId, req));
     }
 
-    @PreAuthorize("isAuthenticated()")
-    @DeleteMapping("/{id}")
-    @Operation(summary = "댓글 삭제", description = "본인이 작성한 댓글만 삭제할 수 있습니다. 하위 대댓글이 있으면 함께 제거됩니다.")
-    public ResponseEntity<Void> deleteComment(
-            @Parameter(description = "댓글 ID (PK)") @PathVariable Long id) {
-        commentService.deleteComment(id);
-        return ResponseEntity.noContent().build();
+    @DeleteMapping("/comments/{commentId}")
+    @Operation(summary = "댓글 삭제", description = "로그인한 사용자가 자신의 댓글을 삭제합니다. 본인이 작성한 댓글만 삭제할 수 있습니다.")
+    public ResponseEntity<Void> deleteComment(@PathVariable Long commentId) {
+        commentService.deleteComment(commentId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/comments/{commentId}/like")
+    @Operation(
+            summary = "댓글 좋아요",
+            description = "해당 댓글에 좋아요를 추가하거나 취소합니다. 토글 방식으로 동작합니다."
+    )
+    public ResponseEntity<Map<String, Object>> toggleLike(@PathVariable Long commentId) {
+        return ResponseEntity.ok(commentService.toggleLike(commentId));
+    }
+
+    @PostMapping("/comments/{commentId}/fixed")
+    @Operation(
+            summary = "댓글 고정/해제",
+            description = "해당 게시글의 작성자가 특정 댓글을 고정하거나 해제합니다. 댓글 작성자가 아니라, 게시글 작성자만 실행할 수 있습니다."
+    )
+    public ResponseEntity<Map<String, Object>> toggleFixed(@PathVariable Long commentId) {
+        return ResponseEntity.ok(commentService.toggleFixed(commentId));
     }
 }
