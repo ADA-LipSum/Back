@@ -18,17 +18,23 @@ public class PostCreateRequest {
     private String writerUuid;          // 작성자 UUID
 
     @NotBlank @Size(max = 20)
+    @Schema(example = "게시물 제목")
     private String title;
 
     // 콘텐츠 원문(마크다운/HTML)
     @JsonAlias({"contentMd"})
+    @Schema(example = "본문 내용입니다")
     private String content;
+    @Schema(description = "대표 이미지 URL (서버가 파일 업로드 시 자동 지정)", accessMode = Schema.AccessMode.READ_ONLY, hidden = true)
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String images;              // 이미지 URL
+    @Schema(description = "대표 영상 URL (서버가 파일 업로드 시 자동 지정)", accessMode = Schema.AccessMode.READ_ONLY, hidden = true)
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String videos;              // 영상 URL
 
     // 태그(프론트 분류)
-    @Schema(description = "개발글 여부")
+    @Schema(description = "개발글 여부", example = "true")
     private Boolean isDev;
-    @Schema(description = "개발 언어 CSV (예: Python,C)")
+    @Schema(description = "개발 언어 CSV (예: Python,C)", example = "spring")
     private String devTags;
 }
