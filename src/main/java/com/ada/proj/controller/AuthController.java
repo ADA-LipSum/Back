@@ -41,7 +41,6 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok(res));
     }
 
-    // 통합 로그인으로 전환됨: 하위 호환을 위해 기존 엔드포인트는 동일 동작으로 위임합니다.
     @Deprecated
     @PostMapping("/admin/login")
     @Operation(summary = "[Deprecated] 관리자 전용 로그인", description = "통합 로그인으로 대체됨. /auth/login 사용. 응답의 role 로 분기")
