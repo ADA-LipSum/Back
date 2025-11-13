@@ -23,7 +23,6 @@ import lombok.RequiredArgsConstructor;
 public class PostService {
 
     private final PostRepository postRepository;
-    // MarkdownService는 더 이상 DB 저장을 위해 사용하지 않습니다 (클라이언트/뷰에서 렌더링).
 
     // 생성
     @Transactional
@@ -34,17 +33,18 @@ public class PostService {
                 .images(req.getImages())
                 .videos(req.getVideos())
                 .writer(req.getWriter())
+                .isDev(req.getIsDev() != null ? req.getIsDev() : false)
+                .devTags(req.getDevTags())
                 .build();
-        // 단일 소스 저장: contentMd만 저장
-        String md = req.getContentMd();
+        // 콘텐츠 저장
+        String md = req.getContent();
         if (md != null) {
-            p.setContentMd(md);
-            // 과거 호환을 위해 HTML 렌더링 로직은 서비스 내부에서만 사용하고, DB 저장은 하지 않습니다.
+            p.setContent(md);
         }
         return postRepository.save(p).getPostUuid();
     }
 
-    // 목록(최신순)
+    // 목록(최신)
     @Transactional(readOnly = true)
     public Page<PostSummaryResponse> list(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "writedAt"));
@@ -58,16 +58,18 @@ public class PostService {
                         .likes(p.getLikes())
                         .views(p.getViews())
                         .comments(p.getComments())
+                .isDev(p.getIsDev())
+                .devTags(p.getDevTags())
+                .tag(formatTag(p))
                         .build());
     }
 
-    // 상세 (조회수 +1)
+    // 상세(+조회수)
     @Transactional
     public PostDetailResponse detail(String uuid) {
         postRepository.increaseViews(uuid);
         Post p = postRepository.findById(uuid)
                 .orElseThrow(() -> new EntityNotFoundException("Post not found: " + uuid));
-        // 기존 데이터 호환 로직 제거: 이제 contentMd만 사용합니다.
         return toDetail(p);
     }
 
@@ -78,15 +80,16 @@ public class PostService {
                 .orElseThrow(() -> new EntityNotFoundException("Post not found: " + uuid));
 
         if (req.getTitle()  != null) p.setTitle(req.getTitle());
-        // 콘텐츠 갱신: contentMd만 사용
-        if (req.getContentMd() != null) {
-            String md = req.getContentMd();
-            p.setContentMd(md);
-            // DB에 contentHtml은 더 이상 저장하지 않습니다.
+        // 콘텐츠 갱신
+        if (req.getContent() != null) {
+            String md = req.getContent();
+            p.setContent(md);
         }
         if (req.getImages() != null) p.setImages(req.getImages());
         if (req.getVideos() != null) p.setVideos(req.getVideos());
         if (req.getWriter() != null) p.setWriter(req.getWriter());
+        if (req.getIsDev() != null) p.setIsDev(req.getIsDev());
+        if (req.getDevTags() != null) p.setDevTags(req.getDevTags());
         // updatedAt 은 @PreUpdate 로 자동 갱신
     }
 
@@ -113,7 +116,7 @@ public class PostService {
                 .seq(p.getSeq())
                 .writerUuid(p.getWriterUuid())
                 .title(p.getTitle())
-                .contentMd(p.getContentMd())
+                .content(p.getContent())
                 .images(p.getImages())
                 .videos(p.getVideos())
                 .writer(p.getWriter())
@@ -122,6 +125,20 @@ public class PostService {
                 .likes(p.getLikes())
                 .views(p.getViews())
                 .comments(p.getComments())
+                .isDev(p.getIsDev())
+                .devTags(p.getDevTags())
                 .build();
+    }
+
+    private String formatTag(Post p) {
+        Boolean dev = p.getIsDev();
+        if (dev != null && dev) {
+            String langs = p.getDevTags();
+            if (langs != null && !langs.isBlank()) {
+                return "개발(" + langs + ")";
+            }
+            return "개발";
+        }
+        return "일반";
     }
 }

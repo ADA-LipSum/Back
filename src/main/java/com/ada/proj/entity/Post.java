@@ -22,31 +22,26 @@ import lombok.Setter;
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor @Builder
 public class Post {
-    // AI 일련번호(읽기 전용)
+    // 자동 일련번호
     @Column(name = "seq", insertable = false, updatable = false)
     private Long seq;
 
-    // PK: 게시글 UUID
+    // PK
     @Id
     @Column(name = "post_uuid", length = 36, unique = true, nullable = false)
     private String postUuid;
 
-    // FK: users.uuid (문자열로 보관)
+    // 작성자 UUID
     @Column(name = "writer_uuid", length = 36, nullable = false)
     private String writerUuid;
 
     @Column(name = "title", length = 20, nullable = false)
     private String title;
 
-    // @Deprecated: 과거 이중 저장용 컬럼. 현재는 사용하지 않습니다(매핑 제거하여 혼란 방지).
-
-    // Markdown/HTML 원문 단일 저장: contentMd만 사용 (contentHtml 더 이상 사용 안 함)
+    // 원문(마크다운/HTML)
     @Lob
     @Column(name = "content_md", columnDefinition = "LONGTEXT")
-    private String contentMd;
-
-    // @Deprecated: 과거 렌더링된 HTML 저장 용도였으나 현재는 미사용. DB 컬럼은 남아있어도 매핑 제거.
-    // (컬럼 유지 시 스키마 변경 없이 운용 가능)
+    private String content;
 
     @Column(name = "images", length = 255)
     private String images;   // 이미지 URL
@@ -55,24 +50,31 @@ public class Post {
     private String videos;   // 영상 URL
 
     @Column(name = "writer", length = 20)
-    private String writer;   // 작성자 닉네임
+    private String writer;   // 작성자
 
     @Column(name = "writed_at")
-    private LocalDateTime writedAt;
+    private LocalDateTime writedAt;   // 작성일
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private LocalDateTime updatedAt;  // 수정일
 
     @Column(name = "likes")
-    private Integer likes;
+    private Integer likes;   // 좋아요
 
     @Column(name = "views")
-    private Integer views;
+    private Integer views;   // 조회수
 
     @Column(name = "comments")
-    private Integer comments;
+    private Integer comments; // 댓글 수
 
-    // 기본값 세팅
+    // 개발글 여부/언어
+    @Column(name = "is_dev")
+    private Boolean isDev;   // 개발글 여부
+
+    @Column(name = "dev_tags", length = 255)
+    private String devTags;  // 언어 CSV (예: Python,C)
+
+    // 기본값
     @PrePersist
     public void onCreate() {
         if (this.postUuid == null) this.postUuid = UUID.randomUUID().toString();
@@ -81,6 +83,7 @@ public class Post {
         if (this.likes == null) this.likes = 0;
         if (this.views == null) this.views = 0;
         if (this.comments == null) this.comments = 0;
+        if (this.isDev == null) this.isDev = false;
     }
 
     @PreUpdate

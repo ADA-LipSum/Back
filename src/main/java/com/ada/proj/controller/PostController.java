@@ -39,9 +39,7 @@ public class PostController {
     private final PostService postService;
     private final FileStorageService fileStorageService;
 
-    // (단일 방식 통합) 기존 JSON 전용 생성 엔드포인트 제거: 파일 포함 multipart 방식만 지원합니다.
-
-    // 파일 포함 게시물 생성 - POST /post/multipart (multipart/form-data)
+    // 파일 포함 생성
     @PostMapping(path = "/multipart", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "게시물 생성(파일 포함)",
@@ -58,13 +56,13 @@ public class PostController {
             data.setWriterUuid(authentication.getName());
         }
 
-    StringBuilder md = new StringBuilder();
-    if (data.getContentMd() != null) { md.append(data.getContentMd()); }
+        StringBuilder md = new StringBuilder();
+        if (data.getContent() != null) { md.append(data.getContent()); }
 
         appendImages(data, imageFiles, md);
         appendVideos(data, videoFiles, md);
 
-        data.setContentMd(md.toString());
+        data.setContent(md.toString());
         String uuid = postService.create(data);
         return ResponseEntity.ok(ApiResponse.success(uuid));
     }
@@ -99,7 +97,7 @@ public class PostController {
         }
     }
 
-    // 수정하기 - POST /post/update (게시글 ID 기준)
+    // 수정
     @PostMapping("/update")
     @Operation(summary = "수정하기", description = "기존 게시글의 내용을 수정합니다 (게시글 ID 기준).", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<ApiResponse<Void>> update(@RequestParam("uuid") String uuid,
@@ -110,7 +108,7 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    // 삭제하기 - POST /post/delete (게시글 ID 기준)
+    // 삭제
     @PostMapping("/delete")
     @Operation(summary = "삭제하기", description = "선택한 게시글을 삭제합니다 (게시글 ID 기준).", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<ApiResponse<Void>> delete(@RequestParam("uuid") String uuid,
@@ -119,14 +117,14 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    // 자세히 보기 - GET /post/view (게시글 ID 기준, 조회수 +1)
+    // 상세(+조회수)
     @GetMapping("/view")
     @Operation(summary = "자세히 보기", description = "게시글 상세 정보를 조회합니다 (게시글 ID 기준). 호출 시 조회수가 1 증가합니다.")
     public ResponseEntity<ApiResponse<PostDetailResponse>> detail(@RequestParam("uuid") String uuid) {
         return ResponseEntity.ok(ApiResponse.success(postService.detail(uuid)));
     }
 
-    // 목록 - GET /post/list (공개, 페이지네이션)
+    // 목록
     @GetMapping("/list")
     @Operation(summary = "목록", description = "최신순 목록. page=0부터, size 기본 10")
     public ResponseEntity<ApiResponse<Page<PostSummaryResponse>>> list(
