@@ -41,11 +41,11 @@ public class PostController {
 
     // 파일 포함 생성
     @PostMapping(path = "/multipart", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(
+        @Operation(
             summary = "게시물 생성(파일 포함)",
-            description = "JSON 데이터(@RequestPart name=data)와 이미지/영상 파일을 함께 전송하면 서버가 파일을 저장하고 contentMd에 자동 삽입합니다.",
+            description = "@RequestPart('data') JSON에 title, content(contentMd 호환), isDev, devTags 포함 가능. 이미지/영상 파일 동시 업로드 지원.",
             security = @SecurityRequirement(name = "bearerAuth")
-    )
+        )
     public ResponseEntity<ApiResponse<String>> createWithFiles(
             @Valid @RequestPart("data") PostCreateRequest data,
             @RequestPart(value = "imageFiles", required = false) MultipartFile[] imageFiles,
@@ -99,7 +99,7 @@ public class PostController {
 
     // 수정
     @PostMapping("/update")
-    @Operation(summary = "수정하기", description = "기존 게시글의 내용을 수정합니다 (게시글 ID 기준).", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "수정", description = "title, content(또는 contentMd), isDev, devTags 선택 수정", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<ApiResponse<Void>> update(@RequestParam("uuid") String uuid,
                                                     @RequestBody PostUpdateRequest req,
                                                     Authentication authentication) {

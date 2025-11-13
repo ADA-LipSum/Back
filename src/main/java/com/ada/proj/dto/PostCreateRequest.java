@@ -1,8 +1,8 @@
 // src/main/java/com/ada/proj/dto/post/PostCreateRequest.java
 package com.ada.proj.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -28,6 +28,8 @@ public class PostCreateRequest {
     private String writer;              // 닉네임
 
     // 태그(프론트 분류)
-    private Boolean isDev;              // 개발글 여부
-    private String devTags;             // 언어 CSV(예: Python,C)
+    @Schema(description = "개발글 여부")
+    private Boolean isDev;
+    @Schema(description = "개발 언어 CSV (예: Python,C)")
+    private String devTags;
 }

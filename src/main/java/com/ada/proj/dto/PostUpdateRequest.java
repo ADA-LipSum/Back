@@ -2,6 +2,7 @@
 package com.ada.proj.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,6 +19,8 @@ public class PostUpdateRequest {
     private String writer;
 
     // 태그(선택 수정)
+    @io.swagger.v3.oas.annotations.media.Schema(description = "개발글 여부")
     private Boolean isDev;
+    @io.swagger.v3.oas.annotations.media.Schema(description = "개발 언어 CSV (예: Python,C)")
     private String devTags;
 }

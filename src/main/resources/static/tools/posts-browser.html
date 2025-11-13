@@ -79,8 +79,9 @@
     for (const item of (page.content || [])) {
       const div = document.createElement('div');
       div.className = 'item';
+      const tag = item.tag || (item.isDev ? `개발(${item.devTags || ''})` : '일반');
       div.innerHTML = `<h3>${escapeHtml(item.title || '')}</h3>
-        <div class="muted">uuid=${item.postUuid}, 작성자=${escapeHtml(item.writer || '')}</div>
+        <div class="muted">uuid=${item.postUuid}, 작성자=${escapeHtml(item.writer || '')} <span style="float:right;">${escapeHtml(tag)}</span></div>
         <div class="muted">작성일=${item.writedAt || ''} | 좋아요=${item.likes || 0} | 조회=${item.views || 0} | 댓글=${item.comments || 0}</div>`;
       div.addEventListener('click', () => loadDetail(item.postUuid));
       list.appendChild(div);
@@ -97,7 +98,7 @@
     $("title").textContent = d.title || '';
     $("writer").textContent = `작성자: ${d.writer || ''}`;
     $("meta").textContent = `작성일: ${d.writedAt || ''} | 좋아요: ${d.likes || 0} | 조회: ${d.views || 0}`;
-    const md = d.contentMd || '';
+    const md = d.content || d.contentMd || '';
     const raw = globalThis.marked ? globalThis.marked.parse(md) : md;
     const safe = globalThis.DOMPurify ? globalThis.DOMPurify.sanitize(raw, {
       ADD_TAGS: ['video','source'],

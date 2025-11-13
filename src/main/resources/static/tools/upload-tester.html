@@ -103,7 +103,7 @@
     <span class="muted" style="align-self:center;">또는 에디터에 바로 붙여넣기/드롭</span>
   </div>
   <div id="richEditor" class="preview" contenteditable="true" style="min-height:200px;"></div>
-  <div class="muted mt8">참고: 이 에디터의 내부 HTML은 그대로 contentMd로 전송됩니다. (Markdown은 HTML을 포함할 수 있어 미디어가 함께 렌더됩니다)</div>
+  <div class="muted mt8">참고: 이 에디터의 내부 HTML은 그대로 content(contentMd 호환)로 전송됩니다.</div>
 
   <div class="grid-2 mt8">
     <div>
@@ -116,8 +116,23 @@
     </div>
   </div>
 
-  <label class="mt8" for="contentMd">contentMd (마크다운)</label>
-  <textarea id="contentMd" placeholder="여기에 마크다운을 입력하세요. 위에서 업로드 후 'MD 삽입'을 눌러 빠르게 추가할 수 있습니다."></textarea>
+  <label class="mt8" for="contentMd">content (마크다운/HTML)</label>
+  <textarea id="contentMd" placeholder="여기에 마크다운/HTML 입력. 위에서 업로드 후 'MD 삽입'으로 빠르게 추가."></textarea>
+
+  <div class="grid-2 mt8">
+    <div>
+      <label for="isDev">개발글 여부(isDev)</label>
+      <select id="isDev">
+        <option value="">미설정</option>
+        <option value="true">개발</option>
+        <option value="false">일반</option>
+      </select>
+    </div>
+    <div>
+      <label for="devTags">개발 언어 태그(devTags, CSV)</label>
+      <input id="devTags" type="text" placeholder="예: Python,C,JavaScript" />
+    </div>
+  </div>
 
       <div class="row mt8">
         <button id="btnCreatePost">POST /post</button>
@@ -248,9 +263,12 @@
     if (files.vids) for (const f of files.vids) pushCheck(f);
     return { total, tooBig, MAX_REQ };
   }
-  async function submitPost(title, contentMd, files){
+  async function submitPost(title, contentMd, isDev, devTags, files){
     const fd = new FormData();
-    fd.append('data', new Blob([JSON.stringify({ title, contentMd })], { type:'application/json' }), 'data.json');
+    const payload = { title, contentMd };
+    if (isDev !== undefined && isDev !== null) payload.isDev = isDev;
+    if (devTags) payload.devTags = devTags;
+    fd.append('data', new Blob([JSON.stringify(payload)], { type:'application/json' }), 'data.json');
     if (files.imgs && files.imgs.length) for (const f of files.imgs) fd.append('imageFiles', f);
     if (files.vids && files.vids.length) for (const f of files.vids) fd.append('videoFiles', f);
     const res = await fetch(base() + '/post/multipart', { method:'POST', headers: headers(), body: fd });
@@ -264,12 +282,15 @@
     const title = $("title").value.trim();
     if (!title) { log('제목을 입력하세요'); return; }
     const contentMd = $("richEditor").innerHTML.trim() || $("contentMd").value;
+    const isDevSel = $("isDev").value;
+    const isDev = isDevSel === '' ? null : (isDevSel === 'true');
+    const devTags = $("devTags").value.trim();
     const files = gatherSelectedFiles();
     const { total, tooBig, MAX_REQ } = validateSizes(files);
     if (tooBig.length) { log('파일이 너무 큽니다(>100MB): ' + tooBig.join(', ')); return; }
     if (total > MAX_REQ) { log('전체 요청 용량 초과(>200MB). 파일 수를 줄이세요.'); return; }
     try {
-      const uuid = await submitPost(title, contentMd, files);
+      const uuid = await submitPost(title, contentMd, isDev, devTags, files);
       $("createdUuid").textContent = uuid;
       log('게시물 생성 성공(멀티파트). uuid=' + uuid);
       $("openBrowser").href = base() + '/tools/posts-browser.html?uuid=' + encodeURIComponent(uuid);
@@ -437,7 +458,7 @@
       const res = await fetch(base() + '/post/view?uuid=' + encodeURIComponent(uuid));
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message || 'detail failed');
-      const md = (json.data && json.data.contentMd) || '';
+      const md = (json.data && (json.data.content || json.data.contentMd)) || '';
       const raw = globalThis.marked ? globalThis.marked.parse(md) : md;
       const safe = globalThis.DOMPurify ? globalThis.DOMPurify.sanitize(raw, {
         ADD_TAGS: ['video','source'],
