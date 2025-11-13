@@ -6,8 +6,15 @@ plugins {
 }
 
 group = 'com.ada'
-version = '0.0.1-SNAPSHOT'
+version = '1.0'
 description = 'proj'
+
+jar {
+    archiveFileName = "app.jar"
+}
+bootJar {
+    archiveFileName = "app.jar"
+}
 
 java {
     toolchain {
