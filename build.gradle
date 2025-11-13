@@ -9,9 +9,6 @@ group = 'com.ada'
 version = '1.0'
 description = 'proj'
 
-jar {
-    archiveFileName = "app.jar"
-}
 bootJar {
     archiveFileName = "app.jar"
 }
