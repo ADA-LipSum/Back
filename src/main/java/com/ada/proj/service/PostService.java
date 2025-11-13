@@ -5,6 +5,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,7 +15,9 @@ import com.ada.proj.dto.PostDetailResponse;
 import com.ada.proj.dto.PostSummaryResponse;
 import com.ada.proj.dto.PostUpdateRequest;
 import com.ada.proj.entity.Post;
+import com.ada.proj.entity.User;
 import com.ada.proj.repository.PostRepository;
+import com.ada.proj.repository.UserRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -23,16 +27,33 @@ import lombok.RequiredArgsConstructor;
 public class PostService {
 
     private final PostRepository postRepository;
+    private final UserRepository userRepository;
 
     // 생성
     @Transactional
     public String create(PostCreateRequest req) {
+        String writerUuid = req.getWriterUuid();
+        if (writerUuid == null || writerUuid.isBlank()) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated()) {
+                writerUuid = auth.getName();
+            }
+        }
+
+        String writerName = null;
+        if (writerUuid != null && !writerUuid.isBlank()) {
+            User writerUser = userRepository.findByUuid(writerUuid).orElse(null);
+            if (writerUser != null) {
+                writerName = writerUser.isUseNickname() ? writerUser.getUserNickname() : writerUser.getUserRealname();
+            }
+        }
+
         Post p = Post.builder()
-                .writerUuid(req.getWriterUuid())
+                .writerUuid(writerUuid)
                 .title(req.getTitle())
                 .images(req.getImages())
                 .videos(req.getVideos())
-                .writer(req.getWriter())
+                .writer(writerName)
                 .isDev(req.getIsDev() != null ? req.getIsDev() : false)
                 .devTags(req.getDevTags())
                 .build();
@@ -87,7 +108,6 @@ public class PostService {
         }
         if (req.getImages() != null) p.setImages(req.getImages());
         if (req.getVideos() != null) p.setVideos(req.getVideos());
-        if (req.getWriter() != null) p.setWriter(req.getWriter());
         if (req.getIsDev() != null) p.setIsDev(req.getIsDev());
         if (req.getDevTags() != null) p.setDevTags(req.getDevTags());
         // updatedAt 은 @PreUpdate 로 자동 갱신

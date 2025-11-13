@@ -25,7 +25,6 @@ public class PostCreateRequest {
     private String content;
     private String images;              // 이미지 URL
     private String videos;              // 영상 URL
-    private String writer;              // 닉네임
 
     // 태그(프론트 분류)
     @Schema(description = "개발글 여부")

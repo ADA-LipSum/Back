@@ -16,7 +16,6 @@ public class PostUpdateRequest {
     private String content;
     private String images;
     private String videos;
-    private String writer;
 
     // 태그(선택 수정)
     @io.swagger.v3.oas.annotations.media.Schema(description = "개발글 여부")
