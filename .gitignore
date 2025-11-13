@@ -42,3 +42,5 @@ out/
 *.log.*
 # Log directory
 /logs/
+logs/
+*.log
