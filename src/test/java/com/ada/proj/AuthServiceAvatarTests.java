@@ -10,15 +10,13 @@ import org.mockito.Mockito;
 import static org.mockito.Mockito.when;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import static org.mockito.ArgumentMatchers.anyString;
-import org.mockito.Mockito;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.when;
+import com.ada.proj.dto.LoginRequest;
+import com.ada.proj.dto.LoginResponse;
+import com.ada.proj.entity.Role;
+import com.ada.proj.entity.User;
+import com.ada.proj.repository.RefreshTokenRepository;
+import com.ada.proj.repository.UserRepository;
+import com.ada.proj.security.JwtTokenProvider;
 import com.ada.proj.service.AuthService;
 
 /**
