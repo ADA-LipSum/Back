@@ -46,5 +46,6 @@ logs/
 *.log
 
 ### Uploaded Media (ignore user-uploaded binaries) ###
-uploads/
+# Ignore all contents under uploads but keep placeholder
+uploads/**
 !uploads/.gitkeep
