@@ -44,3 +44,7 @@ out/
 /logs/
 logs/
 *.log
+
+### Uploaded Media (ignore user-uploaded binaries) ###
+uploads/
+!uploads/.gitkeep
