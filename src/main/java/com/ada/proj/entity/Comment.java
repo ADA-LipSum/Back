@@ -4,8 +4,24 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "comments")
@@ -50,10 +66,12 @@ public class Comment {
 
     // 댓글 고정 여부
     @Column(nullable = false)
+    @Builder.Default
     private boolean fixed = false;
 
     // 좋아요 수
     @Column(nullable = false)
+    @Builder.Default
     private int likes = 0;
 
     // 생성일
@@ -66,6 +84,7 @@ public class Comment {
 
     // 수정 여부
     @Column(nullable = false)
+    @Builder.Default
     private boolean edited = false;
 
     @PrePersist
