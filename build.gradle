@@ -64,5 +64,5 @@ tasks.withType(ProcessResources) {
 }
 
 tasks.named('bootRun') {
-    jvmArgs '-Dsun.stdout.encoding=UTF-8', '-Dsun.stderr.encoding=UTF-8'
+    jvmArgs '-Dsun.stdout.encoding=UTF-8', '-Dsun.stderr.encoding=UTF-8' 
 }
