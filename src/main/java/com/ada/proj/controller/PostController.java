@@ -156,7 +156,9 @@ public class PostController {
     // 수정
     @PostMapping("/update")
     @Operation(summary = "수정", description = "title, content(또는 contentMd), isDev, devTags 선택 수정", security = @SecurityRequirement(name = "bearerAuth"))
-    public ResponseEntity<ApiResponse<Void>> update(@RequestParam("uuid") String uuid,
+    public ResponseEntity<ApiResponse<Void>> update(
+                                                    @Parameter(description = "게시글 UUID", example = "post-uuid-...")
+                                                    @RequestParam("uuid") String uuid,
                                                     @RequestBody PostUpdateRequest req,
                                                     Authentication authentication) {
         // 권한 검증이 필요하다면 authentication.getName()과 작성자 비교 로직을 Service로 전달
@@ -167,7 +169,9 @@ public class PostController {
     // 삭제
     @PostMapping("/delete")
     @Operation(summary = "삭제하기", description = "선택한 게시글을 삭제합니다 (게시글 ID 기준).", security = @SecurityRequirement(name = "bearerAuth"))
-    public ResponseEntity<ApiResponse<Void>> delete(@RequestParam("uuid") String uuid,
+    public ResponseEntity<ApiResponse<Void>> delete(
+                                                    @Parameter(description = "게시글 UUID", example = "post-uuid-...")
+                                                    @RequestParam("uuid") String uuid,
                                                     Authentication authentication) {
         postService.delete(uuid);
         return ResponseEntity.ok(ApiResponse.success());
@@ -176,15 +180,19 @@ public class PostController {
     // 상세(+조회수)
     @GetMapping("/view")
     @Operation(summary = "자세히 보기", description = "게시글 상세 정보를 조회합니다 (게시글 ID 기준). 호출 시 조회수가 1 증가합니다.")
-    public ResponseEntity<ApiResponse<PostDetailResponse>> detail(@RequestParam("uuid") String uuid) {
+        public ResponseEntity<ApiResponse<PostDetailResponse>> detail(
+            @Parameter(description = "게시글 UUID", example = "post-uuid-...")
+            @RequestParam("uuid") String uuid) {
         return ResponseEntity.ok(ApiResponse.success(postService.detail(uuid)));
     }
 
     // 목록
     @GetMapping("/list")
     @Operation(summary = "목록", description = "최신순 목록. page=0부터, size 기본 10")
-    public ResponseEntity<ApiResponse<Page<PostSummaryResponse>>> list(
+        public ResponseEntity<ApiResponse<Page<PostSummaryResponse>>> list(
+            @Parameter(description = "페이지(0부터)", example = "0")
             @RequestParam(name = "page", defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기", example = "10")
             @RequestParam(name = "size", defaultValue = "10") int size
     ) {
         Page<PostSummaryResponse> res = postService.list(page, size);

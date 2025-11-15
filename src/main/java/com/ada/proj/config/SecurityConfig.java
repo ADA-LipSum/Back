@@ -56,6 +56,10 @@ public class SecurityConfig {
                                 "/post/list",
                                 "/post/view"
                         ).permitAll()
+                        .requestMatchers(
+                            "/api/trade/items/**",
+                            "/api/trade/items/search"
+                        ).permitAll()
                         .requestMatchers("/users", "/users/*/role").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )

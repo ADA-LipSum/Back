@@ -15,6 +15,7 @@ import com.ada.proj.entity.UserPoints;
 import com.ada.proj.service.PointsService;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,9 @@ public class PointsController {
     // 현재 잔액 조회: 본인 또는 관리자만 가능
     @GetMapping("/balance/{userUuid}")
     @Operation(summary = "포인트 잔액 조회", description = "본인 또는 ADMIN이 특정 사용자의 현재 포인트 잔액을 조회합니다.")
-    public ApiResponse<PointsBalanceResponse> getBalance(@PathVariable String userUuid, Authentication auth) {
+        public ApiResponse<PointsBalanceResponse> getBalance(
+            @Parameter(description = "대상 사용자 UUID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+            @PathVariable String userUuid, Authentication auth) {
         ensureSelfOrAdmin(auth, userUuid);
         int balance = pointsService.getBalance(userUuid);
         return ApiResponse.success(new PointsBalanceResponse(userUuid, balance));
@@ -40,7 +43,9 @@ public class PointsController {
     // 잔액 조회 (쿼리 파라미터 버전)
     @GetMapping("/balance")
     @Operation(summary = "포인트 잔액 조회(쿼리)", description = "본인 또는 ADMIN이 특정 사용자의 현재 포인트 잔액을 조회합니다. 예: /api/points/balance?userUuid=...")
-    public ApiResponse<PointsBalanceResponse> getBalanceQuery(@RequestParam String userUuid, Authentication auth) {
+        public ApiResponse<PointsBalanceResponse> getBalanceQuery(
+            @Parameter(description = "대상 사용자 UUID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+            @RequestParam String userUuid, Authentication auth) {
         return getBalance(userUuid, auth);
     }
 
@@ -72,9 +77,12 @@ public class PointsController {
     // 거래내역 조회 (페이징)
     @GetMapping("/transactions")
     @Operation(summary = "포인트 거래내역 조회", description = "특정 사용자(userUuid)의 포인트 거래내역을 최신순으로 페이징하여 조회합니다.")
-    public ApiResponse<PageResponse<PointsTransactionResponse>> getTransactions(
+        public ApiResponse<PageResponse<PointsTransactionResponse>> getTransactions(
+            @Parameter(description = "대상 사용자 UUID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
             @RequestParam String userUuid,
+            @Parameter(description = "페이지(0부터)", example = "0")
             @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기", example = "20")
             @RequestParam(defaultValue = "20") int size,
             Authentication auth) {
         ensureSelfOrAdmin(auth, userUuid);

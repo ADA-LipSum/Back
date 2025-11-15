@@ -18,6 +18,7 @@ import com.ada.proj.service.AuthService;
 import com.ada.proj.service.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
@@ -36,7 +37,9 @@ public class AuthController {
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "관리자 발급 ID/PW 또는 커스텀 ID/PW로 로그인")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+        public ResponseEntity<ApiResponse<LoginResponse>> login(
+            @Parameter(description = "로그인 요청 바디")
+            @Valid @RequestBody LoginRequest request) {
         LoginResponse res = authService.login(request);
         return ResponseEntity.ok(ApiResponse.ok(res));
     }
@@ -44,7 +47,9 @@ public class AuthController {
     @Deprecated
     @PostMapping("/admin/login")
     @Operation(summary = "[Deprecated] 관리자 전용 로그인", description = "통합 로그인으로 대체됨. /auth/login 사용. 응답의 role 로 분기")
-    public ResponseEntity<ApiResponse<LoginResponse>> adminLogin(@Valid @RequestBody LoginRequest request) {
+        public ResponseEntity<ApiResponse<LoginResponse>> adminLogin(
+            @Parameter(description = "로그인 요청 바디")
+            @Valid @RequestBody LoginRequest request) {
         LoginResponse res = authService.login(request);
         return ResponseEntity.ok(ApiResponse.ok(res));
     }
@@ -52,14 +57,18 @@ public class AuthController {
     @Deprecated
     @PostMapping("/teacher/login")
     @Operation(summary = "[Deprecated] 선생님 전용 로그인", description = "통합 로그인으로 대체됨. /auth/login 사용. 응답의 role 로 분기")
-    public ResponseEntity<ApiResponse<LoginResponse>> teacherLogin(@Valid @RequestBody LoginRequest request) {
+        public ResponseEntity<ApiResponse<LoginResponse>> teacherLogin(
+            @Parameter(description = "로그인 요청 바디")
+            @Valid @RequestBody LoginRequest request) {
         LoginResponse res = authService.login(request);
         return ResponseEntity.ok(ApiResponse.ok(res));
     }
 
     @PostMapping("/reissue")
     @Operation(summary = "토큰 재발급", description = "Refresh Token으로 Access/Refresh 재발급")
-    public ResponseEntity<ApiResponse<LoginResponse>> reissue(@Valid @RequestBody TokenReissueRequest request) {
+        public ResponseEntity<ApiResponse<LoginResponse>> reissue(
+            @Parameter(description = "토큰 재발급 요청 바디")
+            @Valid @RequestBody TokenReissueRequest request) {
         LoginResponse res = authService.reissue(request);
         return ResponseEntity.ok(ApiResponse.ok(res));
     }
@@ -82,7 +91,9 @@ public class AuthController {
 
     @PostMapping("/signup/teacher")
     @Operation(summary = "선생님 회원가입", description = "선생님 역할 계정을 직접 생성")
-    public ResponseEntity<ApiResponse<CreateUserResponse>> signupTeacher(@Valid @RequestBody TeacherSignupRequest req) {
+        public ResponseEntity<ApiResponse<CreateUserResponse>> signupTeacher(
+            @Parameter(description = "선생님 회원가입 요청 바디")
+            @Valid @RequestBody TeacherSignupRequest req) {
         var user = authService.signupTeacher(req);
         CreateUserResponse res = new CreateUserResponse(user.getUuid(), user.getAdminId(), user.getCustomId(), user.getRole());
         return ResponseEntity.ok(ApiResponse.ok(res));
@@ -90,7 +101,9 @@ public class AuthController {
 
     @PostMapping("/admin/create")
     @Operation(summary = "관리자: 사용자 생성", description = "관리자가 새로운 사용자 계정을 생성합니다")
-    public ResponseEntity<ApiResponse<CreateUserResponse>> createUserByAdmin(@Valid @RequestBody CreateUserRequest req, Authentication authentication) {
+        public ResponseEntity<ApiResponse<CreateUserResponse>> createUserByAdmin(
+            @Parameter(description = "관리자 사용자 생성 요청 바디")
+            @Valid @RequestBody CreateUserRequest req, Authentication authentication) {
         var user = userService.createUserByAdmin(req, authentication);
         CreateUserResponse res = new CreateUserResponse(user.getUuid(), user.getAdminId(), user.getCustomId(), user.getRole());
         return ResponseEntity.ok(ApiResponse.ok(res));
@@ -98,7 +111,9 @@ public class AuthController {
 
     @PostMapping("/admin/init")
     @Operation(summary = "초기 관리자 생성", description = "시스템에 ADMIN이 하나도 없을 때 최초의 ADMIN 계정을 생성합니다")
-    public ResponseEntity<ApiResponse<CreateUserResponse>> initAdmin(@Valid @RequestBody CreateUserRequest req) {
+        public ResponseEntity<ApiResponse<CreateUserResponse>> initAdmin(
+            @Parameter(description = "최초 관리자 생성 요청 바디")
+            @Valid @RequestBody CreateUserRequest req) {
         var user = userService.createInitialAdmin(req);
         CreateUserResponse res = new CreateUserResponse(user.getUuid(), user.getAdminId(), user.getCustomId(), user.getRole());
         return ResponseEntity.ok(ApiResponse.ok(res));
