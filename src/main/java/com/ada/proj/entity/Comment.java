@@ -50,10 +50,12 @@ public class Comment {
 
     // 댓글 고정 여부
     @Column(nullable = false)
+    @Builder.Default
     private boolean fixed = false;
 
     // 좋아요 수
     @Column(nullable = false)
+    @Builder.Default
     private int likes = 0;
 
     // 생성일
@@ -66,6 +68,7 @@ public class Comment {
 
     // 수정 여부
     @Column(nullable = false)
+    @Builder.Default
     private boolean edited = false;
 
     @PrePersist
