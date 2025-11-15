@@ -59,7 +59,8 @@ public class SecurityConfig {
                                 "/post/list",
                                 "/post/view"
                         ).permitAll()
-                        .requestMatchers("/users", "/users/*/role").hasRole("ADMIN")
+                        // CustomUserDetailsService 가 ROLE_ prefix 없이 권한을 부여하므로 hasAuthority 사용
+                        .requestMatchers("/users", "/users/*/role").hasAuthority("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

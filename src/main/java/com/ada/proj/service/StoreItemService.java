@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ada.proj.dto.StoreItemCreateRequest;
-import com.ada.proj.entity.Role;
 import com.ada.proj.entity.StoreItem;
 import com.ada.proj.repository.StoreItemRepository;
 
@@ -22,11 +21,14 @@ public class StoreItemService {
             throw new SecurityException("로그인이 필요합니다.");
         }
 
-        boolean isTeacher = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("TEACHER"));
+        boolean isTeacherOrAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> {
+                    String authName = a.getAuthority();
+                    return authName.equals("TEACHER") || authName.equals("ADMIN");
+                });
 
-        if (!isTeacher) {
-            throw new SecurityException("Teacher 권한만 사용할 수 있는 기능입니다.");
+        if (!isTeacherOrAdmin) {
+            throw new SecurityException("Teacher 또는 Admin 권한만 사용할 수 있는 기능입니다.");
         }
     }
 
@@ -55,11 +57,18 @@ public class StoreItemService {
     @Transactional
     public StoreItem createItem(StoreItemCreateRequest req, Authentication auth) {
         ensureTeacher(auth);
+        // imageUrl "null" 문자열이 들어오면 실제 null 로 치환 (선택적 처리)
+        String imageUrl = (req.getImageUrl() != null && req.getImageUrl().equalsIgnoreCase("null"))
+            ? null
+            : req.getImageUrl();
 
         StoreItem item = StoreItem.builder()
-                .name(req.getName())
-                .price(req.getPrice())
-                .build();
+            .name(req.getName())
+            .price(req.getPrice())
+            .category(req.getCategory())
+            .storeType(req.getStoreType())
+            .imageUrl(imageUrl)
+            .build();
 
         return storeItemRepository.save(item);
     }

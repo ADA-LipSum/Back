@@ -183,7 +183,8 @@ public class UserService {
 
     private void ensureAdmin(Authentication auth) {
         if (auth == null) throw new SecurityException("Unauthenticated");
-        boolean isAdmin = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(a -> a.equals("ROLE_ADMIN"));
+        // 권한은 CustomUserDetailsService 에서 prefix 없이 ADMIN 으로 부여됨
+        boolean isAdmin = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(a -> a.equals("ADMIN"));
         if (!isAdmin) throw new SecurityException("Forbidden");
     }
 
@@ -199,7 +200,7 @@ public class UserService {
 
     private void ensureSelfOrAdmin(Authentication auth, String uuid) {
         if (auth == null) throw new SecurityException("Unauthenticated");
-        boolean isAdmin = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(a -> a.equals("ROLE_ADMIN"));
+        boolean isAdmin = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(a -> a.equals("ADMIN"));
         String principal = auth.getName();
         if (!isAdmin && !uuid.equals(principal)) {
             throw new SecurityException("Forbidden");
