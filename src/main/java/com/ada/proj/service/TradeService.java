@@ -112,8 +112,7 @@ public class TradeService {
 
         // 포인트 사용 처리
         String usedFor = "trade";
-        String meta = req.getMetadata();
-        UserPoints useTx = pointsService.usePoints(userUuid, total, usedFor, meta, "물품 구매: " + item.getName());
+        UserPoints useTx = pointsService.usePoints(userUuid, total, usedFor, null, "물품 구매: " + item.getName());
 
         // 재고 차감 및 저장
         item.setStock(item.getStock() - qty);
@@ -129,7 +128,7 @@ public class TradeService {
                 .unitPrice(unitPrice)
                 .totalPoints(total)
                 .pointsUuid(useTx.getPointsUuid())
-                .metadata(meta)
+                .metadata(null)
                 .build();
         tradeLogRepository.save(log);
 

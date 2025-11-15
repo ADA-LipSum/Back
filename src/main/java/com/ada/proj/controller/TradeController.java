@@ -97,8 +97,7 @@ public class TradeController {
         description = "로그인 사용자가 포인트로 물품을 구매합니다. 포인트 부족 시 실패합니다.\n\n"
                 + "요청 필드 설명:\n"
                 + "- itemUuid: 구매할 아이템 UUID.\n"
-                + "- quantity: 구매 수량(최소 1).\n"
-                + "- metadata: 추가 메타데이터(JSON 문자열)."
+                + "- quantity: 구매 수량(최소 1)."
     )
     public ApiResponse<TradePurchaseResponse> purchase(@Valid @RequestBody TradePurchaseRequest req, Authentication auth) {
         if (auth == null) throw new SecurityException("Unauthenticated");

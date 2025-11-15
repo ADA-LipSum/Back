@@ -15,7 +15,4 @@ public class TradePurchaseRequest {
     @Min(1)
     @Schema(description = "구매 수량(최소 1)", example = "2")
     private int quantity = 1;
-
-    @Schema(description = "추가 메타데이터(JSON 문자열) - 예: 색상/옵션 등", example = "{\"color\":\"gold\"}")
-    private String metadata; // 구매 추가 정보(json string)
 }
