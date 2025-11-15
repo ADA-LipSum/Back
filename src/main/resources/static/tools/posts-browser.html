@@ -201,7 +201,7 @@
       $("title").textContent = d.title || "";
       $("writer").textContent = `작성자: ${d.writer || ""}`;
       $("meta").textContent = `작성일: ${d.writedAt || ""} | 좋아요: ${d.likes || 0} | 조회: ${d.views || 0}`;
-      const raw = marked.parse(d.contentMd || "");
+      const raw = marked.parse(d.content || d.contentMd || "");
       $("content").innerHTML = DOMPurify.sanitize(raw, { ADD_TAGS:['video','source'], ADD_ATTR:['controls','src','style'] });
       loadComments(uuid);
     }
