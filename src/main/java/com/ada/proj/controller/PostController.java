@@ -2,6 +2,7 @@ package com.ada.proj.controller;
 
 import java.io.IOException;
 
+import com.ada.proj.dto.*;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,11 +16,6 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.ada.proj.dto.ApiResponse;
-import com.ada.proj.dto.PostCreateRequest;
-import com.ada.proj.dto.PostDetailResponse;
-import com.ada.proj.dto.PostSummaryResponse;
-import com.ada.proj.dto.PostUpdateRequest;
 import com.ada.proj.service.FileStorageService;
 import com.ada.proj.service.FileStorageService.StoredFile;
 import com.ada.proj.service.PostService;
@@ -186,16 +182,27 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success(postService.detail(uuid)));
     }
 
-    // 목록
     @GetMapping("/list")
-    @Operation(summary = "목록", description = "최신순 목록. page=0부터, size 기본 10")
-        public ResponseEntity<ApiResponse<Page<PostSummaryResponse>>> list(
-            @Parameter(description = "페이지(0부터)", example = "0")
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @Parameter(description = "페이지 크기", example = "10")
-            @RequestParam(name = "size", defaultValue = "10") int size
+    @Operation(
+            summary = "게시글 목록 조회",
+            description = """
+            게시판에 등록된 게시글들을 페이지 단위로 조회합니다.
+
+            Parameters:
+            - page: 조회할 페이지 번호 (기본값 0)
+            - size: 한 페이지에 포함될 게시글 수 (기본값 20)
+
+            Example:
+            /post/list?page=0&size=20
+            """
+    )
+    public ApiResponse<PageResponse<PostSummaryResponse>> list(
+            @Parameter(description = "조회할 페이지 번호", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+
+            @Parameter(description = "한 페이지에 포함될 게시글 개수", example = "20")
+            @RequestParam(defaultValue = "20") int size
     ) {
-        Page<PostSummaryResponse> res = postService.list(page, size);
-        return ResponseEntity.ok(ApiResponse.success(res));
+        return ApiResponse.success(postService.list(page, size));
     }
 }

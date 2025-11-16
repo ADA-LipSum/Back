@@ -1,27 +1,33 @@
-// src/main/java/com/ada/proj/dto/post/PostDetailResponse.java
+// src/main/java/com/ada/proj/dto/PostDetailResponse.java
 package com.ada.proj.dto;
 
-import lombok.*;
 import java.time.LocalDateTime;
+
+import lombok.*;
 
 @Getter @Setter @Builder
 @AllArgsConstructor @NoArgsConstructor
 public class PostDetailResponse {
+
     private String postUuid;
     private Long seq;
+
     private String writerUuid;
+    private String writer;
+    private String writerProfileImage;   // 추가됨
+
     private String title;
-    // 콘텐츠 원문
     private String content;
     private String images;
     private String videos;
-    private String writer;
+
     private LocalDateTime writedAt;
     private LocalDateTime updatedAt;
+
     private Integer likes;
     private Integer views;
     private Integer comments;
-    // 태그
+
     private Boolean isDev;
     private String devTags;
 }

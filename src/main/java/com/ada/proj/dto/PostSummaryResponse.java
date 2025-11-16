@@ -1,4 +1,4 @@
-// src/main/java/com/ada/proj/dto/post/PostSummaryResponse.java
+// src/main/java/com/ada/proj/dto/PostSummaryResponse.java
 package com.ada.proj.dto;
 
 import java.time.LocalDateTime;
@@ -12,16 +12,20 @@ import lombok.Setter;
 @Getter @Setter @Builder
 @AllArgsConstructor @NoArgsConstructor
 public class PostSummaryResponse {
+
     private String postUuid;
     private Long seq;
     private String title;
-    private String writer;
+
+    private String writer;              // 작성자명
+    private String writerProfileImage;  // 추가됨
+
     private LocalDateTime writedAt;
     private Integer likes;
     private Integer views;
     private Integer comments;
-    // 태그
+
     private Boolean isDev;
     private String devTags;
-    private String tag;     // "일반"/"개발(언어)"
+    private String tag;
 }
