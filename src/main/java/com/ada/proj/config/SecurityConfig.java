@@ -20,6 +20,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.ada.proj.security.JwtAuthenticationFilter;
+import com.ada.proj.security.RestAccessDeniedHandler;
+import com.ada.proj.security.RestAuthenticationEntryPoint;
 import com.ada.proj.security.RequestLoggingFilter;
 
 @Configuration
@@ -29,10 +31,17 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RequestLoggingFilter requestLoggingFilter;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final RestAccessDeniedHandler restAccessDeniedHandler;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, RequestLoggingFilter requestLoggingFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          RequestLoggingFilter requestLoggingFilter,
+                          RestAuthenticationEntryPoint restAuthenticationEntryPoint,
+                          RestAccessDeniedHandler restAccessDeniedHandler) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.requestLoggingFilter = requestLoggingFilter;
+        this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
+        this.restAccessDeniedHandler = restAccessDeniedHandler;
     }
 
     @Bean
@@ -43,6 +52,10 @@ public class SecurityConfig {
             .httpBasic(httpBasic -> httpBasic.disable())
             .formLogin(form -> form.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(restAuthenticationEntryPoint)
+                .accessDeniedHandler(restAccessDeniedHandler)
+            )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/auth/**",

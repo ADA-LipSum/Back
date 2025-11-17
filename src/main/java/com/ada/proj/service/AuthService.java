@@ -19,6 +19,10 @@ import com.ada.proj.dto.TokenReissueRequest;
 import com.ada.proj.entity.RefreshToken;
 import com.ada.proj.entity.Role;
 import com.ada.proj.entity.User;
+import com.ada.proj.exception.ForbiddenException;
+import com.ada.proj.exception.InvalidCredentialsException;
+import com.ada.proj.exception.TokenExpiredException;
+import com.ada.proj.exception.TokenInvalidException;
 import com.ada.proj.repository.RefreshTokenRepository;
 import com.ada.proj.repository.UserRepository;
 import com.ada.proj.security.JwtTokenProvider;
@@ -101,7 +105,7 @@ public class AuthService {
                 log.warn("[AUTH] admin login rejected: not admin uuid={} role={}", safeUuid(user.getUuid()), user.getRole());
             }
             // 일반 메시지로 응답(보안상 상세 노출 회피)
-            throw new IllegalArgumentException("Invalid id or password");
+            throw new InvalidCredentialsException("Invalid id or password");
         }
 
     boolean isFirstLogin = (user.getLoginCount() == 0L);
@@ -152,7 +156,7 @@ public class AuthService {
             if (log.isWarnEnabled()) {
                 log.warn("[AUTH] teacher login rejected: not teacher uuid={} role={}", safeUuid(user.getUuid()), user.getRole());
             }
-            throw new IllegalArgumentException("Invalid id or password");
+            throw new InvalidCredentialsException("Invalid id or password");
         }
 
     boolean isFirstLogin = (user.getLoginCount() == 0L);
@@ -198,7 +202,7 @@ public class AuthService {
                     if (log.isWarnEnabled()) {
                         log.warn("[AUTH] login failed: user not found id={}", safeId(id));
                     }
-                    return new IllegalArgumentException("Invalid id or password");
+                    return new InvalidCredentialsException("Invalid id or password");
                 });
     }
 
@@ -209,7 +213,7 @@ public class AuthService {
             if (log.isWarnEnabled()) {
                 log.warn("[AUTH] login failed: no credential on record id={}", safeId(idForLog));
             }
-            throw new IllegalArgumentException("Invalid id or password");
+            throw new InvalidCredentialsException("Invalid id or password");
         }
 
         String candidate = stored != null ? stored : legacy;
@@ -240,14 +244,14 @@ public class AuthService {
                     if (log.isWarnEnabled()) {
                         log.warn("[AUTH] refresh failed: token not found");
                     }
-                    return new IllegalArgumentException("Invalid refresh token");
+                    return new TokenInvalidException("Invalid refresh token");
                 });
 
         if (stored.getExpiresAt().isBefore(Instant.now())) {
             if (log.isWarnEnabled()) {
                 log.warn("[AUTH] refresh failed: token expired uuid={} ", safeUuid(stored.getUuid()));
             }
-            throw new IllegalArgumentException("Refresh token expired");
+            throw new TokenExpiredException("Refresh token expired");
         }
 
         String uuid = jwtTokenProvider.getUuid(stored.getToken());
@@ -295,8 +299,11 @@ public class AuthService {
      * 관리자 전용: 모든 사용자의 refresh 토큰을 일괄 폐기 (사실상 전체 로그아웃)
      */
     public void globalLogout(Authentication authentication) {
-        if (authentication == null || authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).noneMatch(a -> a.equals("ROLE_ADMIN"))) {
-            throw new SecurityException("Forbidden");
+        if (authentication == null) {
+            throw new com.ada.proj.exception.UnauthenticatedException("Unauthenticated");
+        }
+        if (authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).noneMatch(a -> a.equals("ROLE_ADMIN"))) {
+            throw new ForbiddenException("Forbidden");
         }
         refreshTokenRepository.deleteAll();
         if (log.isWarnEnabled()) {

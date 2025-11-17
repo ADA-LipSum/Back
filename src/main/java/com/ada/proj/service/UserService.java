@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,6 +23,9 @@ import com.ada.proj.dto.ProfileLinksRequest;
 import com.ada.proj.entity.Role;
 import com.ada.proj.entity.User;
 import com.ada.proj.entity.UserData;
+import com.ada.proj.exception.ForbiddenException;
+import com.ada.proj.exception.UnauthenticatedException;
+import com.ada.proj.exception.UserNotFoundException;
 import com.ada.proj.repository.UserDataRepository;
 import com.ada.proj.repository.UserRepository;
 import com.ada.proj.service.FileStorageService.StoredFile;
@@ -31,6 +36,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Service
 @Transactional
 public class UserService {
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     private final UserRepository userRepository;
     private final UserDataRepository userDataRepository;
@@ -56,7 +62,7 @@ public class UserService {
 
     public UserProfileResponse getUserProfile(String uuid) {
         User user = userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
         Optional<UserData> userDataOpt = userDataRepository.findByUuid(uuid);
         UserData ud = userDataOpt.orElse(null);
 
@@ -91,19 +97,19 @@ public class UserService {
 
     public void updateRole(String uuid, Role role) {
         User user = userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
         user.setRole(role);
     }
 
     public void toggleUseNickname(String uuid) {
         User user = userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
         user.setUseNickname(!user.isUseNickname());
     }
 
     public void updateProfile(String uuid, UpdateProfileRequest req) {
         User user = userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
         if (req.getNickname() != null) user.setUserNickname(req.getNickname());
         if (req.getProfileImage() != null) user.setProfileImage(req.getProfileImage());
         if (req.getProfileBanner() != null) user.setProfileBanner(req.getProfileBanner());
@@ -137,7 +143,7 @@ public class UserService {
     public UserProfileResponse uploadProfileImage(String uuid, MultipartFile file, Authentication auth) throws IOException {
         ensureSelfOrAdmin(auth, uuid);
         User user = userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
         StoredFile saved = fileStorageService.storeImage(file);
         user.setProfileImage(saved.url());
         return getUserProfile(uuid);
@@ -149,7 +155,7 @@ public class UserService {
     public UserProfileResponse uploadProfileBanner(String uuid, MultipartFile file, Authentication auth) throws IOException {
         ensureSelfOrAdmin(auth, uuid);
         User user = userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
         StoredFile saved = fileStorageService.storeImage(file);
         user.setProfileBanner(saved.url());
         return getUserProfile(uuid);
@@ -157,7 +163,7 @@ public class UserService {
 
     public void createCustomLogin(String uuid, CreateCustomLoginRequest req, Authentication auth) {
         User user = userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
         // 자신 또는 관리자만 허용
         ensureSelfOrAdmin(auth, uuid);
         if (user.getCustomId() != null) {
@@ -213,7 +219,7 @@ public class UserService {
     public User createInitialAdmin(CreateUserRequest req) {
         // if any ADMIN exists, disallow unauthenticated init
         if (userRepository.existsByRole(Role.ADMIN)) {
-            throw new SecurityException("Admin already exists");
+            throw new ForbiddenException("Admin already exists");
         }
 
         if (userRepository.findByAdminId(req.getAdminId()).isPresent()) {
@@ -246,14 +252,14 @@ public class UserService {
     }
 
     private void ensureAdmin(Authentication auth) {
-        if (auth == null) throw new SecurityException("Unauthenticated");
+        if (auth == null) throw new UnauthenticatedException("Unauthenticated");
         boolean isAdmin = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(a -> a.equals("ROLE_ADMIN"));
-        if (!isAdmin) throw new SecurityException("Forbidden");
+        if (!isAdmin) throw new ForbiddenException("Forbidden");
     }
 
     public void changeCustomPassword(String uuid, UpdatePasswordRequest req, Authentication auth) {
         User user = userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
         ensureSelfOrAdmin(auth, uuid);
         if (user.getPassword() == null || !passwordEncoder.matches(req.getCurrentPassword(), user.getPassword())) {
             throw new IllegalArgumentException("Current password does not match");
@@ -262,11 +268,11 @@ public class UserService {
     }
 
     private void ensureSelfOrAdmin(Authentication auth, String uuid) {
-        if (auth == null) throw new SecurityException("Unauthenticated");
+        if (auth == null) throw new UnauthenticatedException("Unauthenticated");
         boolean isAdmin = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(a -> a.equals("ROLE_ADMIN"));
         String principal = auth.getName();
         if (!isAdmin && !uuid.equals(principal)) {
-            throw new SecurityException("Forbidden");
+            throw new ForbiddenException("Forbidden");
         }
     }
 
