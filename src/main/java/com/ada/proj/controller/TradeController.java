@@ -1,23 +1,14 @@
 //C:\Users\russe\Documents\GitHub\Ada\Back\src\main\java\com\ada\proj\controller\TradeController.java
 package com.ada.proj.controller;
 
+import com.ada.proj.dto.*;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import com.ada.proj.dto.ApiResponse;
-import com.ada.proj.dto.PageResponse;
-import com.ada.proj.dto.TradeItemCreateRequest;
-import com.ada.proj.dto.TradeItemDetailRequest;
-import com.ada.proj.dto.TradeItemResponse;
-import com.ada.proj.dto.TradeItemSearchRequest;
-import com.ada.proj.dto.TradeLogCreateRequest;
-import com.ada.proj.dto.TradeLogResponse;
-import com.ada.proj.dto.TradePurchaseRequest;
-import com.ada.proj.dto.TradePurchaseResponse;
-import com.ada.proj.dto.MyTradeLogsRequest;
-import com.ada.proj.dto.UserTradeLogsRequest;
 import com.ada.proj.entity.TradeCategory;
 import com.ada.proj.entity.TradeItem;
 import com.ada.proj.entity.TradeLog;
@@ -220,5 +211,41 @@ public class TradeController {
         if (!isAdmin && !isTeacher && !auth.getName().equals(userUuid)) {
             throw new SecurityException("Forbidden");
         }
+    }
+
+    @DeleteMapping("/items/delete")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @Operation(
+            summary = "거래 아이템 삭제",
+            description = """
+                    선택한 거래 아이템을 삭제(비활성화)합니다.
+
+                    - 실제 DB 행을 제거하지 않고 active 플래그만 false 로 내려,
+                      과거 거래 내역과 포인트 이력을 안전하게 보존합니다.
+
+                    요청 필드 설명:
+                    - itemUuid: 삭제할 아이템의 UUID (예: "item-uuid-12345678-90ab-cdef-1234-567890abcdef")
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ApiResponse<Void> deleteItem(
+            @Parameter(
+                    description = "삭제할 아이템 UUID",
+                    example = "item-uuid-12345678-90ab-cdef-1234-567890abcdef"
+            )
+            @RequestParam String itemUuid
+    ) {
+        tradeService.deleteItem(itemUuid);
+        return ApiResponse.success();
+    }
+
+    @PostMapping("/restock")
+    @Operation(summary = "재고 충전", description = "ADMIN 또는 TEACHER만 재고를 충전할 수 있습니다.")
+    public ApiResponse<Void> restock(
+            @RequestBody RestockRequest req,
+            Authentication auth
+    ) {
+        tradeService.restockItem(req.getItemUuid(), req.getAmount(), auth.getName());
+        return ApiResponse.success();
     }
 }

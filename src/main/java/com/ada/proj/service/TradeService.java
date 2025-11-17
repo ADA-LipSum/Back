@@ -8,15 +8,17 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ada.proj.dto.TradeItemCreateRequest;
 import com.ada.proj.dto.TradeLogCreateRequest;
 import com.ada.proj.dto.TradePurchaseRequest;
-import com.ada.proj.dto.TradeItemResponse;
-import com.ada.proj.dto.PageResponse;
-import com.ada.proj.dto.TradeLogResponse;
 import com.ada.proj.entity.TradeItem;
 import com.ada.proj.entity.TradeLog;
+import com.ada.proj.entity.TradeCategory;
+import com.ada.proj.entity.User;
 import com.ada.proj.entity.UserPoints;
+
 import com.ada.proj.repository.TradeItemRepository;
 import com.ada.proj.repository.TradeLogRepository;
-import com.ada.proj.entity.TradeCategory;
+import com.ada.proj.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,7 +27,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
 import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -35,7 +36,11 @@ public class TradeService {
     private final TradeItemRepository tradeItemRepository;
     private final TradeLogRepository tradeLogRepository;
     private final PointsService pointsService;
+    private final UserRepository userRepository;
 
+    /**
+     * 아이템 생성
+     */
     @Transactional
     public TradeItem createItem(TradeItemCreateRequest req, String creatorUuid) {
         TradeItem item = TradeItem.builder()
@@ -52,15 +57,51 @@ public class TradeService {
         return tradeItemRepository.save(item);
     }
 
+    /**
+     * 재고 충전 (ADMIN / TEACHER 전용)
+     */
+    @Transactional
+    public void restockItem(String itemUuid, int amount, String operatorUuid) {
+
+        if (amount <= 0) {
+            throw new IllegalArgumentException("충전량은 1 이상이어야 합니다.");
+        }
+
+        // 재고 충전자인 operator 조회
+        User operator = userRepository.findByUuid(operatorUuid)
+                .orElseThrow(() -> new RuntimeException("Operator not found"));
+
+        // 권한 검사
+        if (!(operator.getRole().name().equals("ADMIN") ||
+                operator.getRole().name().equals("TEACHER"))) {
+            throw new IllegalStateException("재고 충전은 관리자 및 선생님만 가능합니다.");
+        }
+
+        TradeItem item = tradeItemRepository.findByItemUuid(itemUuid)
+                .orElseThrow(() -> new IllegalArgumentException("해당 아이템을 찾을 수 없습니다: " + itemUuid));
+
+        // 재고 증가
+        item.setStock(item.getStock() + amount);
+
+        tradeItemRepository.save(item);
+    }
+
+    /**
+     * 아이템 상세 조회
+     */
     @Transactional(readOnly = true)
     public TradeItem getItemDetail(String itemUuid) {
         return tradeItemRepository.findByItemUuid(itemUuid)
                 .orElseThrow(() -> new EntityNotFoundException("Item not found: " + itemUuid));
     }
 
+    /**
+     * 아이템 검색 / 필터링
+     */
     @Transactional(readOnly = true)
-    public Page<TradeItem> searchItems(String keyword, TradeCategory category, Integer minPrice, Integer maxPrice,
-            Boolean active, int page, int size, String sort, String dir) {
+    public Page<TradeItem> searchItems(String keyword, TradeCategory category, Integer minPrice,
+                                       Integer maxPrice, Boolean active, int page, int size,
+                                       String sort, String dir) {
 
         Specification<TradeItem> spec = Specification.where(null);
 
@@ -84,41 +125,67 @@ public class TradeService {
             spec = spec.and((root, q, cb) -> cb.le(root.get("price"), maxPrice));
         }
 
-        Sort.Direction direction = ("asc".equalsIgnoreCase(dir)) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Sort.Direction direction = "asc".equalsIgnoreCase(dir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
         String sortProp = switch (sort == null ? "" : sort) {
             case "price" -> "price";
             case "name" -> "name";
             case "createdAt", "created_at", "newest" -> "createdAt";
             default -> "createdAt";
         };
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortProp));
+
         return tradeItemRepository.findAll(spec, pageable);
     }
 
+    /**
+     * 아이템 구매
+     */
     @Transactional
     public TradeResult purchase(String userUuid, TradePurchaseRequest req) {
-        // 재고 락
+
+        // 재고 락 걸린 조회 (for update)
         TradeItem item = tradeItemRepository.findByItemUuidForUpdate(req.getItemUuid())
                 .orElseThrow(() -> new EntityNotFoundException("Item not found: " + req.getItemUuid()));
+
+        // ETC 카테고리는 1회만 구매 가능
+        if (item.getCategory() == TradeCategory.ETC) {
+            boolean alreadyBought =
+                    tradeLogRepository.existsByUserUuidAndItemUuid(userUuid, item.getItemUuid());
+
+            if (alreadyBought) {
+                throw new IllegalStateException("ETC 아이템은 1회만 구매할 수 있습니다.");
+            }
+        }
+
         if (item.getActive() == null || !item.getActive()) {
             throw new IllegalStateException("판매 중이 아닙니다.");
         }
+
         int qty = Math.max(1, req.getQuantity());
+
         if (item.getStock() < qty) {
             throw new IllegalStateException("재고가 부족합니다.");
         }
+
         int unitPrice = item.getPrice();
         int total = Math.multiplyExact(unitPrice, qty);
 
-        // 포인트 사용 처리
-        String usedFor = "trade";
-        UserPoints useTx = pointsService.usePoints(userUuid, total, usedFor, null, "물품 구매: " + item.getName());
+        // 포인트 사용
+        UserPoints useTx = pointsService.usePoints(
+                userUuid,
+                total,
+                "trade",
+                null,
+                "물품 구매: " + item.getName()
+        );
 
-        // 재고 차감 및 저장
+        // 재고 차감
         item.setStock(item.getStock() - qty);
         tradeItemRepository.save(item);
 
-        // 거래 로그 기록
+        // 거래 로그 저장
         TradeLog log = TradeLog.builder()
                 .logUuid(UUID.randomUUID().toString())
                 .userUuid(userUuid)
@@ -130,16 +197,24 @@ public class TradeService {
                 .pointsUuid(useTx.getPointsUuid())
                 .metadata(null)
                 .build();
+
         tradeLogRepository.save(log);
 
         return new TradeResult(item, log, useTx);
     }
 
+    /**
+     * 거래 로그 생성
+     */
     @Transactional
     public TradeLog createLog(String userUuid, TradeLogCreateRequest req) {
         TradeItem item = tradeItemRepository.findByItemUuid(req.getItemUuid())
                 .orElseThrow(() -> new EntityNotFoundException("Item not found: " + req.getItemUuid()));
-        String itemName = (req.getItemName() != null && !req.getItemName().isBlank()) ? req.getItemName() : item.getName();
+
+        String itemName = (req.getItemName() != null && !req.getItemName().isBlank())
+                ? req.getItemName()
+                : item.getName();
+
         int qty = Math.max(1, req.getQuantity());
         int unitPrice = item.getPrice();
         int total = req.getTotalPoints() > 0 ? req.getTotalPoints() : Math.multiplyExact(unitPrice, qty);
@@ -155,16 +230,35 @@ public class TradeService {
                 .pointsUuid(req.getPointsUuid())
                 .metadata(req.getMetadata())
                 .build();
+
         return tradeLogRepository.save(log);
     }
 
+    /**
+     * 내 거래 로그 조회
+     */
     @Transactional(readOnly = true)
     public Page<TradeLog> getMyLogs(String userUuid, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return tradeLogRepository.findByUserUuidOrderByCreatedAtDesc(userUuid, pageable);
     }
 
-    // Helper result type
+    /**
+     * 아이템 삭제(Soft Delete)
+     * active = false 로 비활성화
+     */
+    @Transactional
+    public void deleteItem(String itemUuid) {
+        TradeItem item = tradeItemRepository.findByItemUuid(itemUuid)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 아이템을 찾을 수 없습니다: " + itemUuid));
+
+        item.setActive(false);
+    }
+
+    /**
+     * 결과 래퍼
+     */
     @lombok.Value
     public static class TradeResult {
         TradeItem item;

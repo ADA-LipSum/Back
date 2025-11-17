@@ -1,6 +1,8 @@
 package com.ada.proj.service;
 
 import com.ada.proj.dto.*;
+import com.ada.proj.entity.PostLike;
+import com.ada.proj.repository.PostLikeRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +26,7 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final PostLikeRepository postLikeRepository;
 
     // 생성
     @Transactional
@@ -160,5 +163,31 @@ public class PostService {
                     : "개발";
         }
         return "일반";
+    }
+
+    @Transactional
+    public boolean toggleLike(String userUuid, String postUuid) {
+
+        Post post = postRepository.findById(postUuid)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+
+        boolean alreadyLiked = postLikeRepository.existsByUserUuidAndPostUuid(userUuid, postUuid);
+
+        if (alreadyLiked) {
+            // 좋아요 취소
+            postLikeRepository.deleteByUserUuidAndPostUuid(userUuid, postUuid);
+            post.setLikes(Math.max(0, post.getLikes() - 1));
+            return false; // 좋아요 취소됨
+        } else {
+            // 좋아요 추가
+            PostLike like = PostLike.builder()
+                    .userUuid(userUuid)
+                    .postUuid(postUuid)
+                    .build();
+            postLikeRepository.save(like);
+
+            post.setLikes(post.getLikes() + 1);
+            return true; // 좋아요 눌림
+        }
     }
 }

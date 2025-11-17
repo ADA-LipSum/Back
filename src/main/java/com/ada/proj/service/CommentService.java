@@ -28,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class CommentService {
+
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
@@ -41,13 +42,15 @@ public class CommentService {
             throw new AccessDeniedException("Unauthenticated");
         }
 
-        String uuid = authentication.getName(); // JWT subject = uuid
+        String uuid = authentication.getName();
         return userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new RuntimeException("User not found: " + uuid));
     }
 
+    /** 댓글 생성 */
     @Transactional
     public CommentResponse createComment(CommentCreateRequest request) {
+
         User user = getCurrentUser();
 
         Post post = postRepository.findById(request.getPostId())
@@ -57,7 +60,7 @@ public class CommentService {
         comment.setContent(request.getContent());
         comment.setAuthor(user);
 
-        // 작성 당시 표시 이름 저장(닉네임 or 실명)
+        // 표시명 저장
         String displayName = user.isUseNickname()
                 ? user.getUserNickname()
                 : user.getUserRealname();
@@ -65,29 +68,34 @@ public class CommentService {
 
         comment.setPost(post);
 
-        // 대댓글 처리
+        // 대댓글
         if (request.getParentId() != null) {
-            if (request.getParentId().equals(comment.getId())) {
-                throw new IllegalArgumentException("Cannot reply to itself");
-            }
             Comment parent = commentRepository.findById(request.getParentId())
                     .orElseThrow(() -> new RuntimeException("Parent comment not found"));
             comment.setParent(parent);
         }
 
-        return new CommentResponse(commentRepository.save(comment));
+        Comment saved = commentRepository.save(comment);
+
+        return buildResponse(saved);
     }
 
+    /** 댓글 조회 (작성자 이름 + 프로필 이미지 포함) */
     @Transactional(readOnly = true)
     public List<CommentResponse> getCommentsByPost(String postId) {
+
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
-        return commentRepository.findByPostAndParentIsNullOrderByCreatedAtAsc(post)
-                .stream()
-                .map(CommentResponse::new)
+
+        List<Comment> comments =
+                commentRepository.findByPostAndParentIsNullOrderByCreatedAtAsc(post);
+
+        return comments.stream()
+                .map(this::buildResponse)
                 .toList();
     }
 
+    /** 댓글 수정 */
     @Transactional
     public CommentResponse updateComment(Long commentId, CommentUpdateRequest req) {
 
@@ -96,20 +104,18 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
 
-        // 권한 체크: 댓글 작성자(seq) = 현재 로그인 사용자(seq)
         if (!comment.getAuthor().getSeq().equals(currentUser.getSeq())) {
             throw new AccessDeniedException("본인의 댓글만 수정할 수 있습니다.");
         }
 
-        // 내용 수정
         comment.setContent(req.getContent());
-        // edited = true는 @PreUpdate 자동 처리
 
         Comment saved = commentRepository.save(comment);
 
-        return new CommentResponse(saved);
+        return buildResponse(saved);
     }
 
+    /** 댓글 삭제 */
     @Transactional
     public void deleteComment(Long commentId) {
 
@@ -118,7 +124,6 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
 
-        // 권한 체크
         if (!comment.getAuthor().getSeq().equals(currentUser.getSeq())) {
             throw new AccessDeniedException("본인의 댓글만 삭제할 수 있습니다.");
         }
@@ -126,6 +131,7 @@ public class CommentService {
         commentRepository.delete(comment);
     }
 
+    /** 댓글 좋아요 토글 */
     @Transactional
     public Map<String, Object> toggleLike(Long commentId) {
 
@@ -134,22 +140,20 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
 
-        Optional<CommentLike> existing = commentLikeRepository.findByCommentAndUser(comment, currentUser);
+        Optional<CommentLike> existing =
+                commentLikeRepository.findByCommentAndUser(comment, currentUser);
 
         boolean liked;
 
         if (existing.isPresent()) {
-            // 좋아요 취소
             commentLikeRepository.delete(existing.get());
             comment.setLikes(comment.getLikes() - 1);
             liked = false;
         } else {
-            // 좋아요 추가
             CommentLike like = CommentLike.builder()
                     .comment(comment)
                     .user(currentUser)
                     .build();
-
             commentLikeRepository.save(like);
             comment.setLikes(comment.getLikes() + 1);
             liked = true;
@@ -164,6 +168,7 @@ public class CommentService {
         return result;
     }
 
+    /** 댓글 고정 토글 */
     @Transactional
     public Map<String, Object> toggleFixed(Long commentId) {
 
@@ -172,12 +177,10 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
 
-        // 권한 체크: 게시글 작성자만 가능
         if (!comment.getPost().getWriterUuid().equals(currentUser.getUuid())) {
-            throw new AccessDeniedException("게시글 작성자만 댓글을 고정하거나 해제할 수 있습니다.");
+            throw new AccessDeniedException("게시글 작성자만 가능");
         }
 
-        // 고정 토글
         boolean newState = !comment.isFixed();
         comment.setFixed(newState);
 
@@ -188,5 +191,24 @@ public class CommentService {
         result.put("commentId", comment.getId());
 
         return result;
+    }
+
+    /** Comment → Response 변환 */
+    private CommentResponse buildResponse(Comment comment) {
+
+        User author = comment.getAuthor();
+
+        String displayName = author.isUseNickname()
+                ? author.getUserNickname()
+                : author.getUserRealname();
+
+        return CommentResponse.builder()
+                .commentId(comment.getId())
+                .writerUuid(author.getUuid())
+                .writer(displayName)
+                .writerProfileImage(author.getProfileImage())
+                .content(comment.getContent())
+                .createdAt(comment.getCreatedAt())
+                .build();
     }
 }

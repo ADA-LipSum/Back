@@ -205,4 +205,18 @@ public class PostController {
     ) {
         return ApiResponse.success(postService.list(page, size));
     }
+
+    @PostMapping("/like")
+    @Operation(summary = "게시글 좋아요 토글", description = "한 번 누르면 좋아요, 다시 누르면 좋아요가 취소됩니다.")
+    public ApiResponse<Boolean> toggleLike(
+            @RequestParam String uuid,
+            Authentication auth
+    ) {
+        if (auth == null) {
+            throw new SecurityException("로그인이 필요합니다.");
+        }
+
+        boolean liked = postService.toggleLike(auth.getName(), uuid);
+        return ApiResponse.success(liked);
+    }
 }
