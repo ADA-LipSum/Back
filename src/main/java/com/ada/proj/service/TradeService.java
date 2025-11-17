@@ -145,28 +145,39 @@ public class TradeService {
     @Transactional
     public TradeResult purchase(String userUuid, TradePurchaseRequest req) {
 
-        // 재고 락 걸린 조회 (for update)
         TradeItem item = tradeItemRepository.findByItemUuidForUpdate(req.getItemUuid())
-                .orElseThrow(() -> new EntityNotFoundException("Item not found: " + req.getItemUuid()));
+                .orElseThrow(() -> new EntityNotFoundException("아이템(" + req.getItemUuid() + ")을 찾을 수 없습니다."));
 
-        // ETC 카테고리는 1회만 구매 가능
+        // 수량 검증
+        if (req.getQuantity() <= 0) {
+            throw new IllegalArgumentException("구매 수량은 최소 1개여야 합니다.");
+        }
+
+        // ETC 1회 구매 제한
         if (item.getCategory() == TradeCategory.ETC) {
-            boolean alreadyBought =
-                    tradeLogRepository.existsByUserUuidAndItemUuid(userUuid, item.getItemUuid());
-
+            boolean alreadyBought = tradeLogRepository.existsByUserUuidAndItemUuid(userUuid, item.getItemUuid());
             if (alreadyBought) {
-                throw new IllegalStateException("ETC 아이템은 1회만 구매할 수 있습니다.");
+                throw new IllegalStateException(
+                        "해당 ETC 아이템은 이미 구매하셨습니다. ETC 카테고리 상품은 1회만 구매 가능합니다."
+                );
             }
         }
 
+        // 비활성화 상태
         if (item.getActive() == null || !item.getActive()) {
-            throw new IllegalStateException("판매 중이 아닙니다.");
+            throw new IllegalStateException("해당 상품은 현재 비활성화되어 구매할 수 없습니다.");
         }
 
-        int qty = Math.max(1, req.getQuantity());
+        // 재고 0 검사
+        if (item.getStock() <= 0) {
+            throw new IllegalStateException("현재 재고가 모두 소진되었습니다.");
+        }
 
+        int qty = req.getQuantity();
+
+        // 재고 부족 검사
         if (item.getStock() < qty) {
-            throw new IllegalStateException("재고가 부족합니다.");
+            throw new IllegalStateException("재고가 부족하여 구매할 수 없습니다.");
         }
 
         int unitPrice = item.getPrice();
