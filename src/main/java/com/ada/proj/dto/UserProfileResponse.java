@@ -3,6 +3,7 @@ package com.ada.proj.dto;
 import com.ada.proj.entity.Role;
 import lombok.Builder;
 import lombok.Data;
+import java.util.List;
 
 @Data
 @Builder
@@ -19,8 +20,8 @@ public class UserProfileResponse {
 
     // user_data
     private String intro;
-    private String techStack;
-    private String links; // JSON 문자열
+    private List<String> techStack;
+    private ProfileLinksRequest links; // 타입드 객체로 반환
     private String badge;
     private Integer activityScore;
     private String contributionData; // JSON 문자열

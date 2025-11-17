@@ -1,6 +1,7 @@
 package com.ada.proj.service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,12 +17,16 @@ import com.ada.proj.dto.CreateUserRequest;
 import com.ada.proj.dto.UpdatePasswordRequest;
 import com.ada.proj.dto.UpdateProfileRequest;
 import com.ada.proj.dto.UserProfileResponse;
+import com.ada.proj.dto.ProfileLinksRequest;
 import com.ada.proj.entity.Role;
 import com.ada.proj.entity.User;
 import com.ada.proj.entity.UserData;
 import com.ada.proj.repository.UserDataRepository;
 import com.ada.proj.repository.UserRepository;
 import com.ada.proj.service.FileStorageService.StoredFile;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 @Transactional
@@ -31,15 +36,18 @@ public class UserService {
     private final UserDataRepository userDataRepository;
     private final PasswordEncoder passwordEncoder;
     private final FileStorageService fileStorageService;
+    private final ObjectMapper objectMapper;
 
     public UserService(UserRepository userRepository,
                        UserDataRepository userDataRepository,
                        PasswordEncoder passwordEncoder,
-                       FileStorageService fileStorageService) {
+                       FileStorageService fileStorageService,
+                       ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.userDataRepository = userDataRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileStorageService = fileStorageService;
+        this.objectMapper = objectMapper;
     }
 
     public List<User> listUsers(Role role, String query) {
@@ -52,6 +60,16 @@ public class UserService {
         Optional<UserData> userDataOpt = userDataRepository.findByUuid(uuid);
         UserData ud = userDataOpt.orElse(null);
 
+        List<String> techList = null;
+        if (ud != null && ud.getTechStack() != null) {
+            techList = parseTechStack(ud.getTechStack());
+        }
+
+        ProfileLinksRequest links = null;
+        if (ud != null && ud.getLinks() != null) {
+            links = parseLinks(ud.getLinks());
+        }
+
         return UserProfileResponse.builder()
                 .uuid(user.getUuid())
                 .adminId(user.getAdminId())
@@ -63,8 +81,8 @@ public class UserService {
                 .profileBanner(user.getProfileBanner())
                 .role(user.getRole())
                 .intro(ud == null ? null : ud.getIntro())
-                .techStack(ud == null ? null : ud.getTechStack())
-                .links(ud == null ? null : ud.getLinks())
+                .techStack(techList)
+                .links(links)
                 .badge(ud == null ? null : ud.getBadge())
                 .activityScore(ud == null ? null : ud.getActivityScore())
                 .contributionData(ud == null ? null : ud.getContributionData())
@@ -89,6 +107,28 @@ public class UserService {
         if (req.getNickname() != null) user.setUserNickname(req.getNickname());
         if (req.getProfileImage() != null) user.setProfileImage(req.getProfileImage());
         if (req.getProfileBanner() != null) user.setProfileBanner(req.getProfileBanner());
+
+        // upsert user_data
+        UserData ud = userDataRepository.findByUuid(uuid).orElseGet(() -> {
+            UserData created = new UserData();
+            created.setUuid(uuid);
+            return created;
+        });
+
+        if (req.getIntro() != null) {
+            ud.setIntro(req.getIntro());
+        }
+        if (req.getTechStack() != null) {
+            ud.setTechStack(serializeTechStack(req.getTechStack()));
+        }
+        if (req.getLinks() != null) {
+            ud.setLinks(serializeLinks(req));
+        }
+
+        // persist if new or changed
+        if (ud.getSeq() == null) {
+            userDataRepository.save(ud);
+        }
     }
 
     /**
@@ -141,17 +181,29 @@ public class UserService {
             throw new IllegalArgumentException("customId already exists");
         }
 
-    User user = User.builder()
+        User user = User.builder()
                 .uuid(java.util.UUID.randomUUID().toString())
                 .adminId(req.getAdminId())
                 .customId(req.getCustomId())
-        .password(req.getPassword() == null ? null : passwordEncoder.encode(req.getPassword()))
+            .password(req.getPassword() == null ? null : passwordEncoder.encode(req.getPassword()))
                 .userRealname(req.getUserRealname())
                 .userNickname(req.getUserNickname())
                 .role(req.getRole() == null ? Role.STUDENT : req.getRole())
+            .profileImage(req.getProfileImage())
+            .profileBanner(req.getProfileBanner())
                 .build();
+        user = userRepository.save(user);
 
-        return userRepository.save(user);
+        if (req.getIntro() != null || req.getTechStack() != null || req.getLinks() != null) {
+            UserData ud = new UserData();
+            ud.setUuid(user.getUuid());
+            if (req.getIntro() != null) ud.setIntro(req.getIntro());
+            if (req.getTechStack() != null) ud.setTechStack(serializeTechStack(req.getTechStack()));
+            if (req.getLinks() != null) ud.setLinks(serializeLinks(req));
+            userDataRepository.save(ud);
+        }
+
+        return user;
     }
 
     /**
@@ -168,17 +220,29 @@ public class UserService {
             throw new IllegalArgumentException("adminId already exists");
         }
 
-    User user = User.builder()
+        User user = User.builder()
                 .uuid(java.util.UUID.randomUUID().toString())
                 .adminId(req.getAdminId())
                 .customId(req.getCustomId())
-        .password(req.getPassword() == null ? null : passwordEncoder.encode(req.getPassword()))
+            .password(req.getPassword() == null ? null : passwordEncoder.encode(req.getPassword()))
                 .userRealname(req.getUserRealname())
                 .userNickname(req.getUserNickname())
                 .role(Role.ADMIN)
+            .profileImage(req.getProfileImage())
+            .profileBanner(req.getProfileBanner())
                 .build();
+        user = userRepository.save(user);
 
-        return userRepository.save(user);
+        if (req.getIntro() != null || req.getTechStack() != null || req.getLinks() != null) {
+            UserData ud = new UserData();
+            ud.setUuid(user.getUuid());
+            if (req.getIntro() != null) ud.setIntro(req.getIntro());
+            if (req.getTechStack() != null) ud.setTechStack(serializeTechStack(req.getTechStack()));
+            if (req.getLinks() != null) ud.setLinks(serializeLinks(req));
+            userDataRepository.save(ud);
+        }
+
+        return user;
     }
 
     private void ensureAdmin(Authentication auth) {
@@ -203,6 +267,60 @@ public class UserService {
         String principal = auth.getName();
         if (!isAdmin && !uuid.equals(principal)) {
             throw new SecurityException("Forbidden");
+        }
+    }
+
+    private List<String> parseTechStack(String stored) {
+        try {
+            String s = stored.trim();
+            if (s.startsWith("[")) {
+                // JSON array
+                return objectMapper.readValue(s, new TypeReference<List<String>>(){});
+            }
+            // CSV fallback
+            List<String> list = new ArrayList<>();
+            for (String it : s.split(",")) {
+                String v = it.trim();
+                if (!v.isEmpty()) list.add(v);
+            }
+            return list.isEmpty() ? null : list;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String serializeTechStack(List<String> list) {
+        try {
+            return objectMapper.writeValueAsString(list);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String serializeLinks(UpdateProfileRequest req) {
+        try {
+            // Build a JSON object from ProfileLinksRequest keeping only non-null values
+            JsonNode node = objectMapper.valueToTree(req.getLinks());
+            return objectMapper.writeValueAsString(node);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String serializeLinks(CreateUserRequest req) {
+        try {
+            JsonNode node = objectMapper.valueToTree(req.getLinks());
+            return objectMapper.writeValueAsString(node);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private ProfileLinksRequest parseLinks(String json) {
+        try {
+            return objectMapper.readValue(json, ProfileLinksRequest.class);
+        } catch (Exception e) {
+            return null;
         }
     }
 }
