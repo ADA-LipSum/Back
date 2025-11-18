@@ -5,7 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import com.ada.proj.entity.CommentLike;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,18 +17,21 @@ import com.ada.proj.dto.CommentCreateRequest;
 import com.ada.proj.dto.CommentResponse;
 import com.ada.proj.dto.CommentUpdateRequest;
 import com.ada.proj.entity.Comment;
+import com.ada.proj.entity.CommentLike;
 import com.ada.proj.entity.Post;
 import com.ada.proj.entity.User;
+import com.ada.proj.repository.CommentLikeRepository;
 import com.ada.proj.repository.CommentRepository;
 import com.ada.proj.repository.PostRepository;
 import com.ada.proj.repository.UserRepository;
-import com.ada.proj.repository.CommentLikeRepository;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class CommentService {
+
+    private static final Logger log = LoggerFactory.getLogger(CommentService.class);
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
@@ -76,6 +80,13 @@ public class CommentService {
         }
 
         Comment saved = commentRepository.save(comment);
+
+        // 댓글 수 갱신 (대댓글 포함 전체 개수)
+        updatePostCommentsCount(post);
+
+        log.info("[COMMENT-CREATE] postUuid={}, commentId={}, parentId={}",
+            post.getPostUuid(), saved.getId(),
+            request.getParentId() != null ? request.getParentId() : "ROOT");
 
         return buildResponse(saved);
     }
@@ -128,7 +139,10 @@ public class CommentService {
             throw new AccessDeniedException("본인의 댓글만 삭제할 수 있습니다.");
         }
 
+        Post post = comment.getPost();
         commentRepository.delete(comment);
+        updatePostCommentsCount(post);
+        log.info("[COMMENT-DELETE] postUuid={}, deletedCommentId={}", post.getPostUuid(), commentId);
     }
 
     /** 댓글 좋아요 토글 */
@@ -195,12 +209,14 @@ public class CommentService {
 
     /** Comment → Response 변환 */
     private CommentResponse buildResponse(Comment comment) {
-
         User author = comment.getAuthor();
+        String displayName = author.isUseNickname() ? author.getUserNickname() : author.getUserRealname();
 
-        String displayName = author.isUseNickname()
-                ? author.getUserNickname()
-                : author.getUserRealname();
+        List<CommentResponse> childResponses = commentRepository
+            .findByParentOrderByCreatedAtAsc(comment)
+            .stream()
+            .map(this::buildResponse)
+            .toList();
 
         return CommentResponse.builder()
                 .commentId(comment.getId())
@@ -209,6 +225,12 @@ public class CommentService {
                 .writerProfileImage(author.getProfileImage())
                 .content(comment.getContent())
                 .createdAt(comment.getCreatedAt())
+                .children(childResponses)
                 .build();
+    }
+
+    private void updatePostCommentsCount(Post post) {
+        long total = commentRepository.countByPost(post);
+        post.setComments((int) total);
     }
 }

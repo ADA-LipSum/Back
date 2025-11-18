@@ -1,7 +1,13 @@
 package com.ada.proj.dto;
 
 import java.time.LocalDateTime;
-import lombok.*;
+import java.util.List;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -18,4 +24,8 @@ public class CommentResponse {
 
     private String content;
     private LocalDateTime createdAt;
+
+    // 대댓글 포함 (재귀 구조)
+    @Builder.Default
+    private List<CommentResponse> children = List.of();
 }
