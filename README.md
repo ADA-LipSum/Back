@@ -129,10 +129,55 @@ Get-Content app.log -Wait
 
 > 더 많은 엔드포인트는 Swagger UI 또는 소스 코드 컨트롤러 패키지 참고.
 
-## 기여 방법
+## 커밋 규칙 (Conventional Commits)
 
-1. 이슈 작성 → 브랜치(`feature/...`, `fix/...`) 생성
-2. 커밋 컨벤션: `feat:`, `fix:`, `docs:`, `refactor:`, `test:` 등
-3. PR 시 변경 목적/테스트 포인트 명시
+커밋 메시지는 다음 형식을 따릅니다:
+
+```text
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+- `type`: 변경 이유/성격을 나타내는 키워드 (필수)
+- `scope`: 변경된 주요 모듈/패키지/레이어 (선택, 생략 가능)
+- `subject`: 50자 이내, 현재형/명령형, 마침표 X
+- `body`: 필요한 경우 상세 설명 (무엇을/왜/어떻게). 여러 줄 가능.
+- `footer`: 이슈/브레이킹 변경/관련 참고 (`BREAKING CHANGE:` 또는 `Closes #123` 등)
+
+### Type 목록
+
+| Type | 설명 |
+|------|------|
+| feat | 새로운 기능 추가 |
+| fix | 버그 수정 |
+| docs | 문서만 변경 |
+| style | 코드 의미 변화 없음 (포맷, 세미콜론 등) |
+| refactor | 기능 변화 없는 구조 개선 |
+| test | 테스트 추가/수정/리팩터 |
+| build | 빌드 시스템/외부 의존성 변경 |
+| ci | CI 구성/스크립트 변경 |
+| perf | 성능 개선 |
+| chore | 기타 잡무 (예: 패키지 정리) |
+| revert | 이전 커밋 되돌리기 |
+
+### 예시
+
+```text
+feat(post): 게시글 생성 시 썸네일 자동 추출
+
+본문 첫 이미지를 탐색하여 썸네일 필드에 저장하도록 로직 추가.
+기존 API 응답 스키마에는 변화 없음.
+
+Closes #42
+```
+
+```text
+fix(auth): 토큰 만료 시 500 대신 401 반환
+
+GlobalExceptionHandler에서 TokenExpiredException 매핑 오류 수정.
+```
 
 ---
