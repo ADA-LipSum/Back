@@ -136,16 +136,13 @@ Get-Content app.log -Wait
 ```text
 <type>(<scope>): <subject>
 
-<body>
-
-<footer>
+<description>
 ```
 
 - `type`: 변경 이유/성격을 나타내는 키워드 (필수)
 - `scope`: 변경된 주요 모듈/패키지/레이어 (선택, 생략 가능)
 - `subject`: 50자 이내, 현재형/명령형, 마침표 X
-- `body`: 필요한 경우 상세 설명 (무엇을/왜/어떻게). 여러 줄 가능.
-- `footer`: 이슈/브레이킹 변경/관련 참고 (`BREAKING CHANGE:` 또는 `Closes #123` 등)
+- `description`: 필요한 경우 상세 설명 (무엇을/왜/어떻게). 여러 줄 가능.
 
 ### Type 목록
 
