@@ -1,6 +1,7 @@
 package com.ada.proj.security;
 
 import com.ada.proj.dto.ApiResponse;
+import com.ada.proj.dto.ErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,6 +31,6 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
         log.warn("인가 거부: id={} path={} msg={}", rid, request.getRequestURI(), accessDeniedException.getMessage());
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.fail("Forbidden")));
+        response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.error(ErrorCode.FORBIDDEN.name(), "Forbidden")));
     }
 }

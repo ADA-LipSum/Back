@@ -1,6 +1,7 @@
 package com.ada.proj.security;
 
 import com.ada.proj.dto.ApiResponse;
+import com.ada.proj.dto.ErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,6 +30,6 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
         log.warn("인증 실패: id={} path={} msg={}", rid, request.getRequestURI(), authException.getMessage());
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.fail("Unauthenticated")));
+        response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.error(ErrorCode.UNAUTHENTICATED.name(), "Unauthenticated")));
     }
 }

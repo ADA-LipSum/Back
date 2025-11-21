@@ -1,0 +1,19 @@
+package com.ada.proj.dto;
+
+/**
+ * 프로젝트 전역 에러 코드 정의.
+ */
+public enum ErrorCode {
+    USER_NOT_FOUND,
+    INVALID_PASSWORD,
+    TOKEN_EXPIRED,
+    TOKEN_INVALID,
+    DUPLICATE_EMAIL,
+    FORBIDDEN,
+    UNAUTHENTICATED,
+    VALIDATION_ERROR,
+    BAD_REQUEST,
+    CONFLICT,
+    AUTH_FAILURE,
+    INTERNAL_ERROR
+}

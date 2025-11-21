@@ -3,12 +3,14 @@ package com.ada.proj.controller;
 import java.io.IOException;
 
 import com.ada.proj.dto.*;
-import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,15 +35,16 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/post")
+@RequestMapping({"/post","/api/posts"}) // 하위호환 /post 유지, 신규 /api/posts 도입
 @Tag(name = "게시물")
 public class PostController {
 
     private final PostService postService;
     private final FileStorageService fileStorageService;
+    private final com.ada.proj.service.CommentService commentService; // 댓글 조회 REST 경로 제공
 
     // 파일 포함 생성
-    @PostMapping(path = "/multipart", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = {"","/","/multipart"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         @Operation(
             summary = "게시물 생성(파일 포함)",
             description = "@RequestPart('data') JSON에 title, content(contentMd 호환), isDev, devTags 포함 가능. 이미지/영상 파일 동시 업로드 지원.",
@@ -84,7 +87,8 @@ public class PostController {
 
         data.setContent(md.toString());
         String uuid = postService.create(data);
-        return ResponseEntity.ok(ApiResponse.success(uuid));
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+            .body(ApiResponse.success(uuid));
     }
 
     private void appendMixedFiles(PostCreateRequest data, MultipartFile[] files, StringBuilder md) throws IOException {
@@ -150,53 +154,73 @@ public class PostController {
     }
 
     // 수정
+    @Deprecated
     @PostMapping("/update")
-    @Operation(summary = "수정", description = "title, content(또는 contentMd), isDev, devTags 선택 수정", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "[Deprecated] 수정", description = "PUT /api/posts/{uuid} 사용", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<ApiResponse<Void>> legacyUpdate(
+            @Parameter(description = "게시글 UUID", example = "post-uuid-...")
+            @RequestParam("uuid") String uuid,
+            @RequestBody PostUpdateRequest req,
+            Authentication authentication) {
+        postService.update(uuid, req);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @PutMapping("/{uuid}")
+    @Operation(summary = "게시글 수정", description = "title, content, isDev, devTags 선택 수정", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<ApiResponse<Void>> update(
-                                                    @Parameter(description = "게시글 UUID", example = "post-uuid-...")
-                                                    @RequestParam("uuid") String uuid,
-                                                    @RequestBody PostUpdateRequest req,
-                                                    Authentication authentication) {
-        // 권한 검증이 필요하다면 authentication.getName()과 작성자 비교 로직을 Service로 전달
+            @Parameter(description = "게시글 UUID", example = "post-uuid-...")
+            @PathVariable("uuid") String uuid,
+            @RequestBody PostUpdateRequest req,
+            Authentication authentication) {
         postService.update(uuid, req);
         return ResponseEntity.ok(ApiResponse.success());
     }
 
     // 삭제
+    @Deprecated
     @PostMapping("/delete")
-    @Operation(summary = "삭제하기", description = "선택한 게시글을 삭제합니다 (게시글 ID 기준).", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "[Deprecated] 삭제", description = "DELETE /api/posts/{uuid} 사용", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<ApiResponse<Void>> legacyDelete(
+            @Parameter(description = "게시글 UUID", example = "post-uuid-...")
+            @RequestParam("uuid") String uuid,
+            Authentication authentication) {
+        postService.delete(uuid);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @DeleteMapping("/{uuid}")
+    @Operation(summary = "게시글 삭제", description = "선택한 게시글을 삭제", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<ApiResponse<Void>> delete(
-                                                    @Parameter(description = "게시글 UUID", example = "post-uuid-...")
-                                                    @RequestParam("uuid") String uuid,
-                                                    Authentication authentication) {
+            @Parameter(description = "게시글 UUID", example = "post-uuid-...")
+            @PathVariable("uuid") String uuid,
+            Authentication authentication) {
         postService.delete(uuid);
         return ResponseEntity.ok(ApiResponse.success());
     }
 
     // 상세(+조회수)
+    @Deprecated
     @GetMapping("/view")
-    @Operation(summary = "자세히 보기", description = "게시글 상세 정보를 조회합니다 (게시글 ID 기준). 호출 시 조회수가 1 증가합니다.")
-        public ResponseEntity<ApiResponse<PostDetailResponse>> detail(
+    @Operation(summary = "[Deprecated] 게시글 상세", description = "GET /api/posts/{uuid} 사용")
+    public ResponseEntity<ApiResponse<PostDetailResponse>> legacyDetail(
             @Parameter(description = "게시글 UUID", example = "post-uuid-...")
             @RequestParam("uuid") String uuid) {
         return ResponseEntity.ok(ApiResponse.success(postService.detail(uuid)));
     }
 
-    @GetMapping("/list")
-    @Operation(
-            summary = "게시글 목록 조회",
-            description = """
-            게시판에 등록된 게시글들을 페이지 단위로 조회합니다.
+    @GetMapping("/{uuid}")
+    @Operation(summary = "게시글 상세 조회", description = "게시글 상세 정보를 조회하고 조회수 증가")
+    public ResponseEntity<ApiResponse<PostDetailResponse>> detail(
+            @Parameter(description = "게시글 UUID", example = "post-uuid-...")
+            @PathVariable("uuid") String uuid) {
+        return ResponseEntity.ok(ApiResponse.success(postService.detail(uuid)));
+    }
 
-            Parameters:
-            - page: 조회할 페이지 번호 (기본값 0)
-            - size: 한 페이지에 포함될 게시글 수 (기본값 20)
-
-            Example:
-            /post/list?page=0&size=20
-            """
-    )
-    public ApiResponse<PageResponse<PostSummaryResponse>> list(
+        @Deprecated
+        @GetMapping("/list")
+        @Operation(summary = "[Deprecated] 게시글 목록", description = "GET /api/posts 사용")
+        public ApiResponse<PageResponse<PostSummaryResponse>> legacyList(
             @Parameter(description = "조회할 페이지 번호", example = "0")
             @RequestParam(defaultValue = "0") int page,
 
@@ -206,17 +230,44 @@ public class PostController {
         return ApiResponse.success(postService.list(page, size));
     }
 
+        @GetMapping
+        @Operation(summary = "게시글 목록 조회", description = "page/size 기반 목록 조회")
+        public ResponseEntity<ApiResponse<PageResponse<PostSummaryResponse>>> list(
+            @Parameter(description = "조회할 페이지 번호", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "한 페이지에 포함될 게시글 개수", example = "20")
+            @RequestParam(defaultValue = "20") int size
+        ) {
+        return ResponseEntity.ok(ApiResponse.success(postService.list(page, size)));
+        }
+
+    @Deprecated
     @PostMapping("/like")
-    @Operation(summary = "게시글 좋아요 토글", description = "한 번 누르면 좋아요, 다시 누르면 좋아요가 취소됩니다.")
-    public ApiResponse<Boolean> toggleLike(
+    @Operation(summary = "[Deprecated] 좋아요 토글", description = "POST /api/posts/{uuid}/like 사용")
+    public ApiResponse<Boolean> legacyToggleLike(
             @RequestParam String uuid,
             Authentication auth
     ) {
-        if (auth == null) {
-            throw new SecurityException("로그인이 필요합니다.");
-        }
-
+        if (auth == null) throw new SecurityException("로그인이 필요합니다.");
         boolean liked = postService.toggleLike(auth.getName(), uuid);
         return ApiResponse.success(liked);
+    }
+
+    @PostMapping("/{uuid}/like")
+    @Operation(summary = "게시글 좋아요 토글", description = "PathVariable 기반 토글")
+    public ResponseEntity<ApiResponse<Boolean>> toggleLike(
+            @PathVariable("uuid") String uuid,
+            Authentication auth
+    ) {
+        if (auth == null) throw new SecurityException("로그인이 필요합니다.");
+        boolean liked = postService.toggleLike(auth.getName(), uuid);
+        return ResponseEntity.ok(ApiResponse.success(liked));
+    }
+
+    @GetMapping("/{uuid}/comments")
+    @Operation(summary = "게시글 댓글 조회", description = "게시글의 최상위 및 대댓글 포함 전체 댓글 반환")
+    public ResponseEntity<ApiResponse<java.util.List<CommentResponse>>> comments(
+            @PathVariable("uuid") String uuid) {
+        return ResponseEntity.ok(ApiResponse.success(commentService.getCommentsByPost(uuid)));
     }
 }
