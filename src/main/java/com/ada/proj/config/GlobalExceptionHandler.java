@@ -18,6 +18,8 @@ import com.ada.proj.exception.TokenInvalidException;
 import com.ada.proj.exception.UnauthenticatedException;
 import com.ada.proj.exception.UserNotFoundException;
 
+import jakarta.persistence.EntityNotFoundException;
+
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
@@ -59,6 +61,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleNotFound(UserNotFoundException e, HttpServletRequest req) {
         logWarn(e, req, 404, ErrorCode.USER_NOT_FOUND.name());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(ErrorCode.USER_NOT_FOUND.name(), e.getMessage()));
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleEntityNotFound(EntityNotFoundException e, HttpServletRequest req) {
+        logWarn(e, req, 404, ErrorCode.BAD_REQUEST.name());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(ErrorCode.BAD_REQUEST.name(), e.getMessage()));
     }
 
     @ExceptionHandler({InvalidCredentialsException.class, TokenInvalidException.class, TokenExpiredException.class})

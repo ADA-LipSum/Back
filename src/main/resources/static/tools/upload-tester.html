@@ -135,7 +135,7 @@
   </div>
 
       <div class="row mt8">
-        <button id="btnCreatePost">POST /post</button>
+        <button id="btnCreatePost">POST /api/posts</button>
         <button class="secondary" id="btnPreview">미리보기 렌더</button>
       </div>
 
@@ -149,7 +149,7 @@
     <section class="card" style="grid-column: 1 / -1;">
       <h2>4) 생성된 게시물 상세 보기</h2>
       <div class="row">
-        <button class="secondary" id="btnFetchCreated">/post/view 호출</button>
+        <button class="secondary" id="btnFetchCreated">/api/posts/view 호출</button>
         <a id="openBrowser" class="secondary" href="#" target="_blank" style="display:inline-block; text-decoration:none; padding:10px 14px; border-radius:8px; background:#334155; color:#fff;">목록 뷰어로 열기</a>
       </div>
       <div class="muted mt8">아래 영역은 서버에서 받은 contentMd를 렌더링합니다.</div>
@@ -271,7 +271,7 @@
     fd.append('data', new Blob([JSON.stringify(payload)], { type:'application/json' }), 'data.json');
     if (files.imgs && files.imgs.length) for (const f of files.imgs) fd.append('imageFiles', f);
     if (files.vids && files.vids.length) for (const f of files.vids) fd.append('videoFiles', f);
-    const res = await fetch(base() + '/post/multipart', { method:'POST', headers: headers(), body: fd });
+    const res = await fetch(base() + '/api/posts/multipart', { method:'POST', headers: headers(), body: fd });
     const json = await res.json();
     if (!res.ok || !json.success) throw new Error(json.message || 'create failed');
     return json.data;
@@ -420,7 +420,7 @@
       const vids = $("videoFilesMulti").files;
       if (imgs && imgs.length) { for (const f of imgs) fd.append('imageFiles', f); }
       if (vids && vids.length) { for (const f of vids) fd.append('videoFiles', f); }
-      const res = await fetch(base() + '/post/multipart', { method: 'POST', headers: headers(), body: fd });
+      const res = await fetch(base() + '/api/posts/multipart', { method: 'POST', headers: headers(), body: fd });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message || 'create failed');
       const uuid = json.data;
@@ -455,7 +455,7 @@
     const uuid = $("createdUuid").textContent.trim();
   if (!uuid) { log('먼저 게시물을 생성하세요'); return; }
     try {
-      const res = await fetch(base() + '/post/view?uuid=' + encodeURIComponent(uuid));
+      const res = await fetch(base() + '/api/posts/view?uuid=' + encodeURIComponent(uuid));
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message || 'detail failed');
       const md = (json.data && (json.data.content || json.data.contentMd)) || '';

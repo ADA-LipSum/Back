@@ -3,6 +3,7 @@ package com.ada.proj.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,6 +42,25 @@ public class AuthController {
             @Parameter(description = "로그인 요청 바디")
             @Valid @RequestBody LoginRequest request) {
         LoginResponse res = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.ok(res));
+    }
+
+    @PostMapping("/swagger-login")
+    @Operation(summary = "Swagger용 단축 로그인", description = "개발 편의를 위한 단축 로그인: id=admin, pw=adminadmin1234")
+    public ResponseEntity<ApiResponse<LoginResponse>> swaggerLogin(
+            @Parameter(description = "로그인 요청 바디")
+            @Valid @RequestBody LoginRequest request) {
+        LoginResponse res = authService.swaggerLogin(request);
+        return ResponseEntity.ok(ApiResponse.ok(res));
+    }
+
+    @GetMapping("/swagger-login")
+    @Operation(summary = "Swagger용 자동 로그인(GET)", description = "개발 편의를 위한 자동 로그인 (id/pw 입력 불필요)")
+    public ResponseEntity<ApiResponse<LoginResponse>> swaggerLoginGet() {
+        LoginRequest req = new LoginRequest();
+        req.setId("admin");
+        req.setPassword("adminadmin1234");
+        LoginResponse res = authService.swaggerLogin(req);
         return ResponseEntity.ok(ApiResponse.ok(res));
     }
 

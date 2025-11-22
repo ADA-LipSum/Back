@@ -195,6 +195,56 @@ public class AuthService {
         return resp;
     }
 
+    /**
+     * Swagger UI 등 개발 편의를 위한 관리자 전용 단축 로그인입니다.
+     * 하드코딩된 아이디/비밀번호로 접근 시 ADMIN 권한의 토큰을 발급합니다.
+     */
+    public LoginResponse swaggerLogin(LoginRequest request) {
+        final String SW_ID = "admin";
+        final String SW_PW = "adminadmin1234";
+        if (request == null || request.getId() == null || request.getPassword() == null
+                || !SW_ID.equals(request.getId()) || !SW_PW.equals(request.getPassword())) {
+            if (log.isWarnEnabled()) {
+                log.warn("[AUTH] swagger login rejected id={}", safeId(request == null ? null : request.getId()));
+            }
+            throw new com.ada.proj.exception.InvalidCredentialsException("Invalid id or password");
+        }
+
+        // 고정 UUID 사용(반복 호출 시 이전 refresh 토큰을 덮어쓰기 위해 동일 uuid 사용)
+        String uuid = "00000000-0000-0000-0000-000000000000";
+        boolean isFirstLogin = false;
+
+        String accessToken = jwtTokenProvider.generateAccessToken(uuid, Role.ADMIN.name());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(uuid, Role.ADMIN.name());
+
+        // 기존 refresh 삭제 후 저장(1인 1개 정책)
+        refreshTokenRepository.findByUuid(uuid).ifPresent(rt -> refreshTokenRepository.deleteByUuid(uuid));
+
+        RefreshToken entity = RefreshToken.builder()
+                .uuid(uuid)
+                .token(refreshToken)
+                .expiresAt(Instant.now().plusMillis(604800000))
+                .build();
+        refreshTokenRepository.save(entity);
+
+        LoginResponse resp = LoginResponse.builder()
+                .tokenType("Bearer")
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .expiresIn(900_000)
+                .uuid(uuid)
+                .role(Role.ADMIN)
+                .userRealname("Swagger Admin")
+                .userNickname("swagger")
+                .profileImage(null)
+                .firstLogin(isFirstLogin)
+                .build();
+        if (log.isInfoEnabled()) {
+            log.info("[AUTH] swagger login success uuid={} role={}", safeUuid(uuid), Role.ADMIN);
+        }
+        return resp;
+    }
+
     private User findUserForLogin(String id) {
         return userRepository.findByAdminId(id)
                 .or(() -> userRepository.findByCustomId(id))

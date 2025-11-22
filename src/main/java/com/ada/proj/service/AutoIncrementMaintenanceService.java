@@ -86,24 +86,17 @@ public class AutoIncrementMaintenanceService {
     }
 
     private void maintainTable(String table) {
-    // PK 컬럼명은 이후 resequence 로직에서 필요할 때 별도로 조회한다.
-    // (AUTO_INCREMENT 컬럼과 PK가 다를 수 있으므로 여기서는 조회하지 않음)
-            // 1) 테이블의 AUTO_INCREMENT 대상 컬럼을 정보 스키마에서 조회
             String aiColumn = getAutoIncrementColumn(table);
             if (aiColumn == null) {
-                // 자동 증가 컬럼이 없는 테이블이면 스킵 (예: PK가 UUID인 테이블)
                 log.debug("[AI-MAINTAIN] 테이블={} 자동증가 컬럼 없음 – 건너뜀", table);
                 return;
             }
 
-            // 2) 해당 컬럼의 최대값을 기준으로 다음 AUTO_INCREMENT 값을 계산
             Long maxVal = jdbcTemplate.queryForObject(
                 "SELECT MAX(`" + aiColumn + "`) FROM `" + table + "`",
                 Long.class
             );
             long next = (maxVal == null || maxVal <= 0) ? 1 : maxVal + 1;
-
-            // 3) AUTO_INCREMENT 적용 (최소값은 1)
             jdbcTemplate.execute("ALTER TABLE `" + table + "` AUTO_INCREMENT = " + next);
             log.info("[AI-MAINTAIN] 테이블={}, AI컬럼={}, 최대값={}, AUTO_INCREMENT={}로 설정", table, aiColumn, maxVal, next);
         
@@ -188,20 +181,25 @@ public class AutoIncrementMaintenanceService {
         jdbcTemplate.execute("INSERT INTO `" + map + "` (old_pk, new_pk) " +
                 "SELECT `" + pk + "`, ROW_NUMBER() OVER (ORDER BY " + orderBy + ") FROM `" + table + "`");
 
-    jdbcTemplate.execute(String.format(UPDATE_MAP_ADD_OFFSET_TEMPLATE, map, offset));
+        jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS=0");
 
-        for (FkRef fk : getReferencingFks(table, pk)) {
-        jdbcTemplate.execute(String.format(UPDATE_JOIN_REF_TEMPLATE, fk.table, map, fk.column, fk.column));
-        }
+        jdbcTemplate.execute(String.format(UPDATE_MAP_ADD_OFFSET_TEMPLATE, map, offset));
 
-    jdbcTemplate.execute(String.format(UPDATE_JOIN_BASE_TEMPLATE, table, map, pk, pk));
-
-    jdbcTemplate.execute(String.format(UPDATE_MAP_TO_FINAL_TEMPLATE, map, offset));
+        jdbcTemplate.execute(String.format(UPDATE_JOIN_BASE_TEMPLATE, table, map, pk, pk));
 
         for (FkRef fk : getReferencingFks(table, pk)) {
             jdbcTemplate.execute(String.format(UPDATE_JOIN_REF_TEMPLATE, fk.table, map, fk.column, fk.column));
         }
+
+        jdbcTemplate.execute(String.format(UPDATE_MAP_TO_FINAL_TEMPLATE, map, offset));
+
         jdbcTemplate.execute(String.format(UPDATE_JOIN_BASE_TEMPLATE, table, map, pk, pk));
+
+        for (FkRef fk : getReferencingFks(table, pk)) {
+            jdbcTemplate.execute(String.format(UPDATE_JOIN_REF_TEMPLATE, fk.table, map, fk.column, fk.column));
+        }
+
+        jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS=1");
 
         log.info("[AI-RESEQUENCE-PK] 테이블={} 기본키 {} 재시퀀싱 완료 (시작=1)", table, pk);
     }
@@ -212,5 +210,9 @@ public class AutoIncrementMaintenanceService {
         String sql = "SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE " +
                 "WHERE TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME = ? AND REFERENCED_COLUMN_NAME = ?";
         return jdbcTemplate.query(sql, (rs, rn) -> new FkRef(rs.getString(1), rs.getString(2)), referencedTable, referencedColumn);
+    }
+
+    public void triggerResequencePrimary(String table) {
+        self.resequencePrimaryKey(table);
     }
 }

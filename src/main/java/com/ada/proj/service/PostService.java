@@ -19,6 +19,7 @@ import com.ada.proj.repository.UserRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +28,16 @@ public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final PostLikeRepository postLikeRepository;
+
+    private Post getPostByUuidOrThrow(String uuid) {
+        return postRepository.findById(uuid)
+                .orElseThrow(() -> new EntityNotFoundException("Post not found: " + uuid));
+    }
+
+    private Post getPostBySeqOrThrow(Long seq) {
+        return postRepository.findBySeq(seq)
+                .orElseThrow(() -> new EntityNotFoundException("Post not found (seq): " + seq));
+    }
 
     // 생성
     @Transactional
@@ -108,8 +119,7 @@ public class PostService {
 
         postRepository.increaseViews(uuid);
 
-        Post p = postRepository.findById(uuid)
-                .orElseThrow(() -> new EntityNotFoundException("Post not found: " + uuid));
+        Post p = getPostByUuidOrThrow(uuid);
 
         User u = userRepository.findByUuid(p.getWriterUuid()).orElse(null);
 
@@ -133,11 +143,17 @@ public class PostService {
                 .build();
     }
 
+    // seq 기반 상세 조회 (uuid 기반 상세 재사용)
+    @Transactional
+    public PostDetailResponse detailBySeq(Long seq) {
+        Post p = getPostBySeqOrThrow(seq);
+        return detail(p.getPostUuid());
+    }
+
     // 수정
     @Transactional
     public void update(String uuid, PostUpdateRequest req) {
-        Post p = postRepository.findById(uuid)
-                .orElseThrow(() -> new EntityNotFoundException("Post not found: " + uuid));
+        Post p = getPostByUuidOrThrow(uuid);
 
         if (req.getTitle() != null) p.setTitle(req.getTitle());
         if (req.getContent() != null) p.setContent(req.getContent());
@@ -147,6 +163,13 @@ public class PostService {
         if (req.getDevTags() != null) p.setDevTags(req.getDevTags());
     }
 
+    // seq 기반 수정
+    @Transactional
+    public void updateBySeq(Long seq, PostUpdateRequest req) {
+        Post p = getPostBySeqOrThrow(seq);
+        update(p.getPostUuid(), req);
+    }
+
     // 삭제
     @Transactional
     public void delete(String uuid) {
@@ -154,6 +177,13 @@ public class PostService {
             throw new EntityNotFoundException("Post not found: " + uuid);
         }
         postRepository.deleteById(uuid);
+    }
+
+    // seq 기반 삭제
+    @Transactional
+    public void deleteBySeq(Long seq) {
+        Post p = getPostBySeqOrThrow(seq);
+        delete(p.getPostUuid());
     }
 
     private String formatTag(Post p) {
@@ -167,9 +197,7 @@ public class PostService {
 
     @Transactional
     public boolean toggleLike(String userUuid, String postUuid) {
-
-        Post post = postRepository.findById(postUuid)
-                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+        Post post = getPostByUuidOrThrow(postUuid);
 
         boolean alreadyLiked = postLikeRepository.existsByUserUuidAndPostUuid(userUuid, postUuid);
 
@@ -189,5 +217,34 @@ public class PostService {
             post.setLikes(post.getLikes() + 1);
             return true; // 좋아요 눌림
         }
+
     }
+
+    // seq 기반 좋아요 토글
+    @Transactional
+    public boolean toggleLikeBySeq(String userUuid, Long seq) {
+        Post p = getPostBySeqOrThrow(seq);
+        return toggleLike(userUuid, p.getPostUuid());
+    }
+
+    // 좋아요 id로 취소(또는 검사) 처리
+    @Transactional
+    public void deleteLikeById(Long likeId, String userUuid) {
+        PostLike like = postLikeRepository.findById(likeId)
+                .orElseThrow(() -> new IllegalArgumentException("Like not found: " + likeId));
+
+        if (!like.getUserUuid().equals(userUuid)) {
+            throw new AccessDeniedException("본인의 좋아요만 취소할 수 있습니다.");
+        }
+
+        Post post = postRepository.findById(like.getPostUuid())
+                .orElseThrow(() -> new EntityNotFoundException("Post not found: " + like.getPostUuid()));
+
+        // 좋아요 삭제
+        postLikeRepository.deleteById(likeId);
+
+        // 카운트 보정
+        post.setLikes(Math.max(0, post.getLikes() - 1));
+    }
+
 }

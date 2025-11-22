@@ -64,8 +64,8 @@
 
   <section class="card">
     <h2>목록</h2>
-    <div class="controls" style="margin-top:8px;">
-      <button id="btnReload">/post/list 불러오기</button>
+      <div class="controls" style="margin-top:8px;">
+      <button id="btnReload">/api/posts 불러오기</button>
       <button class="secondary" id="btnPrev">이전</button>
       <button class="secondary" id="btnNext">다음</button>
     </div>
@@ -149,7 +149,7 @@
 
     // 목록 불러오기
     async function loadList(){
-    const url = `${base()}/post/list?page=${state.page}&size=${state.size}`;
+    const url = `${base()}/api/posts?page=${state.page}&size=${state.size}`;
     const res = await fetch(url);
     const json = await res.json();
     if (!res.ok || !json.success) throw new Error(json.message || "list failed");
@@ -194,7 +194,7 @@
 
     async function loadDetail(uuid){
       $("sel").textContent = uuid;
-      const res = await fetch(`${base()}/post/view?uuid=${encodeURIComponent(uuid)}`);
+      const res = await fetch(`${base()}/api/posts/view?uuid=${encodeURIComponent(uuid)}`);
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message || "detail failed");
       const d = json.data || {};

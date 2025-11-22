@@ -67,8 +67,8 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/files/**",
                                 "/tools/**",
-                                "/post/list",
-                                "/post/view"
+                                "/api/posts",
+                                "/api/posts/view"
                         ).permitAll()
                         // CORS Preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

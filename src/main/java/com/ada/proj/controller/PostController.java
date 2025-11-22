@@ -30,12 +30,13 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping({"/post","/api/posts"}) // 하위호환 /post 유지, 신규 /api/posts 도입
+@RequestMapping("/api/posts")
 @Tag(name = "게시물")
 public class PostController {
 
@@ -153,8 +154,8 @@ public class PostController {
         }
     }
 
-    // 수정
     @Deprecated
+    @Hidden
     @PostMapping("/update")
     @Operation(summary = "[Deprecated] 수정", description = "PUT /api/posts/{uuid} 사용", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<ApiResponse<Void>> legacyUpdate(
@@ -177,8 +178,20 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    // 삭제
+    // seq 기반 수정
+    @PutMapping("/seq/{seq}")
+    @Operation(summary = "게시글 수정 (seq)", description = "seq로 게시글 수정", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<ApiResponse<Void>> updateBySeq(
+            @Parameter(description = "게시글 seq", example = "123")
+            @PathVariable("seq") Long seq,
+            @RequestBody PostUpdateRequest req,
+            Authentication authentication) {
+        postService.updateBySeq(seq, req);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
     @Deprecated
+    @Hidden
     @PostMapping("/delete")
     @Operation(summary = "[Deprecated] 삭제", description = "DELETE /api/posts/{uuid} 사용", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<ApiResponse<Void>> legacyDelete(
@@ -199,8 +212,19 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    // 상세(+조회수)
+    // seq 기반 삭제
+    @DeleteMapping("/seq/{seq}")
+    @Operation(summary = "게시글 삭제 (seq)", description = "seq로 게시글 삭제", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<ApiResponse<Void>> deleteBySeq(
+            @Parameter(description = "게시글 seq", example = "123")
+            @PathVariable("seq") Long seq,
+            Authentication authentication) {
+        postService.deleteBySeq(seq);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
     @Deprecated
+    @Hidden
     @GetMapping("/view")
     @Operation(summary = "[Deprecated] 게시글 상세", description = "GET /api/posts/{uuid} 사용")
     public ResponseEntity<ApiResponse<PostDetailResponse>> legacyDetail(
@@ -217,7 +241,17 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success(postService.detail(uuid)));
     }
 
+    // seq 기반 상세 조회
+    @GetMapping("/seq/{seq}")
+    @Operation(summary = "게시글 상세 조회 (seq)", description = "seq로 게시글 상세 조회 및 조회수 증가")
+    public ResponseEntity<ApiResponse<PostDetailResponse>> detailBySeq(
+            @Parameter(description = "게시글 seq", example = "123")
+            @PathVariable("seq") Long seq) {
+        return ResponseEntity.ok(ApiResponse.success(postService.detailBySeq(seq)));
+    }
+
         @Deprecated
+        @Hidden
         @GetMapping("/list")
         @Operation(summary = "[Deprecated] 게시글 목록", description = "GET /api/posts 사용")
         public ApiResponse<PageResponse<PostSummaryResponse>> legacyList(
@@ -242,6 +276,7 @@ public class PostController {
         }
 
     @Deprecated
+    @Hidden
     @PostMapping("/like")
     @Operation(summary = "[Deprecated] 좋아요 토글", description = "POST /api/posts/{uuid}/like 사용")
     public ApiResponse<Boolean> legacyToggleLike(
@@ -264,10 +299,43 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success(liked));
     }
 
+    @PostMapping("/seq/{seq}/like")
+    @Operation(summary = "게시글 좋아요 토글 (seq)", description = "seq로 좋아요 토글", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<ApiResponse<Boolean>> toggleLikeBySeq(
+            @Parameter(description = "게시글 seq", example = "123")
+            @PathVariable("seq") Long seq,
+            Authentication auth
+    ) {
+        if (auth == null) throw new SecurityException("로그인이 필요합니다.");
+        boolean liked = postService.toggleLikeBySeq(auth.getName(), seq);
+        return ResponseEntity.ok(ApiResponse.success(liked));
+    }
+
+    @DeleteMapping("/likes/{id}")
+    @Operation(summary = "좋아요 삭제 (id)", description = "좋아요 id로 좋아요 삭제", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<ApiResponse<Void>> deleteLikeById(
+            @Parameter(description = "좋아요 id", example = "1")
+            @PathVariable("id") Long id,
+            Authentication auth
+    ) {
+        if (auth == null) throw new SecurityException("로그인이 필요합니다.");
+        postService.deleteLikeById(id, auth.getName());
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
     @GetMapping("/{uuid}/comments")
     @Operation(summary = "게시글 댓글 조회", description = "게시글의 최상위 및 대댓글 포함 전체 댓글 반환")
     public ResponseEntity<ApiResponse<java.util.List<CommentResponse>>> comments(
             @PathVariable("uuid") String uuid) {
         return ResponseEntity.ok(ApiResponse.success(commentService.getCommentsByPost(uuid)));
+    }
+
+    // seq 기반 댓글 조회
+    @GetMapping("/seq/{seq}/comments")
+    @Operation(summary = "게시글 댓글 조회 (seq)", description = "seq로 게시글의 댓글 전체 조회")
+    public ResponseEntity<ApiResponse<java.util.List<CommentResponse>>> commentsBySeq(
+            @PathVariable("seq") Long seq) {
+        PostDetailResponse pd = postService.detailBySeq(seq);
+        return ResponseEntity.ok(ApiResponse.success(commentService.getCommentsByPost(pd.getPostUuid())));
     }
 }
