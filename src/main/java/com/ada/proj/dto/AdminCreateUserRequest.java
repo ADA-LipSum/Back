@@ -1,6 +1,7 @@
 package com.ada.proj.dto;
 
 import com.ada.proj.enums.Role;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -18,6 +19,11 @@ public class AdminCreateUserRequest {
     @Size(max = 10)
     @Schema(description = "실명", example = "김학생")
     private String userRealname;
+
+    @NotBlank
+    @Size(max = 10)
+    @Schema(description = "닉네임", example = "김코딩")
+    private String userNickname;
 
     @Schema(description = "역할(기본 STUDENT)", example = "STUDENT")
     private Role role = Role.STUDENT;

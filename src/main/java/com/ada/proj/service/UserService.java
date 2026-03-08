@@ -161,6 +161,10 @@ public class UserService {
     public User createUserByAdmin(CreateUserRequest req, Authentication auth) {
         ensureAdmin(auth);
 
+        if (req.getUserNickname() == null || req.getUserNickname().isBlank()) {
+            throw new IllegalArgumentException("userNickname is required");
+        }
+
         if (userRepository.findByAdminId(req.getAdminId()).isPresent()) {
             throw new IllegalArgumentException("adminId already exists");
         }
@@ -212,6 +216,10 @@ public class UserService {
         // if any ADMIN exists, disallow unauthenticated init
         if (userRepository.existsByRole(Role.ADMIN)) {
             throw new ForbiddenException("Admin already exists");
+        }
+
+        if (req.getUserNickname() == null || req.getUserNickname().isBlank()) {
+            throw new IllegalArgumentException("userNickname is required");
         }
 
         if (userRepository.findByAdminId(req.getAdminId()).isPresent()) {

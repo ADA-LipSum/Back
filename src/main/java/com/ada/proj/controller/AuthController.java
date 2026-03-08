@@ -1,17 +1,24 @@
 package com.ada.proj.controller;
 
-import com.ada.proj.dto.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ada.proj.dto.AdminCreateUserRequest;
+import com.ada.proj.dto.ApiResponse;
+import com.ada.proj.dto.AuthTokenResponse;
+import com.ada.proj.dto.CreateUserRequest;
+import com.ada.proj.dto.CreateUserResponse;
+import com.ada.proj.dto.LoginRequest;
+import com.ada.proj.dto.LoginResponse;
+import com.ada.proj.dto.TeacherSignupRequest;
+import com.ada.proj.dto.TokenReissueRequest;
 import com.ada.proj.entity.RefreshToken;
 import com.ada.proj.exception.UnauthenticatedException;
 import com.ada.proj.repository.RefreshTokenRepository;
@@ -86,10 +93,8 @@ public class AuthController {
             HttpServletRequest httpServletRequest,
             @RequestBody(required = false) TokenReissueRequest request) {
 
-        String refreshToken = null;
-
         // 1) Cookie (HttpOnly refreshToken)
-        refreshToken = extractRefreshTokenFromCookie(httpServletRequest);
+        String refreshToken = extractRefreshTokenFromCookie(httpServletRequest);
 
         // 2) Authorization: Bearer <refreshToken> (compat)
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -236,6 +241,7 @@ public class AuthController {
         CreateUserRequest createReq = new CreateUserRequest();
         createReq.setAdminId(req.getAdminId());
         createReq.setUserRealname(req.getUserRealname());
+        createReq.setUserNickname(req.getUserNickname());
         createReq.setRole(req.getRole());
         createReq.setPassword(req.getPassword());
 
