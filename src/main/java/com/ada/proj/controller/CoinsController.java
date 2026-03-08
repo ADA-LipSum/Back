@@ -28,7 +28,7 @@ public class CoinsController {
     @GetMapping("/balance/{userUuid}")
     @Operation(summary = "코인 잔액 조회", description = "본인 또는 ADMIN이 특정 사용자의 현재 코인 잔액을 조회합니다.")
     public ApiResponse<CoinsBalanceResponse> getBalance(
-            @Parameter(description = "대상 사용자 UUID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+            @Parameter(description = "대상 사용자 UUID")
             @PathVariable String userUuid,
             Authentication auth) {
         ensureCoinViewPermission(auth, userUuid);
@@ -39,7 +39,7 @@ public class CoinsController {
     @GetMapping("/balance")
     @Operation(summary = "코인 잔액 조회(쿼리)", description = "본인 또는 ADMIN이 특정 사용자의 현재 코인 잔액을 조회합니다. 예: /api/coins/balance?userUuid=...")
     public ApiResponse<CoinsBalanceResponse> getBalanceQuery(
-            @Parameter(description = "대상 사용자 UUID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+            @Parameter(description = "대상 사용자 UUID")
             @RequestParam String userUuid,
             Authentication auth) {
         return getBalance(userUuid, auth);
@@ -71,7 +71,7 @@ public class CoinsController {
     @GetMapping("/transactions")
     @Operation(summary = "코인 거래내역 조회", description = "특정 사용자(userUuid)의 코인 거래내역을 최신순으로 페이징하여 조회합니다.")
     public ApiResponse<PageResponse<CoinsTransactionResponse>> getTransactions(
-            @Parameter(description = "대상 사용자 UUID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+            @Parameter(description = "대상 사용자 UUID")
             @RequestParam String userUuid,
             @Parameter(description = "페이지(0부터)", example = "0")
             @RequestParam(defaultValue = "0") int page,

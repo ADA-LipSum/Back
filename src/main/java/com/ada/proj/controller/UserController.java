@@ -39,7 +39,7 @@ public class UserController {
     @PatchMapping("/users/{uuid}/role")
     @Operation(summary = "권한 변경(관리자)")
     public ResponseEntity<ApiResponse<Void>> updateRole(
-            @Parameter(description = "대상 사용자 UUID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+            @Parameter(description = "대상 사용자 UUID")
             @PathVariable String uuid,
             @Valid @RequestBody UpdateRoleRequest req) {
         userService.updateRole(uuid, req.getRole());
@@ -49,7 +49,7 @@ public class UserController {
     @PatchMapping("/users/{uuid}/use-nickname")
     @Operation(summary = "닉네임으로 이름 표시 여부 토글")
     public ResponseEntity<ApiResponse<Void>> toggleUseNickname(
-            @Parameter(description = "대상 사용자 UUID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+            @Parameter(description = "대상 사용자 UUID")
             @PathVariable String uuid) {
         userService.toggleUseNickname(uuid);
         return ResponseEntity.ok(ApiResponse.okMessage("toggled"));
@@ -58,7 +58,7 @@ public class UserController {
     @PatchMapping("/users/{uuid}/profile")
     @Operation(summary = "프로필 수정")
     public ResponseEntity<ApiResponse<Void>> updateProfile(
-            @Parameter(description = "대상 사용자 UUID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+            @Parameter(description = "대상 사용자 UUID")
             @PathVariable String uuid,
             @Valid @RequestBody UpdateProfileRequest req) {
         userService.updateProfile(uuid, req);
@@ -68,7 +68,7 @@ public class UserController {
     @PatchMapping("/users/{uuid}/custom/password")
     @Operation(summary = "커스텀 비밀번호 변경")
     public ResponseEntity<ApiResponse<Void>> changePassword(
-            @Parameter(description = "대상 사용자 UUID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+            @Parameter(description = "대상 사용자 UUID")
             @PathVariable String uuid,
             @Valid @RequestBody UpdatePasswordRequest req,
             Authentication auth) {
@@ -79,7 +79,7 @@ public class UserController {
     @PostMapping("/users/{uuid}/custom")
     @Operation(summary = "커스텀 ID/PW 생성(최초 1회)")
     public ResponseEntity<ApiResponse<Void>> createCustom(
-            @Parameter(description = "대상 사용자 UUID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+            @Parameter(description = "대상 사용자 UUID")
             @PathVariable String uuid,
             @Valid @RequestBody CreateCustomLoginRequest req,
             Authentication auth) {
@@ -90,7 +90,7 @@ public class UserController {
     @GetMapping("/users/{uuid}")
     @Operation(summary = "유저 정보 조회")
     public ResponseEntity<ApiResponse<UserProfileResponse>> get(
-            @Parameter(description = "대상 사용자 UUID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+            @Parameter(description = "대상 사용자 UUID")
             @PathVariable String uuid) {
         return ResponseEntity.ok(ApiResponse.ok(userService.getUserProfile(uuid)));
     }

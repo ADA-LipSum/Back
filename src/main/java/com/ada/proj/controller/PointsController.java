@@ -28,8 +28,8 @@ public class PointsController {
     // 현재 잔액 조회: 본인 또는 관리자만 가능
     @GetMapping("/balance/{userUuid}")
     @Operation(summary = "포인트 잔액 조회", description = "본인 또는 ADMIN이 특정 사용자의 현재 포인트 잔액을 조회합니다.")
-        public ApiResponse<PointsBalanceResponse> getBalance(
-            @Parameter(description = "대상 사용자 UUID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+    public ApiResponse<PointsBalanceResponse> getBalance(
+            @Parameter(description = "대상 사용자 UUID")
             @PathVariable String userUuid, Authentication auth) {
         ensurePointViewPermission(auth, userUuid);
         int balance = pointsService.getBalance(userUuid);
@@ -39,8 +39,8 @@ public class PointsController {
     // 잔액 조회 (쿼리 파라미터 버전)
     @GetMapping("/balance")
     @Operation(summary = "포인트 잔액 조회(쿼리)", description = "본인 또는 ADMIN이 특정 사용자의 현재 포인트 잔액을 조회합니다. 예: /api/points/balance?userUuid=...")
-        public ApiResponse<PointsBalanceResponse> getBalanceQuery(
-            @Parameter(description = "대상 사용자 UUID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+    public ApiResponse<PointsBalanceResponse> getBalanceQuery(
+            @Parameter(description = "대상 사용자 UUID")
             @RequestParam String userUuid, Authentication auth) {
         return getBalance(userUuid, auth);
     }
@@ -51,10 +51,14 @@ public class PointsController {
             @Valid @RequestBody PointsAdjustRequest req,
             Authentication auth) {
         UserPoints tx = switch (req.getType()) {
-            case GAIN -> pointsService.grantPoints(req.getUserUuid(), req.getPoints(), req.getDescription(), req.getRefRuleId());
-            case LOSS -> pointsService.deductPoints(req.getUserUuid(), req.getPoints(), req.getDescription(), req.getRefRuleId());
-            case USE -> pointsService.usePoints(req.getUserUuid(), req.getPoints(), req.getUsedFor(), req.getMetadata(), req.getDescription());
-            default -> throw new IllegalArgumentException("지원하지 않는 type입니다: " + req.getType());
+            case GAIN ->
+                pointsService.grantPoints(req.getUserUuid(), req.getPoints(), req.getDescription(), req.getRefRuleId());
+            case LOSS ->
+                pointsService.deductPoints(req.getUserUuid(), req.getPoints(), req.getDescription(), req.getRefRuleId());
+            case USE ->
+                pointsService.usePoints(req.getUserUuid(), req.getPoints(), req.getUsedFor(), req.getMetadata(), req.getDescription());
+            default ->
+                throw new IllegalArgumentException("지원하지 않는 type입니다: " + req.getType());
         };
         return ApiResponse.success(PointsTransactionResponse.from(tx));
     }
@@ -62,8 +66,8 @@ public class PointsController {
     // 거래내역 조회 (페이징)
     @GetMapping("/transactions")
     @Operation(summary = "포인트 거래내역 조회", description = "특정 사용자(userUuid)의 포인트 거래내역을 최신순으로 페이징하여 조회합니다.")
-        public ApiResponse<PageResponse<PointsTransactionResponse>> getTransactions(
-            @Parameter(description = "대상 사용자 UUID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+    public ApiResponse<PageResponse<PointsTransactionResponse>> getTransactions(
+            @Parameter(description = "대상 사용자 UUID")
             @RequestParam String userUuid,
             @Parameter(description = "페이지(0부터)", example = "0")
             @RequestParam(defaultValue = "0") int page,
@@ -82,7 +86,9 @@ public class PointsController {
     }
 
     private void ensureSelfOrAdmin(Authentication auth, String userUuid) {
-        if (auth == null) throw new SecurityException("Unauthenticated");
+        if (auth == null) {
+            throw new SecurityException("Unauthenticated");
+        }
         boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         if (!isAdmin && !auth.getName().equals(userUuid)) {
             throw new SecurityException("Forbidden");
@@ -106,18 +112,24 @@ public class PointsController {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_STUDENT"));
 
         // 관리자 → 모두 허용
-        if (isAdmin) return;
+        if (isAdmin) {
+            return;
+        }
 
         // 학생 → 자기 자신만
         if (isStudent) {
-            if (currentUuid.equals(targetUuid)) return;
+            if (currentUuid.equals(targetUuid)) {
+                return;
+            }
             throw new SecurityException("Forbidden: 학생 계정은 자신의 포인트만 조회할 수 있습니다.");
         }
 
         // 선생 → 학생 포인트만 가능
         if (isTeacher) {
             boolean targetIsStudent = userService.isStudent(targetUuid);
-            if (targetIsStudent) return;
+            if (targetIsStudent) {
+                return;
+            }
             throw new SecurityException("Forbidden: 선생님 계정은 학생 포인트만 조회할 수 있습니다.");
         }
 
