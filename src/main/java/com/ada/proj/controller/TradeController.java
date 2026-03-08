@@ -33,14 +33,13 @@ public class TradeController {
     @Operation(
             summary = "거래 목록 추가",
             description = "ADMIN/TEACHER만 거래 아이템을 등록할 수 있습니다.\n\n"
-                    + "요청 필드 설명:\n"
-                    + "- name: 아이템 이름(상품명).\n"
-                    + "- description: 아이템 설명(옵션).\n"
-                    + "- price: 포인트 기준 가격(최소 1).\n"
-                    + "- stock: 초기 재고 수량(0 이상).\n"
-                    + "- active: 판매 활성화 여부(기본 true).\n"
-                    + "- category: 카테고리(FOOD | TOOLS | ETC).\n"
-                    + "- imageUrl: 대표 이미지 URL(옵션)."
+            + "요청 필드 설명:\n"
+            + "- name: 아이템 이름(상품명).\n"
+            + "- description: 아이템 설명(옵션).\n"
+            + "- price: 가격(FOOD=코인, ETC=포인트 / 최소 1).\n"
+            + "- active: 판매 활성화 여부(기본 true).\n"
+            + "- category: 카테고리(FOOD | ETC).\n"
+            + "- imageUrl: 대표 이미지 URL(옵션)."
     )
     public ApiResponse<TradeItemResponse> createItem(@Valid @RequestBody TradeItemCreateRequest req, Authentication auth) {
         String creatorUuid = auth != null ? auth.getName() : null;
@@ -64,16 +63,16 @@ public class TradeController {
     @Operation(
             summary = "아이템 검색/필터 조회",
             description = "QueryString으로 검색 조건을 받아 아이템을 검색합니다.\n\n"
-                    + "파라미터 설명:\n"
-                    + "- keyword: 검색어\n"
-                    + "- category: FOOD|TOOLS|ETC\n"
-                    + "- minPrice: 최소 가격\n"
-                    + "- maxPrice: 최대 가격\n"
-                    + "- active: 활성 여부(true|false)\n"
-                    + "- page: 페이지 번호\n"
-                    + "- size: 페이지 크기\n"
-                    + "- sort: 정렬 기준(createdAt|price|name)\n"
-                    + "- dir: 오름/내림차순(asc|desc)"
+            + "파라미터 설명:\n"
+            + "- keyword: 검색어\n"
+            + "- category: FOOD|ETC\n"
+            + "- minPrice: 최소 가격\n"
+            + "- maxPrice: 최대 가격\n"
+            + "- active: 활성 여부(true|false)\n"
+            + "- page: 페이지 번호\n"
+            + "- size: 페이지 크기\n"
+            + "- sort: 정렬 기준(createdAt|price|name)\n"
+            + "- dir: 오름/내림차순(asc|desc)"
     )
     public ApiResponse<PageResponse<TradeItemResponse>> searchItems(
             @RequestParam(required = false) String keyword,
@@ -104,20 +103,25 @@ public class TradeController {
     @PostMapping("/transactions")
     @Operation(
             summary = "물품 거래(구매)",
-            description = "로그인 사용자가 포인트로 물품을 구매합니다. 포인트 부족 시 실패합니다.\n\n"
-                    + "요청 필드 설명:\n"
-                    + "- itemUuid: 구매할 아이템 UUID.\n"
-                    + "- quantity: 구매 수량(최소 1)."
+            description = "로그인 사용자가 물품을 구매합니다. 카테고리에 따라 결제 수단이 달라집니다.\n\n"
+            + "- FOOD: 코인으로 구매\n"
+            + "- ETC: 포인트로 구매\n\n"
+            + "잔액 부족 시 실패합니다.\n\n"
+            + "요청 필드 설명:\n"
+            + "- itemUuid: 구매할 아이템 UUID.\n"
+            + "- quantity: 구매 수량(최소 1)."
     )
     public ApiResponse<TradePurchaseResponse> purchase(
             @Valid @RequestBody TradePurchaseRequest req,
             Authentication auth
     ) {
-        if (auth == null) throw new SecurityException("Unauthenticated");
+        if (auth == null) {
+            throw new SecurityException("Unauthenticated");
+        }
         String userUuid = auth.getName();
         var result = tradeService.purchase(userUuid, req);
         return ApiResponse.success(
-                TradePurchaseResponse.of(result.getItem(), result.getLog(), result.getPointsTx())
+                TradePurchaseResponse.of(result.getItem(), result.getLog(), result.getCurrency(), result.getPointsTx(), result.getCoinsTx())
         );
     }
 
@@ -125,16 +129,18 @@ public class TradeController {
     @Operation(
             summary = "내 구매내역 조회",
             description = "QueryString으로 page/size를 받아 자신의 구매내역을 조회합니다.\n\n"
-                    + "파라미터 설명:\n"
-                    + "- page: 페이지 번호(default 0)\n"
-                    + "- size: 페이지 크기(default 20)"
+            + "파라미터 설명:\n"
+            + "- page: 페이지 번호(default 0)\n"
+            + "- size: 페이지 크기(default 20)"
     )
     public ApiResponse<PageResponse<TradeLogResponse>> myLogs(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             Authentication auth
     ) {
-        if (auth == null) throw new SecurityException("Unauthenticated");
+        if (auth == null) {
+            throw new SecurityException("Unauthenticated");
+        }
         String userUuid = auth.getName();
 
         var pageResult = tradeService.getMyLogs(userUuid, page, size)
@@ -155,11 +161,11 @@ public class TradeController {
     @Operation(
             summary = "사용자 구매내역 조회",
             description = "QueryString으로 userUuid/page/size를 받아 특정 사용자의 구매 내역을 조회합니다.\n"
-                    + "본인 혹은 ADMIN/TEACHER 권한만 접근 가능합니다.\n\n"
-                    + "파라미터 설명:\n"
-                    + "- userUuid: 조회 대상 사용자 UUID\n"
-                    + "- page: 페이지 번호(default 0)\n"
-                    + "- size: 페이지 크기(default 20)"
+            + "본인 혹은 ADMIN/TEACHER 권한만 접근 가능합니다.\n\n"
+            + "파라미터 설명:\n"
+            + "- userUuid: 조회 대상 사용자 UUID\n"
+            + "- page: 페이지 번호(default 0)\n"
+            + "- size: 페이지 크기(default 20)"
     )
     public ApiResponse<PageResponse<TradeLogResponse>> userLogs(
             @RequestParam String userUuid,
@@ -184,7 +190,9 @@ public class TradeController {
     }
 
     private void ensureSelfOrAdminOrTeacher(Authentication auth, String userUuid) {
-        if (auth == null) throw new SecurityException("Unauthenticated");
+        if (auth == null) {
+            throw new SecurityException("Unauthenticated");
+        }
         boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         boolean isTeacher = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_TEACHER"));
         if (!isAdmin && !isTeacher && !auth.getName().equals(userUuid)) {

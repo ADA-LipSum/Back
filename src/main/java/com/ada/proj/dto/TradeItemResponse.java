@@ -17,6 +17,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Schema(name = "TradeItemResponse", description = "거래 아이템 응답")
 public class TradeItemResponse {
+
     @Schema(description = "내부 식별자", example = "12")
     private Long id;
 
@@ -29,16 +30,13 @@ public class TradeItemResponse {
     @Schema(description = "아이템 설명", example = "프로필에 표시되는 골드 배지")
     private String description;
 
-    @Schema(description = "단가(포인트)", example = "100")
+    @Schema(description = "단가(결제수단 기준: FOOD=코인, ETC=포인트)", example = "100")
     private Integer price;
-
-    @Schema(description = "재고 수량", example = "50")
-    private Integer stock;
 
     @Schema(description = "판매 활성 여부", example = "true")
     private Boolean active;
 
-    @Schema(description = "카테고리", example = "TOOLS")
+    @Schema(description = "카테고리", example = "FOOD")
     private TradeCategory category;
 
     @Schema(description = "대표 이미지 URL", example = "https://example.com/item.png")
@@ -54,7 +52,6 @@ public class TradeItemResponse {
                 .name(t.getName())
                 .description(t.getDescription())
                 .price(t.getPrice())
-                .stock(t.getStock())
                 .active(t.getActive())
                 .category(t.getCategory())
                 .imageUrl(t.getImageUrl())

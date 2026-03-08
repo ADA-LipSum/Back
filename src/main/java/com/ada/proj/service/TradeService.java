@@ -11,7 +11,9 @@ import com.ada.proj.dto.TradePurchaseRequest;
 import com.ada.proj.entity.TradeItem;
 import com.ada.proj.entity.TradeLog;
 import com.ada.proj.enums.TradeCategory;
+import com.ada.proj.enums.TradeCurrency;
 import com.ada.proj.entity.User;
+import com.ada.proj.entity.UserCoins;
 import com.ada.proj.entity.UserPoints;
 
 import com.ada.proj.repository.TradeItemRepository;
@@ -36,6 +38,7 @@ public class TradeService {
     private final TradeItemRepository tradeItemRepository;
     private final TradeLogRepository tradeLogRepository;
     private final PointsService pointsService;
+    private final CoinsService coinsService;
     private final UserRepository userRepository;
 
     /**
@@ -48,7 +51,7 @@ public class TradeService {
                 .name(req.getName())
                 .description(req.getDescription())
                 .price(req.getPrice())
-                .stock(req.getStock())
+                .stock(req.getStock() == null ? 0 : req.getStock())
                 .active(req.getActive() != null ? req.getActive() : true)
                 .category(req.getCategory())
                 .imageUrl(req.getImageUrl())
@@ -172,33 +175,26 @@ public class TradeService {
             throw new IllegalStateException("해당 상품은 현재 비활성화되어 구매할 수 없습니다.");
         }
 
-        // 재고 0 검사
-        if (item.getStock() <= 0) {
-            throw new IllegalStateException("현재 재고가 모두 소진되었습니다.");
-        }
-
         int qty = req.getQuantity();
-
-        // 재고 부족 검사
-        if (item.getStock() < qty) {
-            throw new IllegalStateException("재고가 부족하여 구매할 수 없습니다.");
-        }
 
         int unitPrice = item.getPrice();
         int total = Math.multiplyExact(unitPrice, qty);
 
-        // 포인트 사용
-        UserPoints useTx = pointsService.usePoints(
-                userUuid,
-                total,
-                "trade",
-                null,
-                "물품 구매: " + item.getName()
-        );
+        TradeCurrency currency = item.getCategory() == TradeCategory.FOOD ? TradeCurrency.COIN : TradeCurrency.POINT;
 
-        // 재고 차감
-        item.setStock(item.getStock() - qty);
-        tradeItemRepository.save(item);
+        UserPoints pointsTx = null;
+        UserCoins coinsTx = null;
+        if (currency == TradeCurrency.COIN) {
+            coinsTx = coinsService.useCoins(userUuid, total, "물품 구매(코인): " + item.getName());
+        } else {
+            pointsTx = pointsService.usePoints(
+                    userUuid,
+                    total,
+                    "trade",
+                    null,
+                    "물품 구매(포인트): " + item.getName()
+            );
+        }
 
         // 거래 로그 저장
         TradeLog log = TradeLog.builder()
@@ -209,13 +205,15 @@ public class TradeService {
                 .quantity(qty)
                 .unitPrice(unitPrice)
                 .totalPoints(total)
-                .pointsUuid(useTx.getPointsUuid())
+                .pointsUuid(pointsTx != null ? pointsTx.getPointsUuid() : null)
+                .coinsUuid(coinsTx != null ? coinsTx.getCoinUuid() : null)
+                .currency(currency)
                 .metadata(null)
                 .build();
 
         tradeLogRepository.save(log);
 
-        return new TradeResult(item, log, useTx);
+        return new TradeResult(item, log, currency, pointsTx, coinsTx);
     }
 
     /**
@@ -243,6 +241,7 @@ public class TradeService {
                 .unitPrice(unitPrice)
                 .totalPoints(total)
                 .pointsUuid(req.getPointsUuid())
+                .currency(TradeCurrency.POINT)
                 .metadata(req.getMetadata())
                 .build();
 
@@ -278,6 +277,8 @@ public class TradeService {
 
         TradeItem item;
         TradeLog log;
+        TradeCurrency currency;
         UserPoints pointsTx;
+        UserCoins coinsTx;
     }
 }

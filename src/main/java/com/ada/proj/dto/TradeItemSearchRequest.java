@@ -12,13 +12,13 @@ public class TradeItemSearchRequest {
     @Schema(description = "검색어(이름/설명 LIKE, 옵션)", example = "배지")
     private String keyword;
 
-    @Schema(description = "카테고리 필터(FOOD|TOOLS|ETC, 옵션)", example = "TOOLS")
+    @Schema(description = "카테고리 필터(FOOD|ETC, 옵션)", example = "FOOD")
     private TradeCategory category;
 
-    @Schema(description = "최소 가격(포인트, 옵션)", example = "50")
+    @Schema(description = "최소 가격(옵션)", example = "50")
     private Integer minPrice;
 
-    @Schema(description = "최대 가격(포인트, 옵션)", example = "200")
+    @Schema(description = "최대 가격(옵션)", example = "200")
     private Integer maxPrice;
 
     @Schema(description = "판매 활성 여부 필터(기본 true)", example = "true")

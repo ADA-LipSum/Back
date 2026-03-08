@@ -4,15 +4,17 @@ import java.time.Instant;
 
 import org.hibernate.annotations.CreationTimestamp;
 
+import com.ada.proj.enums.TradeCurrency;
+
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
 @Table(name = "trade_log",
         indexes = {
-                @Index(name = "idx_trade_log_user", columnList = "user_uuid"),
-                @Index(name = "idx_trade_log_item", columnList = "item_uuid"),
-                @Index(name = "idx_trade_log_created", columnList = "created_at")
+            @Index(name = "idx_trade_log_user", columnList = "user_uuid"),
+            @Index(name = "idx_trade_log_item", columnList = "item_uuid"),
+            @Index(name = "idx_trade_log_created", columnList = "created_at")
         })
 @Getter
 @Setter
@@ -45,6 +47,13 @@ public class TradeLog {
 
     @Column(name = "points_uuid", length = 36)
     private String pointsUuid; // 포인트 트랜잭션 uuid (USE)
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "currency", length = 10)
+    private TradeCurrency currency;
+
+    @Column(name = "coins_uuid", length = 36)
+    private String coinsUuid; // 코인 트랜잭션 uuid (USE)
 
     @Column(name = "metadata", columnDefinition = "json")
     private String metadata;
