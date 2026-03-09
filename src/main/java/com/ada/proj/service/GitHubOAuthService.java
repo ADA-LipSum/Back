@@ -327,7 +327,11 @@ public class GitHubOAuthService {
     }
 
     private String buildDateRange(Integer year) {
-        if (year == null) return "";
+        if (year == null) {
+            return "";
+        }
+        return String.format("(from: \"%d-01-01T00:00:00Z\", to: \"%d-12-31T23:59:59Z\")", year, year);
+    }
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> getContributions(String uuid, Integer year) {
