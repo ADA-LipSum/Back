@@ -65,6 +65,7 @@ public class GitHubOAuthService {
     private static final String GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize";
     private static final String GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
     private static final String GITHUB_USER_URL = "https://api.github.com/user";
+    private static final String GITHUB_GRAPHQL_URL = "https://api.github.com/graphql";
 
     private final GitHubProperties gitHubProperties;
     private final JwtProperties jwtProperties;
@@ -202,6 +203,7 @@ public class GitHubOAuthService {
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
         user.setGithubId(info.id());
         user.setGithubLogin(info.login());
+        user.setGithubAccessToken(info.accessToken());
         userRepository.save(user); // @Cacheable detached 엔티티이므로 명시적 저장
     }
 
@@ -216,6 +218,7 @@ public class GitHubOAuthService {
         }
         user.setGithubId(null);
         user.setGithubLogin(null);
+        user.setGithubAccessToken(null);
         userRepository.save(user); // @Cacheable detached 엔티티이므로 명시적 저장
     }
 
@@ -241,9 +244,12 @@ public class GitHubOAuthService {
     public String loginWithGitHub(String code) {
         GitHubUserInfo info = fetchGitHubUserInfo(code);
 
-        User user = userRepository.findByGithubId(info.id())
+        User user = userRepository.findByGithubId(info.id())    
                 .orElseThrow(() -> new UserNotFoundException(
                 "연동된 계정이 없습니다. 먼저 관리자가 생성한 계정으로 로그인 후 GitHub를 연동해주세요."));
+
+        user.setGithubAccessToken(info.accessToken());
+        userRepository.save(user);
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
@@ -264,19 +270,16 @@ public class GitHubOAuthService {
     // ──────────────────────────────────────────────────────────────────────────
     // 내부 헬퍼
     // ──────────────────────────────────────────────────────────────────────────
-    /**
-     * GitHub user ID + login(유저명)을 함께 반환하는 내부 DTO
-     */
-    private record GitHubUserInfo(String id, String login) {
+    private record GitHubUserInfo(String id, String login, String accessToken) {
 
     }
 
-    /**
-     * authorization code로 GitHub user ID + login을 조회합니다.
-     */
     private GitHubUserInfo fetchGitHubUserInfo(String code) {
-        String accessToken = exchangeCodeForToken(code);
-        return getGitHubUserInfo(accessToken);
+        String token = exchangeCodeForToken(code);
+        Map<String, Object> raw = fetchRawGitHubUser(token);
+        String id = String.valueOf(raw.get("id"));
+        String login = raw.get("login") != null ? String.valueOf(raw.get("login")) : null;
+        return new GitHubUserInfo(id, login, token);
     }
 
     @SuppressWarnings("unchecked")
@@ -305,7 +308,7 @@ public class GitHubOAuthService {
     }
 
     @SuppressWarnings("unchecked")
-    private GitHubUserInfo getGitHubUserInfo(String accessToken) {
+    private Map<String, Object> fetchRawGitHubUser(String accessToken) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + accessToken);
         headers.set("Accept", "application/vnd.github.v3+json");
@@ -320,10 +323,43 @@ public class GitHubOAuthService {
         if (user == null || !user.containsKey("id")) {
             throw new RuntimeException("GitHub 사용자 정보를 가져올 수 없습니다.");
         }
-        // GitHub id는 Integer 또는 Long으로 역직렬화됨
-        String id = String.valueOf(user.get("id"));
-        String login = user.get("login") != null ? String.valueOf(user.get("login")) : null;
-        return new GitHubUserInfo(id, login);
+        return user;
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getContributions(String uuid) {
+        User user = userRepository.findByUuid(uuid)
+                .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
+        if (user.getGithubId() == null) {
+            throw new ForbiddenException("GitHub 계정이 연동되어 있지 않습니다.");
+        }
+        if (user.getGithubAccessToken() == null) {
+            throw new ForbiddenException("RELINK_REQUIRED");
+        }
+
+        String gqlQuery = "{ viewer { login contributionsCollection { contributionCalendar " +
+                "{ totalContributions weeks { contributionDays { contributionCount date color } } } } } }";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + user.getGithubAccessToken());
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                GITHUB_GRAPHQL_URL,
+                HttpMethod.POST,
+                new HttpEntity<>(Map.of("query", gqlQuery), headers),
+                Map.class);
+
+        Map<String, Object> body = response.getBody();
+        if (body == null || !body.containsKey("data")) {
+            throw new RuntimeException("GitHub contribution 데이터를 가져올 수 없습니다.");
+        }
+        Map<String, Object> data = (Map<String, Object>) body.get("data");
+        Map<String, Object> viewer = (Map<String, Object>) data.get("viewer");
+        Map<String, Object> collection = (Map<String, Object>) viewer.get("contributionsCollection");
+        Map<String, Object> calendar = (Map<String, Object>) collection.get("contributionCalendar");
+        calendar.put("login", viewer.get("login"));
+        return calendar;
     }
 
     private String signState(String payload) {

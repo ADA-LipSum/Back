@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub 프로필</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --c0: #161b22;
+      --c1: #0e4429;
+      --c2: #006d32;
+      --c3: #26a641;
+      --c4: #39d353;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+    }
+
+    /* ── 로그인 화면 ── */
+    #login-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    #login-section h2 { margin-bottom: 8px; }
+    #login-section p  { color: var(--muted); margin-bottom: 24px; font-size: 14px; }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 8px 12px;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-primary  { background: #238636; color: #fff; }
+    .btn-primary:hover { background: #2ea043; }
+    .btn-github   { background: #21262d; color: var(--text); border: 1px solid var(--border); margin-top: 8px; }
+    .btn-github:hover { background: #30363d; }
+    .btn-sm {
+      width: auto;
+      padding: 6px 14px;
+      font-size: 12px;
+      background: #21262d;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    .btn-sm:hover { background: #30363d; }
+    .divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--muted); font-size: 12px; }
+    .divider::before, .divider::after { content:''; flex:1; height:1px; background:var(--border); }
+    #login-error { color: #f85149; font-size: 13px; margin-top: 8px; min-height: 18px; }
+
+    /* ── 프로필 본체 ── */
+    #profile-section { display: none; width: 100%; max-width: 900px; gap: 20px; flex-direction: column; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--border);
+      overflow: hidden;
+    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .avatar-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:28px; }
+    .profile-info h1 { font-size: 22px; }
+    .profile-info .github-handle { color: var(--accent); font-size: 14px; margin-top: 4px; }
+    .profile-info .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    .profile-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ── 잔디 ── */
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .section-title span { color: var(--text); }
+    #grass-container { overflow-x: auto; }
+    #grass-svg { display: block; }
+
+    /* ── 월 라벨 ── */
+    .month-labels {
+      display: flex;
+      margin-bottom: 4px;
+      padding-left: 28px;
+    }
+    .month-label { font-size: 11px; color: var(--muted); }
+
+    /* ── 범례 ── */
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 10px;
+      justify-content: flex-end;
+    }
+    .legend-box {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    /* ── 로딩 ── */
+    #loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+    }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #error-msg { color: #f85149; text-align: center; padding: 20px; display: none; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      background: #238636;
+      color: #fff;
+    }
+    .badge.unlinked { background: #6e7681; }
+    .tooltip-day { position: absolute; pointer-events: none; }
+  </style>
+</head>
+<body>
+
+<!-- 로그인 섹션 -->
+<div id="login-section">
+  <h2>🔐 프로필 보기</h2>
+  <p>JWT 토큰이 없습니다. 로그인 후 프로필을 확인하세요.</p>
+  <input type="text"     id="login-id"  placeholder="아이디" />
+  <input type="password" id="login-pw"  placeholder="비밀번호" />
+  <button class="btn-primary" onclick="doLogin()">로그인</button>
+  <div class="divider">또는</div>
+  <button class="btn-github" onclick="startGithubLogin()">GitHub으로 로그인</button>
+  <div id="login-error"></div>
+</div>
+
+<!-- 로딩 -->
+<div id="loading" style="display:none">
+  <div class="spinner"></div>
+  GitHub 잔디를 불러오는 중...
+</div>
+
+<!-- 오류 -->
+<div id="error-msg"></div>
+
+<!-- 프로필 섹션 -->
+<div id="profile-section">
+
+  <div class="card profile-header" id="user-card">
+    <div class="avatar" id="avatar-wrap">
+      <div class="avatar-placeholder">👤</div>
+    </div>
+    <div class="profile-info">
+      <h1 id="display-name">-</h1>
+      <div class="github-handle" id="github-handle" style="display:none"></div>
+      <div class="sub" id="display-id"></div>
+    </div>
+    <div class="profile-actions">
+      <span id="link-badge" class="badge unlinked">미연동</span>
+      <a href="/github-test.html"><button class="btn-sm">← 설정으로</button></a>
+      <button class="btn-sm" onclick="logout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="card" id="grass-card" style="display:none">
+    <div class="section-title">
+      <div>GitHub 기여 현황</div>
+      <span id="total-label">-</span>
+    </div>
+    <div id="loading-grass" style="text-align:center;color:var(--muted);padding:20px">잔디 로딩 중…</div>
+    <div id="grass-container" style="display:none">
+      <div class="month-labels" id="month-labels"></div>
+      <svg id="grass-svg"></svg>
+      <div class="legend">
+        적음
+        <div class="legend-box" style="background:var(--c0);border-color:#444"></div>
+        <div class="legend-box" style="background:var(--c1)"></div>
+        <div class="legend-box" style="background:var(--c2)"></div>
+        <div class="legend-box" style="background:var(--c3)"></div>
+        <div class="legend-box" style="background:var(--c4)"></div>
+        많음
+      </div>
+    </div>
+    <div id="grass-error" style="display:none;color:#f85149;font-size:13px;margin-top:8px"></div>
+  </div>
+
+</div>
+
+<!-- 툴팁 -->
+<div id="tooltip" style="
+  position:fixed;pointer-events:none;display:none;
+  background:#161b22;border:1px solid #30363d;border-radius:6px;
+  padding:6px 10px;font-size:12px;color:#e6edf3;z-index:999;
+  white-space:nowrap;
+"></div>
+
+<script>
+const API = '';  // 같은 origin
+
+/* ────────────────────────────────────────
+   토큰 관리
+──────────────────────────────────────── */
+function getToken() {
+  // URL 파라미터 우선 (GitHub 로그인 리다이렉트)
+  const params = new URLSearchParams(location.search);
+  const urlToken = params.get('access_token');
+  if (urlToken) {
+    localStorage.setItem('access_token', urlToken);
+    history.replaceState(null, '', location.pathname);
+    return urlToken;
+  }
+  return localStorage.getItem('access_token');
+}
+
+function logout() {
+  localStorage.removeItem('access_token');
+  location.reload();
+}
+
+/* ────────────────────────────────────────
+   로그인
+──────────────────────────────────────── */
+async function doLogin() {
+  const id = document.getElementById('login-id').value.trim();
+  const pw = document.getElementById('login-pw').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  try {
+    const res = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id, password: pw })
+    });
+    const json = await res.json();
+    if (!res.ok) { errEl.textContent = json.message || '로그인 실패'; return; }
+    localStorage.setItem('access_token', json.data?.accessToken || json.data?.access_token || '');
+    location.reload();
+  } catch (e) { errEl.textContent = '서버 오류'; }
+}
+
+async function startGithubLogin() {
+  const res = await fetch(`${API}/api/auth/github/login`);
+  const json = await res.json();
+  if (json.data?.redirectUrl) location.href = json.data.redirectUrl;
+}
+
+/* ────────────────────────────────────────
+   메인 초기화
+──────────────────────────────────────── */
+async function init() {
+  const token = getToken();
+  if (!token) {
+    document.getElementById('login-section').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('login-section').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+
+  try {
+    // 연동 상태, 잔디 병렬 요청
+    const headers = { 'Authorization': 'Bearer ' + token };
+    const [statusRes, contribRes] = await Promise.allSettled([
+      fetch(`${API}/api/auth/github/status`, { headers }),
+      fetch(`${API}/api/auth/github/contributions`, { headers })
+    ]);
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('profile-section').style.display = 'flex';
+
+    // ── 연동 상태
+    if (statusRes.status === 'fulfilled' && statusRes.value.ok) {
+      const s = await statusRes.value.json();
+      const linked = s.data?.githubLinked;
+      const badge = document.getElementById('link-badge');
+      if (linked) {
+        badge.textContent = '연동됨';
+        badge.classList.remove('unlinked');
+      }
+    }
+
+    // ── 잔디
+    document.getElementById('grass-card').style.display = 'block';
+    if (contribRes.status === 'fulfilled' && contribRes.value.ok) {
+      const c = await contribRes.value.json();
+      renderGrass(c.data);
+    } else {
+      document.getElementById('loading-grass').style.display = 'none';
+      let errMsg = '네트워크 오류';
+      if (contribRes.status === 'fulfilled') {
+        const errJson = await contribRes.value.json().catch(() => ({}));
+        if (errJson.message === 'RELINK_REQUIRED') {
+          errMsg = '잔디를 불러오려면 GitHub 재연동이 필요합니다. <a href="/github-test.html" style="color:var(--accent)">연동 페이지로 이동 →</a>';
+        } else {
+          errMsg = errJson.message || 'GitHub 연동이 필요합니다.';
+        }
+      }
+      const grassErr = document.getElementById('grass-error');
+      grassErr.innerHTML = errMsg;
+      grassErr.style.display = 'block';
+    }
+
+  } catch (e) {
+    document.getElementById('loading').style.display = 'none';
+    const errEl = document.getElementById('error-msg');
+    errEl.textContent = '오류가 발생했습니다: ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+/* ────────────────────────────────────────
+   잔디 렌더링
+──────────────────────────────────────── */
+function renderGrass(data) {
+  const loadingEl = document.getElementById('loading-grass');
+  const containerEl = document.getElementById('grass-container');
+  const svgEl = document.getElementById('grass-svg');
+  const totalEl = document.getElementById('total-label');
+  const monthLabelsEl = document.getElementById('month-labels');
+  const githubHandleEl = document.getElementById('github-handle');
+  const tooltip = document.getElementById('tooltip');
+
+  if (!data || !data.weeks) {
+    loadingEl.textContent = 'contribution 데이터가 없습니다.';
+    return;
+  }
+
+  // 프로필 헤더에 GitHub 이름 표시
+  if (data.login) {
+    githubHandleEl.textContent = '@' + data.login;
+    githubHandleEl.style.display = 'block';
+    document.getElementById('avatar-wrap').innerHTML =
+      `<img src="https://github.com/${data.login}.png" alt="avatar" onerror="this.parentElement.innerHTML='<div class=avatar-placeholder>👤</div>'" />`;
+    document.getElementById('display-name').textContent = data.login;
+    document.getElementById('link-badge').textContent = '연동됨';
+    document.getElementById('link-badge').classList.remove('unlinked');
+  }
+
+  totalEl.textContent = `올해 ${(data.totalContributions || 0).toLocaleString()}회 기여`;
+
+  const CELL = 13;   // 셀 크기 + gap
+  const R = 2;       // 테두리 반경
+  const SIZE = 11;   // 셀 실제 크기
+  const LABEL_W = 28; // 요일 라벨 영역
+
+  const weeks = data.weeks;
+  const svgW = LABEL_W + weeks.length * CELL;
+  const svgH = 7 * CELL;
+
+  svgEl.setAttribute('width', svgW);
+  svgEl.setAttribute('height', svgH);
+  svgEl.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+
+  // 요일 라벨
+  const dayNames = ['', '월', '', '수', '', '금', ''];
+  dayNames.forEach((name, i) => {
+    if (!name) return;
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', 0);
+    text.setAttribute('y', i * CELL + CELL - 2);
+    text.setAttribute('font-size', '10');
+    text.setAttribute('fill', '#8b949e');
+    text.textContent = name;
+    svgEl.appendChild(text);
+  });
+
+  // 월 라벨 계산
+  const monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  let lastMonth = -1;
+  const monthPositions = [];
+  weeks.forEach((week, wi) => {
+    const firstDay = week.contributionDays[0];
+    if (firstDay) {
+      const m = new Date(firstDay.date).getMonth();
+      if (m !== lastMonth) {
+        monthPositions.push({ month: m, x: LABEL_W + wi * CELL });
+        lastMonth = m;
+      }
+    }
+  });
+
+  // 월 라벨 span 생성
+  monthLabelsEl.innerHTML = '';
+  monthPositions.forEach((mp, idx) => {
+    const nextX = idx + 1 < monthPositions.length ? monthPositions[idx + 1].x : svgW;
+    const w = Math.max(0, nextX - mp.x);
+    const span = document.createElement('span');
+    span.className = 'month-label';
+    span.textContent = monthNames[mp.month];
+    span.style.width = w + 'px';
+    span.style.display = 'inline-block';
+    monthLabelsEl.appendChild(span);
+  });
+
+  // 셀 그리기
+  weeks.forEach((week, wi) => {
+    week.contributionDays.forEach((day, di) => {
+      const x = LABEL_W + wi * CELL;
+      const y = di * CELL;
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', x);
+      rect.setAttribute('y', y);
+      rect.setAttribute('width', SIZE);
+      rect.setAttribute('height', SIZE);
+      rect.setAttribute('rx', R);
+      rect.setAttribute('ry', R);
+      rect.setAttribute('fill', countToColor(day.contributionCount));
+      rect.setAttribute('data-count', day.contributionCount);
+      rect.setAttribute('data-date', day.date);
+      rect.style.cursor = 'default';
+
+      // 툴팁
+      rect.addEventListener('mouseenter', (e) => {
+        tooltip.textContent = `${day.date}  ${day.contributionCount}회 기여`;
+        tooltip.style.display = 'block';
+        moveTooltip(e);
+      });
+      rect.addEventListener('mousemove', moveTooltip);
+      rect.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+
+      svgEl.appendChild(rect);
+    });
+  });
+
+  loadingEl.style.display = 'none';
+  containerEl.style.display = 'block';
+}
+
+function moveTooltip(e) {
+  const t = document.getElementById('tooltip');
+  t.style.left = (e.clientX + 12) + 'px';
+  t.style.top  = (e.clientY - 32) + 'px';
+}
+
+function countToColor(count) {
+  if (count === 0)  return 'var(--c0)';
+  if (count < 5)   return 'var(--c1)';
+  if (count < 10)  return 'var(--c2)';
+  if (count < 20)  return 'var(--c3)';
+  return 'var(--c4)';
+}
+
+/* 엔터키 로그인 */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && document.getElementById('login-section').style.display !== 'none') {
+    doLogin();
+  }
+});
+
+init();
+</script>
+</body>
+</html>

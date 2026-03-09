@@ -127,6 +127,18 @@ public class GitHubAuthController {
         return ResponseEntity.ok(ApiResponse.ok(Map.of("githubLinked", linked)));
     }
 
+    @GetMapping("/contributions")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(
+            summary = "GitHub 잔디(contribution) 데이터 조회",
+            description = "연동된 GitHub 계정의 최근 1년 contribution 데이터를 반환합니다.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<Map<String, Object>>> contributions(Authentication authentication) {
+        Map<String, Object> data = gitHubOAuthService.getContributions(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
     private String errorRedirect(String message) {
         String encoded = message.replace(" ", "+");
         return gitHubProperties.getFrontendBaseUrl()

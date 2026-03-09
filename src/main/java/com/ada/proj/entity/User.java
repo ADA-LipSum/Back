@@ -55,6 +55,9 @@ public class User {
     @Column(name = "github_login", length = 100)
     private String githubLogin;
 
+    @Column(name = "github_access_token", length = 255)
+    private String githubAccessToken;
+
     // 통합 비밀번호 컬럼
     @Column(name = "password", length = 255)
     private String password; // BCrypt 해시 저장
