@@ -175,7 +175,7 @@ public class GitHubOAuthService {
         return GITHUB_AUTHORIZE_URL
                 + "?client_id=" + encode(gitHubProperties.getClientId())
                 + "&redirect_uri=" + encode(gitHubProperties.getCallbackUrl())
-                + "&scope=read:user"
+                + "&scope=read:user%20repo"
                 + "&state=" + encode(state);
     }
 
