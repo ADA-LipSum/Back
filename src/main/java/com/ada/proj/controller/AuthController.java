@@ -243,6 +243,7 @@ public class AuthController {
         createReq.setUserRealname(req.getUserRealname());
         createReq.setUserNickname(req.getUserNickname());
         createReq.setRole(req.getRole());
+        createReq.setCustomId(req.getCustomId());
         createReq.setPassword(req.getPassword());
 
         var user = userService.createUserByAdmin(createReq, authentication);

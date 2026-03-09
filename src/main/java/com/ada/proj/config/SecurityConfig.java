@@ -69,9 +69,15 @@ public class SecurityConfig {
                         "/swagger-ui.html",
                         "/tools/**",
                         "/api/posts",
-                        "/api/posts/view"
+                        "/api/posts/view",
+                        "/github-test.html",
+                        "/favicon.ico"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/auth/status").permitAll()
+                .requestMatchers(HttpMethod.GET,
+                        "/api/auth/github/login",
+                        "/api/auth/github/callback"
+                ).permitAll()
                 .requestMatchers(HttpMethod.POST,
                         "/api/auth/login",
                         "/api/auth/reissue",

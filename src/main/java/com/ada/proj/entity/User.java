@@ -2,9 +2,10 @@ package com.ada.proj.entity;
 
 import java.time.Instant;
 
-import com.ada.proj.enums.Role;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+
+import com.ada.proj.enums.Role;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -29,9 +30,9 @@ import lombok.Setter;
 @Entity
 @Table(name = "users",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_users_uuid", columnNames = {"uuid"}),
-                @UniqueConstraint(name = "uk_users_admin_id", columnNames = {"admin_id"}),
-                @UniqueConstraint(name = "uk_users_custom_id", columnNames = {"custom_id"})
+            @UniqueConstraint(name = "uk_users_uuid", columnNames = {"uuid"}),
+            @UniqueConstraint(name = "uk_users_admin_id", columnNames = {"admin_id"}),
+            @UniqueConstraint(name = "uk_users_custom_id", columnNames = {"custom_id"})
         })
 public class User {
 
@@ -47,6 +48,12 @@ public class User {
 
     @Column(name = "custom_id", length = 50)
     private String customId;
+
+    @Column(name = "github_id", length = 50, unique = true)
+    private String githubId;
+
+    @Column(name = "github_login", length = 100)
+    private String githubLogin;
 
     // 통합 비밀번호 컬럼
     @Column(name = "password", length = 255)
@@ -73,9 +80,9 @@ public class User {
     private Role role;
 
     // 닉네임을 이름으로 표시 여부 (요구 이미지의 토글 기능)
-        @Column(name = "use_nickname", nullable = false)
-        @Builder.Default
-        private boolean useNickname = false;
+    @Column(name = "use_nickname", nullable = false)
+    @Builder.Default
+    private boolean useNickname = false;
 
     // 로그인 추적: 첫 로그인 여부 판단을 위해 사용
     @Column(name = "login_count", nullable = false)

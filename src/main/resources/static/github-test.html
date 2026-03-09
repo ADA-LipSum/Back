@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub OAuth 테스트</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 32px;
+      width: 420px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #f0f6fc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h2 svg { flex-shrink: 0; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #8b949e;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      color: #e6edf3;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s;
+    }
+
+    input:focus { border-color: #58a6ff; }
+
+    .field { display: flex; flex-direction: column; }
+
+    button {
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+
+    button:active { transform: scale(.97); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    .btn-primary { background: #238636; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #2ea043; }
+
+    .btn-github {
+      background: #21262d;
+      color: #e6edf3;
+      border: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-github:hover:not(:disabled) { background: #30363d; }
+
+    .btn-danger {
+      background: #21262d;
+      color: #f85149;
+      border: 1px solid #30363d;
+    }
+
+    .btn-danger:hover:not(:disabled) { background: #3d2424; border-color: #f85149; }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-row button { flex: 1; }
+
+    .status-box {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.6;
+      min-height: 48px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .status-box.ok   { border-color: #238636; color: #56d364; }
+    .status-box.err  { border-color: #f85149; color: #f85149; }
+    .status-box.info { border-color: #58a6ff; color: #79c0ff; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .badge.linked   { background: #0f4429; color: #56d364; border: 1px solid #238636; }
+    .badge.unlinked { background: #2d1b1b; color: #f85149; border: 1px solid #3d2424; }
+
+    .section { display: flex; flex-direction: column; gap: 14px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #30363d;
+    }
+
+    .meta {
+      font-size: 12px;
+      color: #484f58;
+    }
+
+    #githubSection { display: none; }
+
+    .api-url-box {
+      font-size: 12px;
+      color: #484f58;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+
+  <!-- ── 로그인 섹션 ─────────────────────────────── -->
+  <section class="section" id="loginSection">
+    <h2>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" stroke-width="2">
+        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+        <polyline points="10 17 15 12 10 7"/>
+        <line x1="15" y1="12" x2="3" y2="12"/>
+      </svg>
+      로그인
+    </h2>
+
+    <div class="field">
+      <label for="loginId">아이디 (admin_id 또는 custom_id)</label>
+      <input id="loginId" type="text" placeholder="user_id" />
+    </div>
+
+    <div class="field">
+      <label for="loginPw">비밀번호</label>
+      <input id="loginPw" type="password" placeholder="password" />
+    </div>
+
+    <button class="btn-primary" id="loginBtn" onclick="doLogin()">로그인</button>
+    <div id="loginStatus" class="status-box" style="display:none"></div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- ── GitHub 연동 섹션 ────────────────────────── -->
+  <section class="section" id="githubSection">
+    <h2>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#e6edf3">
+        <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+      </svg>
+      GitHub 연동
+    </h2>
+
+    <!-- 현재 상태 -->
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <span class="meta">연동 상태</span>
+      <span id="linkedBadge" class="badge unlinked">● 미연동</span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-github" id="linkBtn" onclick="startLink()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+        </svg>
+        GitHub 연동하기
+      </button>
+
+      <button class="btn-danger" id="unlinkBtn" onclick="doUnlink()" style="display:none">
+        연동 해제
+      </button>
+    </div>
+
+    <div id="githubStatus" class="status-box" style="display:none"></div>
+
+    <div class="meta api-url-box" id="apiServer"></div>
+  </section>
+
+</div>
+
+<script>
+  /* ── 설정 ─────────────────────────────────────────────────────────── */
+  const API_BASE = window.location.origin; // 같은 서버 (static 서빙)
+
+  /* ── 상태 ─────────────────────────────────────────────────────────── */
+  let accessToken = sessionStorage.getItem('accessToken') || null;
+
+  document.getElementById('apiServer').textContent = '서버: ' + API_BASE;
+
+  // 페이지 로드 시 이미 토큰이 있으면 GitHub 섹션 표시
+  if (accessToken) {
+    showGithubSection();
+    checkStatus();
+  }
+
+  // URL에 콜백 결과가 있으면 처리 (연동 성공 파라미터)
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('github_linked')) {
+    accessToken = sessionStorage.getItem('accessToken');
+    showGithubSection();
+    showGithubMsg('ok', '✓ GitHub 계정 연동 완료!');
+    checkStatus();
+    history.replaceState({}, '', window.location.pathname);
+  }
+  if (urlParams.has('access_token')) {
+    // GitHub 로그인 성공 - 토큰 저장
+    accessToken = urlParams.get('access_token');
+    sessionStorage.setItem('accessToken', accessToken);
+    showLoginMsg('ok', `✓ GitHub 로그인 성공\nuuid: ${parseJwt(accessToken)?.sub ?? '-'}`);
+    showGithubSection();
+    checkStatus();
+    history.replaceState({}, '', window.location.pathname);
+  }
+  if (urlParams.has('error')) {
+    showGithubSection();
+    showGithubMsg('err', '✗ 오류: ' + decodeURIComponent(urlParams.get('error').replace(/\+/g, ' ')));
+    history.replaceState({}, '', window.location.pathname);
+  }
+
+  /* ── 로그인 ──────────────────────────────────────────────────────── */
+  async function doLogin() {
+    const id  = document.getElementById('loginId').value.trim();
+    const pw  = document.getElementById('loginPw').value;
+
+    if (!id || !pw) {
+      showLoginMsg('err', '아이디와 비밀번호를 입력하세요.');
+      return;
+    }
+
+    setLoginLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ id, password: pw }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        showLoginMsg('err', `로그인 실패: ${json.message || res.status}`);
+        return;
+      }
+
+      accessToken = json.data.accessToken;
+      sessionStorage.setItem('accessToken', accessToken);
+
+      showLoginMsg('ok', `✓ 로그인 성공\nuuid: ${parseJwt(accessToken)?.sub ?? '-'}\n토큰 만료: ${formatExp(parseJwt(accessToken)?.exp)}`);
+      showGithubSection();
+      checkStatus();
+
+    } catch (e) {
+      showLoginMsg('err', '네트워크 오류: ' + e.message);
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
+  /* ── GitHub 연동 시작 ─────────────────────────────────────────────── */
+  async function startLink() {
+    if (!accessToken) {
+      showGithubMsg('err', '먼저 로그인하세요.');
+      return;
+    }
+
+    setLinkLoading(true);
+    showGithubMsg('info', '연동 URL 요청 중…');
+
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/github/link`, {
+        headers: { 'Authorization': 'Bearer ' + accessToken },
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        showGithubMsg('err', `오류: ${json.message || res.status}`);
+        return;
+      }
+
+      const redirectUrl = json.data.redirectUrl;
+      showGithubMsg('info', 'GitHub 인증 페이지로 이동합니다…\n' + redirectUrl);
+
+      // 잠깐 보여주고 이동
+      setTimeout(() => { window.location.href = redirectUrl; }, 800);
+
+    } catch (e) {
+      showGithubMsg('err', '네트워크 오류: ' + e.message);
+      setLinkLoading(false);
+    }
+  }
+
+  /* ── GitHub 연동 해제 ─────────────────────────────────────────────── */
+  async function doUnlink() {
+    if (!accessToken) return;
+    if (!confirm('GitHub 연동을 해제하시겠습니까?')) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/github/unlink`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + accessToken },
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        showGithubMsg('err', `오류: ${json.message || res.status}`);
+        return;
+      }
+
+      showGithubMsg('ok', '✓ GitHub 연동이 해제되었습니다.');
+      setLinkedState(false);
+
+    } catch (e) {
+      showGithubMsg('err', '네트워크 오류: ' + e.message);
+    }
+  }
+
+  /* ── 연동 상태 조회 ──────────────────────────────────────────────── */
+  async function checkStatus() {
+    if (!accessToken) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/github/status`, {
+        headers: { 'Authorization': 'Bearer ' + accessToken },
+      });
+
+      if (!res.ok) return;
+      const json = await res.json();
+      setLinkedState(json.data?.githubLinked === true);
+    } catch (_) { /* 무시 */ }
+  }
+
+  /* ── UI 헬퍼 ─────────────────────────────────────────────────────── */
+  function showGithubSection() {
+    document.getElementById('githubSection').style.display = 'flex';
+  }
+
+  function setLinkedState(linked) {
+    const badge    = document.getElementById('linkedBadge');
+    const linkBtn  = document.getElementById('linkBtn');
+    const unlinkBtn = document.getElementById('unlinkBtn');
+
+    if (linked) {
+      badge.textContent = '● 연동됨';
+      badge.className   = 'badge linked';
+      linkBtn.style.display   = 'none';
+      unlinkBtn.style.display = 'block';
+    } else {
+      badge.textContent = '● 미연동';
+      badge.className   = 'badge unlinked';
+      linkBtn.style.display   = 'block';
+      unlinkBtn.style.display = 'none';
+    }
+  }
+
+  function showLoginMsg(type, text) {
+    const el = document.getElementById('loginStatus');
+    el.style.display = 'block';
+    el.className = 'status-box ' + type;
+    el.textContent  = text;
+  }
+
+  function showGithubMsg(type, text) {
+    const el = document.getElementById('githubStatus');
+    el.style.display = 'block';
+    el.className = 'status-box ' + type;
+    el.textContent  = text;
+  }
+
+  function setLoginLoading(on) {
+    document.getElementById('loginBtn').disabled = on;
+    document.getElementById('loginBtn').textContent = on ? '로그인 중…' : '로그인';
+  }
+
+  function setLinkLoading(on) {
+    document.getElementById('linkBtn').disabled = on;
+  }
+
+  /* ── JWT 파싱 ────────────────────────────────────────────────────── */
+  function parseJwt(token) {
+    try {
+      return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    } catch (_) { return null; }
+  }
+
+  function formatExp(exp) {
+    if (!exp) return '-';
+    return new Date(exp * 1000).toLocaleTimeString('ko-KR');
+  }
+
+  /* ── Enter 키 로그인 ─────────────────────────────────────────────── */
+  ['loginId', 'loginPw'].forEach(id =>
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    })
+  );
+</script>
+</body>
+</html>

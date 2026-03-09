@@ -28,6 +28,10 @@ public class AdminCreateUserRequest {
     @Schema(description = "역할(기본 STUDENT)", example = "STUDENT")
     private Role role = Role.STUDENT;
 
+    @Size(min = 3, max = 50)
+    @Schema(description = "커스텀 로그인 ID(옵션, 3~50자)", example = "student01")
+    private String customId;
+
     @Size(min = 6, max = 255, message = "비밀번호는 6자 이상이어야 합니다")
     @Schema(description = "초기 커스텀 로그인 비밀번호(옵션, 6자 이상)", example = "P@ssw0rd!")
     private String password;
