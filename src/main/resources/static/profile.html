@@ -499,6 +499,7 @@ function renderGrass(data, year) {
   svgEl.setAttribute('width', svgW);
   svgEl.setAttribute('height', svgH);
   svgEl.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+  svgEl.innerHTML = ''; // 연도 전환 시 이전 셀 제거
 
   // 요일 라벨
   const dayNames = ['', '월', '', '수', '', '금', ''];
@@ -573,8 +574,6 @@ function renderGrass(data, year) {
 
   loadingEl.style.display = 'none';
   containerEl.style.display = 'block';
-  // SVG 초기화 위해 기존 내용 제거
-  svgEl.innerHTML = '';
 }
 
 function moveTooltip(e) {
