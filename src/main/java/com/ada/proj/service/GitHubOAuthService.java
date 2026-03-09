@@ -32,8 +32,7 @@ import com.ada.proj.repository.RefreshTokenRepository;
 import com.ada.proj.repository.UserRepository;
 import com.ada.proj.security.JwtTokenProvider;
 
-
-
+@Service
 @Transactional
 public class GitHubOAuthService {
 
@@ -321,8 +320,7 @@ public class GitHubOAuthService {
         Map<String, Object> viewerData = (Map<String, Object>) ((Map<String, Object>) first.get("data")).get("viewer");
         Map<String, Object> collection = (Map<String, Object>) viewerData.get("contributionsCollection");
         Map<String, Object> calendar = (Map<String, Object>) collection.get("contributionCalendar");
-        List<Map<String, Object>> orgNodes = (List<Map<String, Object>>)
-                ((Map<String, Object>) viewerData.get("organizations")).get("nodes");
+        List<Map<String, Object>> orgNodes = (List<Map<String, Object>>) ((Map<String, Object>) viewerData.get("organizations")).get("nodes");
 
         // ── 날짜별 기여 수 맵 구성 (mutable)
         Map<String, Map<String, Object>> dayMap = new java.util.LinkedHashMap<>();
@@ -349,10 +347,13 @@ public class GitHubOAuthService {
                 Map<String, Object> v2 = (Map<String, Object>) ((Map<String, Object>) second.get("data")).get("viewer");
                 for (int i = 0; i < orgNodes.size(); i++) {
                     Object orgResult = v2.get("o" + i);
-                    if (orgResult == null) continue;
-                    Map<String, Object> orgCal = (Map<String, Object>)
-                            ((Map<String, Object>) orgResult).get("contributionCalendar");
-                    if (orgCal == null) continue;
+                    if (orgResult == null) {
+                        continue;
+                    }
+                    Map<String, Object> orgCal = (Map<String, Object>) ((Map<String, Object>) orgResult).get("contributionCalendar");
+                    if (orgCal == null) {
+                        continue;
+                    }
                     for (Map<String, Object> week : (List<Map<String, Object>>) orgCal.get("weeks")) {
                         for (Map<String, Object> day : (List<Map<String, Object>>) week.get("contributionDays")) {
                             String date = (String) day.get("date");
