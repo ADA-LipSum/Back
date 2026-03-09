@@ -1,8 +1,5 @@
 package com.ada.proj.enums;
 
-/**
- * 신고 대상 유형.
- */
 public enum ReportType {
     USER,
     POST,

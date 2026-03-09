@@ -1,8 +1,5 @@
 package com.ada.proj.enums;
 
-/**
- * 프로젝트 전역 에러 코드 정의.
- */
 public enum ErrorCode {
     USER_NOT_FOUND,
     INVALID_PASSWORD,

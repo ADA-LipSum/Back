@@ -17,10 +17,6 @@ public class UserBanService {
 
     private final UserBanRepository banRepo;
 
-    /**
-     * 유저가 제재 상태인지 확인 - active=true 이면 차단 - expiresAt(LocalDateTime)이 현재 시간보다
-     * 이전이면 자동 해제(active=false)
-     */
     @Transactional
     public void checkUserBanned(User user) {
 

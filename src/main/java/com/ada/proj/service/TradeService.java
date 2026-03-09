@@ -30,6 +30,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 import jakarta.persistence.EntityNotFoundException;
 
+
 @Service
 @RequiredArgsConstructor
 @SuppressWarnings("null")
@@ -41,9 +42,6 @@ public class TradeService {
     private final CoinsService coinsService;
     private final UserRepository userRepository;
 
-    /**
-     * 아이템 생성
-     */
     @Transactional
     public TradeItem createItem(TradeItemCreateRequest req, String creatorUuid) {
         TradeItem item = TradeItem.builder()
@@ -60,9 +58,6 @@ public class TradeService {
         return tradeItemRepository.save(item);
     }
 
-    /**
-     * 재고 충전 (ADMIN / TEACHER 전용)
-     */
     @Transactional
     public void restockItem(String itemUuid, int amount, String operatorUuid) {
 
@@ -89,18 +84,12 @@ public class TradeService {
         tradeItemRepository.save(item);
     }
 
-    /**
-     * 아이템 상세 조회
-     */
     @Transactional(readOnly = true)
     public TradeItem getItemDetail(String itemUuid) {
         return tradeItemRepository.findByItemUuid(itemUuid)
                 .orElseThrow(() -> new EntityNotFoundException("Item not found: " + itemUuid));
     }
 
-    /**
-     * 아이템 검색 / 필터링
-     */
     @Transactional(readOnly = true)
     public Page<TradeItem> searchItems(String keyword, TradeCategory category, Integer minPrice,
             Integer maxPrice, Boolean active, int page, int size,
@@ -146,9 +135,6 @@ public class TradeService {
         return tradeItemRepository.findAll(spec, pageable);
     }
 
-    /**
-     * 아이템 구매
-     */
     @Transactional
     public TradeResult purchase(String userUuid, TradePurchaseRequest req) {
 
@@ -216,9 +202,6 @@ public class TradeService {
         return new TradeResult(item, log, currency, pointsTx, coinsTx);
     }
 
-    /**
-     * 거래 로그 생성
-     */
     @Transactional
     public TradeLog createLog(String userUuid, TradeLogCreateRequest req) {
         TradeItem item = tradeItemRepository.findByItemUuid(req.getItemUuid())
@@ -248,18 +231,12 @@ public class TradeService {
         return tradeLogRepository.save(log);
     }
 
-    /**
-     * 내 거래 로그 조회
-     */
     @Transactional(readOnly = true)
     public Page<TradeLog> getMyLogs(String userUuid, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return tradeLogRepository.findByUserUuidOrderByCreatedAtDesc(userUuid, pageable);
     }
 
-    /**
-     * 아이템 삭제(Soft Delete) active = false 로 비활성화
-     */
     @Transactional
     public void deleteItem(String itemUuid) {
         TradeItem item = tradeItemRepository.findByItemUuid(itemUuid)
@@ -269,9 +246,6 @@ public class TradeService {
         item.setActive(false);
     }
 
-    /**
-     * 결과 래퍼
-     */
     @lombok.Value
     public static class TradeResult {
 

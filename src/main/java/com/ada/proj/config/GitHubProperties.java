@@ -9,26 +9,10 @@ public class GitHubProperties {
 
     private String clientId;
     private String clientSecret;
-    /**
-     * 서버의 GitHub OAuth 콜백 URL (예:
-     * https://api.example.com/api/auth/github/callback)
-     */
     private String callbackUrl;
-    /**
-     * 인증 완료 후 리다이렉트할 프론트엔드 주소 (예: https://example.com)
-     */
     private String frontendBaseUrl = "http://localhost:3000";
-    /**
-     * 연동 성공 시 이동할 프론트엔드 경로
-     */
     private String linkSuccessPath = "/settings?github_linked=true";
-    /**
-     * GitHub 로그인 성공 시 이동할 프론트엔드 경로
-     */
     private String loginSuccessPath = "/auth/github/success";
-    /**
-     * 오류 발생 시 이동할 프론트엔드 경로
-     */
     private String errorPath = "/auth/github/error";
 
     public String getClientId() {

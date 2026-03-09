@@ -29,6 +29,7 @@ import com.ada.proj.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
+
 @Service
 @RequiredArgsConstructor
 public class CommentService {
@@ -54,7 +55,6 @@ public class CommentService {
                 .orElseThrow(() -> new RuntimeException("User not found: " + uuid));
     }
 
-    /** 댓글 생성 */
     @Transactional
     public CommentResponse createComment(@NonNull CommentCreateRequest request) {
 
@@ -98,7 +98,6 @@ public class CommentService {
         return buildResponse(saved);
     }
 
-    /** 댓글 조회 (작성자 이름 + 프로필 이미지 포함) */
     @Transactional(readOnly = true)
     public List<CommentResponse> getCommentsByPost(@NonNull String postId) {
 
@@ -126,7 +125,6 @@ public class CommentService {
                 .toList();
     }
 
-    /** 댓글 수정 */
     @Transactional
     public CommentResponse updateComment(@NonNull Long commentId, @NonNull CommentUpdateRequest req) {
 
@@ -146,7 +144,6 @@ public class CommentService {
         return buildResponse(saved);
     }
 
-    /** 댓글 삭제 */
     @Transactional
     public void deleteComment(@NonNull Long commentId) {
 
@@ -165,7 +162,6 @@ public class CommentService {
         log.info("[COMMENT-DELETE] postUuid={}, deletedCommentId={}", post.getPostUuid(), commentId);
     }
 
-    /** 좋아요 **/
     @Transactional
     public Map<String, Object> addLike(@NonNull Long commentId) {
         User currentUser = getCurrentUser();
@@ -190,7 +186,6 @@ public class CommentService {
         return result;
     }
 
-    /**좋아요 삭제**/
     @Transactional
     public Map<String, Object> removeLike(@NonNull Long commentId) {
         User currentUser = getCurrentUser();
@@ -210,7 +205,6 @@ public class CommentService {
         return result;
     }
 
-    /** 댓글 고정**/
     @Transactional
     public Map<String, Object> pinComment(@NonNull Long commentId) {
         User currentUser = getCurrentUser();
@@ -230,7 +224,6 @@ public class CommentService {
         return result;
     }
 
-    /**댓글 고정 해제**/
     @Transactional
     public Map<String, Object> unpinComment(@NonNull Long commentId) {
         User currentUser = getCurrentUser();
@@ -250,7 +243,6 @@ public class CommentService {
         return result;
     }
 
-    /** Comment → Response 변환 */
     private CommentResponse buildResponse(Comment comment) {
         User author = comment.getAuthor();
         String displayName = author.isUseNickname() ? author.getUserNickname() : author.getUserRealname();
@@ -283,7 +275,8 @@ public class CommentService {
                 .content(comment.getContent())
                 .createdAt(comment.getCreatedAt())
                 .children(childResponses)
-                .build();
+ 
+               .build();
     }
 
     private void updatePostCommentsCount(Post post) {

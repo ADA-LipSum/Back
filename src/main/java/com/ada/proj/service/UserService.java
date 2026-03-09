@@ -203,10 +203,6 @@ public class UserService {
         return user;
     }
 
-    /**
-     * Create the very first ADMIN account when none exists. This can be called
-     * without authentication but will fail if any ADMIN already exists.
-     */
     @Caching(evict = {
         @CacheEvict(cacheNames = "users", key = "#result.uuid", condition = "#result != null"),
         @CacheEvict(cacheNames = "users", key = "'admin:' + #req.adminId"),

@@ -5,9 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-/**
- * 선생님 자가 회원가입 요청 DTO
- */
 @Data
 @Schema(name = "TeacherSignupRequest", description = "선생님 회원가입 요청 바디")
 public class TeacherSignupRequest {

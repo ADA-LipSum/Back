@@ -21,6 +21,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
+
 @RestController
 @RequestMapping("/api/comments")
 @RequiredArgsConstructor
@@ -29,9 +30,6 @@ public class CommentController {
 
     private final CommentService commentService;
 
-    /**
-     * 댓글 작성
-     */
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/posts/{postUuid}/comments")
     @Operation(
@@ -47,9 +45,6 @@ public class CommentController {
         return ResponseEntity.ok(ApiResponse.success(commentService.createComment(payload)));
     }
 
-    /**
-     * 댓글 목록 조회
-     */
     @GetMapping("/posts/{postUuid}/comments")
     @Operation(summary = "댓글 목록 조회", description = "게시글의 댓글 및 대댓글 출력")
     public ResponseEntity<ApiResponse<List<CommentResponse>>> getComments(
@@ -58,9 +53,6 @@ public class CommentController {
         return ResponseEntity.ok(ApiResponse.success(commentService.getCommentsByPost(postId)));
     }
 
-    /**
-     * 댓글 수정
-     */
     @PutMapping("/{commentId}")
     @Operation(
             summary = "댓글 수정",
@@ -75,9 +67,6 @@ public class CommentController {
         return ResponseEntity.ok(ApiResponse.success(commentService.updateComment(id, payload)));
     }
 
-    /**
-     * 댓글 삭제
-     */
     @DeleteMapping("/{commentId}")
     @Operation(
             summary = "댓글 삭제",
@@ -90,9 +79,6 @@ public class CommentController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    /**
-     * 댓글 좋아요
-     */
     @PutMapping("/{commentId}/like")
     @Operation(summary = "댓글 좋아요", description = "이 댓글을 좋아합니다.")
     public ResponseEntity<ApiResponse<Map<String, Object>>> addLike(
@@ -101,9 +87,6 @@ public class CommentController {
         return ResponseEntity.ok(ApiResponse.success(commentService.addLike(requireCommentId(commentId))));
     }
 
-    /**
-     댓글 좋아요 삭제
-     **/
     @DeleteMapping("/{commentId}/like")
     @Operation(summary = "댓글 좋아요 해제", description = "댓글 좋아요를 취소합니다.")
     public ResponseEntity<ApiResponse<Map<String, Object>>> removeLike(
@@ -112,9 +95,6 @@ public class CommentController {
         return ResponseEntity.ok(ApiResponse.success(commentService.removeLike(requireCommentId(commentId))));
     }
 
-    /**
-     * 댓글 고정
-     **/
     @PutMapping("/{commentId}/pin")
     @Operation(summary = "댓글 고정", description = "게시글 작성자만 댓글을 고정할 수 있습니다.")
     public ResponseEntity<ApiResponse<Map<String, Object>>> pinComment(
@@ -123,7 +103,6 @@ public class CommentController {
         return ResponseEntity.ok(ApiResponse.success(commentService.pinComment(requireCommentId(commentId))));
     }
 
-    /** 댓글 고정 취소 **/
     @DeleteMapping("/{commentId}/pin")
     @Operation(summary = "댓글 고정 해제", description = "게시글 작성자만 댓글 고정을 해제할 수 있습니다.")
     public ResponseEntity<ApiResponse<Map<String, Object>>> unpinComment(

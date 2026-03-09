@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
 
 import javax.crypto.Mac;
@@ -31,33 +32,8 @@ import com.ada.proj.repository.RefreshTokenRepository;
 import com.ada.proj.repository.UserRepository;
 import com.ada.proj.security.JwtTokenProvider;
 
-/**
- * GitHub OAuth 연동 / 로그인 서비스.
- *
- * <p>
- * <b>연동 흐름</b>
- * <ol>
- * <li>로그인된 사용자가 {@code /api/auth/github/link} 요청</li>
- * <li>서버가 서명된 state(type=link, uuid=사용자 UUID)를 생성하고 GitHub OAuth URL 반환</li>
- * <li>사용자가 GitHub에서 승인 → callback URL로 리다이렉트</li>
- * <li>서버가 state 검증 후 code ↔ access_token 교환, GitHub user ID 조회</li>
- * <li>현재 사용자에 github_id 저장 → 프론트엔드 성공 페이지로 리다이렉트</li>
- * </ol>
- *
- * <p>
- * <b>GitHub 로그인 흐름</b>
- * <ol>
- * <li>비로그인 사용자가 {@code /api/auth/github/login} 요청 → GitHub OAuth URL 반환</li>
- * <li>GitHub 승인 → callback URL로 리다이렉트</li>
- * <li>서버가 code 교환 후 GitHub user ID로 사용자 조회 → JWT 발급</li>
- * </ol>
- *
- * <p>
- * <b>State 형식</b>: {@code BASE64URL(payload).HMAC_HEX}
- * <br>payload = {@code "link:{uuid}:{ts}"} 또는 {@code "login:{nonce}:{ts}"}
- * <br>HMAC 키: JWT 시크릿 (HmacSHA256). State 유효시간 5분.
- */
-@Service
+
+
 @Transactional
 public class GitHubOAuthService {
 
@@ -91,31 +67,17 @@ public class GitHubOAuthService {
     // ──────────────────────────────────────────────────────────────────────────
     // State 생성/검증
     // ──────────────────────────────────────────────────────────────────────────
-    /**
-     * 계정 연동용 signed state를 생성합니다.
-     *
-     * @param uuid 연동할 사용자 UUID
-     */
     public String generateLinkState(String uuid) {
         String payload = "link:" + uuid + ":" + Instant.now().toEpochMilli();
         return signState(payload);
     }
 
-    /**
-     * GitHub 로그인용 signed state를 생성합니다.
-     */
     public String generateLoginState() {
         String nonce = java.util.UUID.randomUUID().toString().replace("-", "");
         String payload = "login:" + nonce + ":" + Instant.now().toEpochMilli();
         return signState(payload);
     }
 
-    /**
-     * State를 검증하고 파싱된 정보를 반환합니다.
-     *
-     * @return {@link StateInfo}
-     * @throws ForbiddenException state가 유효하지 않거나 만료된 경우
-     */
     public StateInfo verifyState(String state) {
         if (state == null || state.isBlank()) {
             throw new ForbiddenException("Missing OAuth state");
@@ -168,27 +130,17 @@ public class GitHubOAuthService {
     // ──────────────────────────────────────────────────────────────────────────
     // GitHub OAuth URL 생성
     // ──────────────────────────────────────────────────────────────────────────
-    /**
-     * GitHub OAuth 인가 URL을 생성합니다.
-     */
     public String buildAuthUrl(String state) {
         return GITHUB_AUTHORIZE_URL
                 + "?client_id=" + encode(gitHubProperties.getClientId())
                 + "&redirect_uri=" + encode(gitHubProperties.getCallbackUrl())
-                + "&scope=read:user%20repo"
+                + "&scope=read:user%20repo%20read:org"
                 + "&state=" + encode(state);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     // 계정 연동
     // ──────────────────────────────────────────────────────────────────────────
-    /**
-     * 로그인된 사용자에 GitHub 계정을 연동합니다.
-     *
-     * @param uuid 연동할 사용자 UUID
-     * @param code GitHub에서 받은 authorization code
-     * @throws ForbiddenException 이미 다른 계정에 연동된 GitHub 계정인 경우
-     */
     public void linkGitHub(String uuid, String code) {
         GitHubUserInfo info = fetchGitHubUserInfo(code);
 
@@ -207,9 +159,6 @@ public class GitHubOAuthService {
         userRepository.save(user); // @Cacheable detached 엔티티이므로 명시적 저장
     }
 
-    /**
-     * 연동된 GitHub 계정을 해제합니다.
-     */
     public void unlinkGitHub(String uuid) {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
@@ -222,9 +171,6 @@ public class GitHubOAuthService {
         userRepository.save(user); // @Cacheable detached 엔티티이므로 명시적 저장
     }
 
-    /**
-     * 해당 계정에 GitHub가 연동되어 있는지 확인합니다.
-     */
     public boolean isLinked(String uuid) {
         return userRepository.findByUuid(uuid)
                 .map(user -> user.getGithubId() != null)
@@ -234,13 +180,6 @@ public class GitHubOAuthService {
     // ──────────────────────────────────────────────────────────────────────────
     // GitHub 로그인 (연동 후 사용 가능)
     // ──────────────────────────────────────────────────────────────────────────
-    /**
-     * GitHub 로그인: GitHub user ID로 사용자를 조회하고 JWT를 발급합니다.
-     *
-     * @param code GitHub에서 받은 authorization code
-     * @return 발급된 access token
-     * @throws UserNotFoundException 연동된 계정이 없는 경우
-     */
     public String loginWithGitHub(String code) {
         GitHubUserInfo info = fetchGitHubUserInfo(code);
 
@@ -333,6 +272,30 @@ public class GitHubOAuthService {
         return String.format("(from: \"%d-01-01T00:00:00Z\", to: \"%d-12-31T23:59:59Z\")", year, year);
     }
 
+    private String buildOrgDateRange(String dateRange, String orgId) {
+        if (dateRange.isEmpty()) {
+            return String.format("(organizationID: \"%s\")", orgId);
+        }
+        // (from: "...", to: "...") → (from: "...", to: "...", organizationID: "...")
+        return dateRange.substring(0, dateRange.length() - 1)
+                + String.format(", organizationID: \"%s\")", orgId);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> executeGraphQL(String query, String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + token);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        ResponseEntity<Map> response = restTemplate.exchange(
+                GITHUB_GRAPHQL_URL, HttpMethod.POST,
+                new HttpEntity<>(Map.of("query", query), headers), Map.class);
+        Map<String, Object> body = response.getBody();
+        if (body == null || !body.containsKey("data")) {
+            throw new RuntimeException("GitHub contribution 데이터를 가져올 수 없습니다.");
+        }
+        return body;
+    }
+
     @SuppressWarnings("unchecked")
     public Map<String, Object> getContributions(String uuid, Integer year) {
         User user = userRepository.findByUuid(uuid)
@@ -344,30 +307,75 @@ public class GitHubOAuthService {
             throw new ForbiddenException("RELINK_REQUIRED");
         }
 
-        String gqlQuery = "{ viewer { login contributionsCollection" + buildDateRange(year)
-                + " { contributionCalendar "
-                + "{ totalContributions weeks { contributionDays { contributionCount date color } } } } } }";
+        String token = user.getGithubAccessToken();
+        int resolvedYear = year != null ? year : java.time.Year.now().getValue();
+        String dateRange = buildDateRange(year);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + user.getGithubAccessToken());
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        // ── 1단계: 기본 캘린더 + 소속 org ID 목록 조회
+        String firstGql = "{ viewer { login "
+                + "contributionsCollection" + dateRange + " { contributionCalendar "
+                + "{ totalContributions weeks { contributionDays { contributionCount date color } } } } "
+                + "organizations(first: 100) { nodes { id } } } }";
 
-        ResponseEntity<Map> response = restTemplate.exchange(
-                GITHUB_GRAPHQL_URL,
-                HttpMethod.POST,
-                new HttpEntity<>(Map.of("query", gqlQuery), headers),
-                Map.class);
-
-        Map<String, Object> body = response.getBody();
-        if (body == null || !body.containsKey("data")) {
-            throw new RuntimeException("GitHub contribution 데이터를 가져올 수 없습니다.");
-        }
-        Map<String, Object> data = (Map<String, Object>) body.get("data");
-        Map<String, Object> viewer = (Map<String, Object>) data.get("viewer");
-        Map<String, Object> collection = (Map<String, Object>) viewer.get("contributionsCollection");
+        Map<String, Object> first = executeGraphQL(firstGql, token);
+        Map<String, Object> viewerData = (Map<String, Object>) ((Map<String, Object>) first.get("data")).get("viewer");
+        Map<String, Object> collection = (Map<String, Object>) viewerData.get("contributionsCollection");
         Map<String, Object> calendar = (Map<String, Object>) collection.get("contributionCalendar");
-        calendar.put("login", viewer.get("login"));
-        calendar.put("year", year != null ? year : java.time.Year.now().getValue());
+        List<Map<String, Object>> orgNodes = (List<Map<String, Object>>)
+                ((Map<String, Object>) viewerData.get("organizations")).get("nodes");
+
+        // ── 날짜별 기여 수 맵 구성 (mutable)
+        Map<String, Map<String, Object>> dayMap = new java.util.LinkedHashMap<>();
+        for (Map<String, Object> week : (List<Map<String, Object>>) calendar.get("weeks")) {
+            for (Map<String, Object> day : (List<Map<String, Object>>) week.get("contributionDays")) {
+                dayMap.put((String) day.get("date"), day);
+            }
+        }
+
+        // ── 2단계: 모든 org 캔린더를 단일 GraphQL 배치 요청으로 조회 후 일별 MAX 병합
+        if (!orgNodes.isEmpty()) {
+            StringBuilder batchGql = new StringBuilder("{ viewer {");
+            for (int i = 0; i < orgNodes.size(); i++) {
+                String orgId = (String) orgNodes.get(i).get("id");
+                batchGql.append(" o").append(i)
+                        .append(": contributionsCollection")
+                        .append(buildOrgDateRange(dateRange, orgId))
+                        .append(" { contributionCalendar { weeks { contributionDays { contributionCount date } } } }");
+            }
+            batchGql.append(" } }");
+
+            try {
+                Map<String, Object> second = executeGraphQL(batchGql.toString(), token);
+                Map<String, Object> v2 = (Map<String, Object>) ((Map<String, Object>) second.get("data")).get("viewer");
+                for (int i = 0; i < orgNodes.size(); i++) {
+                    Object orgResult = v2.get("o" + i);
+                    if (orgResult == null) continue;
+                    Map<String, Object> orgCal = (Map<String, Object>)
+                            ((Map<String, Object>) orgResult).get("contributionCalendar");
+                    if (orgCal == null) continue;
+                    for (Map<String, Object> week : (List<Map<String, Object>>) orgCal.get("weeks")) {
+                        for (Map<String, Object> day : (List<Map<String, Object>>) week.get("contributionDays")) {
+                            String date = (String) day.get("date");
+                            int orgCount = ((Number) day.get("contributionCount")).intValue();
+                            Map<String, Object> base = dayMap.get(date);
+                            if (base != null && orgCount > ((Number) base.get("contributionCount")).intValue()) {
+                                base.put("contributionCount", orgCount);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ignored) {
+                // org 데이터 조회 실패 시 기본 집계 데이터로 폴백
+            }
+        }
+
+        // ── total 재계산
+        int total = dayMap.values().stream()
+                .mapToInt(d -> ((Number) d.get("contributionCount")).intValue())
+                .sum();
+        calendar.put("totalContributions", total);
+        calendar.put("login", viewerData.get("login"));
+        calendar.put("year", resolvedYear);
         return calendar;
     }
 
@@ -389,9 +397,6 @@ public class GitHubOAuthService {
         }
     }
 
-    /**
-     * 타이밍 공격 방지를 위한 일정-시간 문자열 비교
-     */
     private boolean constantTimeEquals(String a, String b) {
         if (a.length() != b.length()) {
             return false;
