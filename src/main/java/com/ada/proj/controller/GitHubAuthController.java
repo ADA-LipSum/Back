@@ -23,7 +23,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 
-
 @RestController
 @RequestMapping("/api/auth/github")
 @Tag(name = "GitHub OAuth")
@@ -131,11 +130,13 @@ public class GitHubAuthController {
     @PreAuthorize("isAuthenticated()")
     @Operation(
             summary = "GitHub 잔디(contribution) 데이터 조회",
-            description = "연동된 GitHub 계정의 최근 1년 contribution 데이터를 반환합니다.",
+            description = "연동된 GitHub 계정의 contribution 데이터를 반환합니다. year 파라미터로 연도 지정 가능 (기본: 현재 연도)",
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<ApiResponse<Map<String, Object>>> contributions(Authentication authentication) {
-        Map<String, Object> data = gitHubOAuthService.getContributions(authentication.getName());
+    public ResponseEntity<ApiResponse<Map<String, Object>>> contributions(
+            Authentication authentication,
+            @RequestParam(required = false) Integer year) {
+        Map<String, Object> data = gitHubOAuthService.getContributions(authentication.getName(), year);
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 

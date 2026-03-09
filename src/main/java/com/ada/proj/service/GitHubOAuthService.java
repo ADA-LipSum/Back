@@ -244,7 +244,7 @@ public class GitHubOAuthService {
     public String loginWithGitHub(String code) {
         GitHubUserInfo info = fetchGitHubUserInfo(code);
 
-        User user = userRepository.findByGithubId(info.id())    
+        User user = userRepository.findByGithubId(info.id())
                 .orElseThrow(() -> new UserNotFoundException(
                 "연동된 계정이 없습니다. 먼저 관리자가 생성한 계정으로 로그인 후 GitHub를 연동해주세요."));
 
@@ -326,8 +326,11 @@ public class GitHubOAuthService {
         return user;
     }
 
+    private String buildDateRange(Integer year) {
+        if (year == null) return "";
+
     @SuppressWarnings("unchecked")
-    public Map<String, Object> getContributions(String uuid) {
+    public Map<String, Object> getContributions(String uuid, Integer year) {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
         if (user.getGithubId() == null) {
@@ -337,8 +340,9 @@ public class GitHubOAuthService {
             throw new ForbiddenException("RELINK_REQUIRED");
         }
 
-        String gqlQuery = "{ viewer { login contributionsCollection { contributionCalendar " +
-                "{ totalContributions weeks { contributionDays { contributionCount date color } } } } } }";
+        String gqlQuery = "{ viewer { login contributionsCollection" + buildDateRange(year)
+                + " { contributionCalendar "
+                + "{ totalContributions weeks { contributionDays { contributionCount date color } } } } } }";
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + user.getGithubAccessToken());
@@ -359,6 +363,7 @@ public class GitHubOAuthService {
         Map<String, Object> collection = (Map<String, Object>) viewer.get("contributionsCollection");
         Map<String, Object> calendar = (Map<String, Object>) collection.get("contributionCalendar");
         calendar.put("login", viewer.get("login"));
+        calendar.put("year", year != null ? year : java.time.Year.now().getValue());
         return calendar;
     }
 

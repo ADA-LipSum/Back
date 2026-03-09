@@ -109,6 +109,35 @@
     .profile-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 
     /* ── 잔디 ── */
+    .grass-wrap {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .year-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .year-btn {
+      width: auto;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      background: transparent;
+      color: var(--accent);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: right;
+    }
+    .year-btn:hover { background: var(--border); }
+    .year-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+    .grass-main { flex: 1; min-width: 0; }
     .section-title {
       font-size: 14px;
       font-weight: 600;
@@ -222,24 +251,29 @@
 
   <div class="card" id="grass-card" style="display:none">
     <div class="section-title">
-      <div>GitHub 기여 현황</div>
+      <div id="grass-title">GitHub 기여 현황</div>
       <span id="total-label">-</span>
     </div>
-    <div id="loading-grass" style="text-align:center;color:var(--muted);padding:20px">잔디 로딩 중…</div>
-    <div id="grass-container" style="display:none">
-      <div class="month-labels" id="month-labels"></div>
-      <svg id="grass-svg"></svg>
-      <div class="legend">
-        적음
-        <div class="legend-box" style="background:var(--c0);border-color:#444"></div>
-        <div class="legend-box" style="background:var(--c1)"></div>
-        <div class="legend-box" style="background:var(--c2)"></div>
-        <div class="legend-box" style="background:var(--c3)"></div>
-        <div class="legend-box" style="background:var(--c4)"></div>
-        많음
+    <div class="grass-wrap">
+      <div class="grass-main">
+        <div id="loading-grass" style="text-align:center;color:var(--muted);padding:20px">잔디 로딩 중…</div>
+        <div id="grass-container" style="display:none">
+          <div class="month-labels" id="month-labels"></div>
+          <svg id="grass-svg"></svg>
+          <div class="legend">
+            적음
+            <div class="legend-box" style="background:var(--c0);border-color:#444"></div>
+            <div class="legend-box" style="background:var(--c1)"></div>
+            <div class="legend-box" style="background:var(--c2)"></div>
+            <div class="legend-box" style="background:var(--c3)"></div>
+            <div class="legend-box" style="background:var(--c4)"></div>
+            많음
+          </div>
+        </div>
+        <div id="grass-error" style="display:none;color:#f85149;font-size:13px;margin-top:8px"></div>
       </div>
+      <div class="year-sidebar" id="year-sidebar"></div>
     </div>
-    <div id="grass-error" style="display:none;color:#f85149;font-size:13px;margin-top:8px"></div>
   </div>
 
 </div>
@@ -254,6 +288,61 @@
 
 <script>
 const API = '';  // 같은 origin
+let currentToken = null;
+let currentYear = new Date().getFullYear();
+
+/* ────────────────────────────────────────
+   연도 사이드바 생성 (joinYear ~ 올해)
+──────────────────────────────────────── */
+function buildYearSidebar(selectedYear) {
+  const sidebar = document.getElementById('year-sidebar');
+  sidebar.innerHTML = '';
+  const thisYear = new Date().getFullYear();
+  // GitHub 2008년 서비스 시작, 최대 10년치만
+  const fromYear = Math.max(thisYear - 9, 2008);
+  for (let y = thisYear; y >= fromYear; y--) {
+    const btn = document.createElement('button');
+    btn.className = 'year-btn' + (y === selectedYear ? ' active' : '');
+    btn.textContent = y;
+    btn.onclick = () => loadYear(y);
+    sidebar.appendChild(btn);
+  }
+}
+
+async function loadYear(year) {
+  currentYear = year;
+  buildYearSidebar(year);
+
+  // 초기화
+  document.getElementById('loading-grass').style.display = 'block';
+  document.getElementById('loading-grass').textContent = '잔디 로딩 중…';
+  document.getElementById('grass-container').style.display = 'none';
+  document.getElementById('grass-error').style.display = 'none';
+
+  try {
+    const res = await fetch(`${API}/api/auth/github/contributions?year=${year}`, {
+      headers: { 'Authorization': 'Bearer ' + currentToken }
+    });
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      if (errJson.message === 'RELINK_REQUIRED') {
+        document.getElementById('grass-error').innerHTML =
+          '잔디를 불러오려면 GitHub 재연동이 필요합니다. <a href="/github-test.html" style="color:var(--accent)">연동 페이지로 이동 →</a>';
+      } else {
+        document.getElementById('grass-error').textContent = errJson.message || 'GitHub 연동이 필요합니다.';
+      }
+      document.getElementById('loading-grass').style.display = 'none';
+      document.getElementById('grass-error').style.display = 'block';
+      return;
+    }
+    const json = await res.json();
+    renderGrass(json.data, year);
+  } catch (e) {
+    document.getElementById('loading-grass').style.display = 'none';
+    document.getElementById('grass-error').textContent = '오류: ' + e.message;
+    document.getElementById('grass-error').style.display = 'block';
+  }
+}
 
 /* ────────────────────────────────────────
    토큰 관리
@@ -314,6 +403,7 @@ async function init() {
 
   document.getElementById('login-section').style.display = 'none';
   document.getElementById('loading').style.display = 'block';
+  currentToken = token;
 
   try {
     // 연동 상태, 잔디 병렬 요청
@@ -339,9 +429,10 @@ async function init() {
 
     // ── 잔디
     document.getElementById('grass-card').style.display = 'block';
+    buildYearSidebar(currentYear);
     if (contribRes.status === 'fulfilled' && contribRes.value.ok) {
       const c = await contribRes.value.json();
-      renderGrass(c.data);
+      renderGrass(c.data, currentYear);
     } else {
       document.getElementById('loading-grass').style.display = 'none';
       let errMsg = '네트워크 오류';
@@ -369,7 +460,7 @@ async function init() {
 /* ────────────────────────────────────────
    잔디 렌더링
 ──────────────────────────────────────── */
-function renderGrass(data) {
+function renderGrass(data, year) {
   const loadingEl = document.getElementById('loading-grass');
   const containerEl = document.getElementById('grass-container');
   const svgEl = document.getElementById('grass-svg');
@@ -394,7 +485,7 @@ function renderGrass(data) {
     document.getElementById('link-badge').classList.remove('unlinked');
   }
 
-  totalEl.textContent = `올해 ${(data.totalContributions || 0).toLocaleString()}회 기여`;
+  totalEl.textContent = `${year}년 ${(data.totalContributions || 0).toLocaleString()}회 기여`;
 
   const CELL = 13;   // 셀 크기 + gap
   const R = 2;       // 테두리 반경
@@ -482,6 +573,8 @@ function renderGrass(data) {
 
   loadingEl.style.display = 'none';
   containerEl.style.display = 'block';
+  // SVG 초기화 위해 기존 내용 제거
+  svgEl.innerHTML = '';
 }
 
 function moveTooltip(e) {
