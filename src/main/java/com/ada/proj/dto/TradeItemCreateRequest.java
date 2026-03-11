@@ -34,6 +34,9 @@ public class TradeItemCreateRequest {
     @Schema(description = "카테고리(FOOD | ETC)", example = "FOOD")
     private TradeCategory category; // FOOD/ETC
 
+    @Schema(description = "소분류 카테고리(옵션, SNACK|CANDY|JUICE|INSTANT|STICKER|BANNER)", example = "SNACK")
+    private TradeCategory subCategory;
+
     @Schema(description = "대표 이미지 URL(옵션)", example = "https://example.com/item.png")
     private String imageUrl; // 대표 이미지 URL
 }

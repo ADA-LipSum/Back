@@ -3,6 +3,7 @@ package com.ada.proj.controller;
 
 import com.ada.proj.dto.*;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -39,6 +40,7 @@ public class TradeController {
             + "- price: 가격(FOOD=코인, ETC=포인트 / 최소 1).\n"
             + "- active: 판매 활성화 여부(기본 true).\n"
             + "- category: 카테고리(FOOD | ETC).\n"
+            + "- subCategory: 서브카테고리(SNACK|CANDY|JUICE|INSTANT|STICKER|BANNER).\n"
             + "- imageUrl: 대표 이미지 URL(옵션)."
     )
     public ApiResponse<TradeItemResponse> createItem(@Valid @RequestBody TradeItemCreateRequest req, Authentication auth) {
@@ -66,6 +68,7 @@ public class TradeController {
             + "파라미터 설명:\n"
             + "- keyword: 검색어\n"
             + "- category: FOOD|ETC\n"
+            + "- subCategory: SNACK|CANDY|JUICE|INSTANT|STICKER|BANNER\n"
             + "- minPrice: 최소 가격\n"
             + "- maxPrice: 최대 가격\n"
             + "- active: 활성 여부(true|false)\n"
@@ -76,7 +79,13 @@ public class TradeController {
     )
     public ApiResponse<PageResponse<TradeItemResponse>> searchItems(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) TradeCategory category,
+            @RequestParam(required = false)
+            @Parameter(description = "대분류 카테고리", schema = @Schema(type = "string", allowableValues = {"FOOD", "ETC"}))
+            TradeCategory category,
+
+            @RequestParam(required = false)
+            @Parameter(description = "소분류 카테고리", schema = @Schema(type = "string", allowableValues = {"SNACK", "CANDY", "JUICE", "INSTANT", "STICKER", "BANNER"}))
+            TradeCategory subCategory,
             @RequestParam(required = false) Integer minPrice,
             @RequestParam(required = false) Integer maxPrice,
             @RequestParam(required = false, defaultValue = "true") Boolean active,
@@ -86,7 +95,7 @@ public class TradeController {
             @RequestParam(required = false, defaultValue = "desc") String dir
     ) {
         var pageResult = tradeService
-                .searchItems(keyword, category, minPrice, maxPrice, active, page, size, sort, dir)
+                .searchItems(keyword, category, subCategory, minPrice, maxPrice, active, page, size, sort, dir)
                 .map(TradeItemResponse::from);
 
         return ApiResponse.success(

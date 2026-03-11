@@ -51,6 +51,10 @@ public class TradeItem {
         @Column(name = "category", length = 20, nullable = false)
         private TradeCategory category; // 카테고리
 
+        @Enumerated(EnumType.STRING)
+        @Column(name = "sub_category", length = 20)
+        private TradeCategory subCategory; // 소분류 (nullable)
+
         @Column(name = "image_url", length = 500)
         private String imageUrl; // 대표 이미지 URL
 

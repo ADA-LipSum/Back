@@ -44,6 +44,13 @@ public class TradeService {
 
     @Transactional
     public TradeItem createItem(TradeItemCreateRequest req, String creatorUuid) {
+
+        if (req.getSubCategory() != null && req.getSubCategory().getParent() != req.getCategory()) {
+            throw new IllegalArgumentException(
+                    "카테고리가 맞지 않습니다. " + req.getCategory().name() + "의 하위 카테고리가 아닙니다: " + req.getSubCategory().name()
+            );
+        }
+
         TradeItem item = TradeItem.builder()
                 .itemUuid(UUID.randomUUID().toString())
                 .name(req.getName())
@@ -52,6 +59,7 @@ public class TradeService {
                 .stock(req.getStock() == null ? 0 : req.getStock())
                 .active(req.getActive() != null ? req.getActive() : true)
                 .category(req.getCategory())
+                .subCategory(req.getSubCategory())
                 .imageUrl(req.getImageUrl())
                 .createdBy(creatorUuid)
                 .build();
@@ -91,11 +99,12 @@ public class TradeService {
     }
 
     @Transactional(readOnly = true)
-    public Page<TradeItem> searchItems(String keyword, TradeCategory category, Integer minPrice,
-            Integer maxPrice, Boolean active, int page, int size,
-            String sort, String dir) {
+    public Page<TradeItem> searchItems(String keyword, TradeCategory category,
+                                       TradeCategory subCategory, Integer minPrice, Integer maxPrice,
+                                       Boolean active, int page, int size, String sort, String dir) {
 
         Specification<TradeItem> spec = (root, query, cb) -> cb.conjunction();
+
 
         if (active != null) {
             spec = spec.and((root, q, cb) -> cb.equal(root.get("active"), active));
@@ -109,6 +118,13 @@ public class TradeService {
         }
         if (category != null) {
             spec = spec.and((root, q, cb) -> cb.equal(root.get("category"), category));
+        }
+        if (category != null && subCategory != null) {
+            if (subCategory.getParent() != category) {
+                throw new IllegalArgumentException(
+                        "카테고리가 맞지 않습니다. " + category.name() + "의 하위 카테고리가 아닙니다: " + subCategory.name()
+                );
+            }
         }
         if (minPrice != null) {
             spec = spec.and((root, q, cb) -> cb.ge(root.get("price"), minPrice));
@@ -147,7 +163,11 @@ public class TradeService {
         }
 
         // ETC 1회 구매 제한
-        if (item.getCategory() == TradeCategory.ETC) {
+            TradeCategory topCategory = item.getCategory().isSubCategory()
+                    ? item.getCategory().getParent()
+                    : item.getCategory();
+
+            if (topCategory == TradeCategory.ETC) {
             boolean alreadyBought = tradeLogRepository.existsByUserUuidAndItemUuid(userUuid, item.getItemUuid());
             if (alreadyBought) {
                 throw new IllegalStateException(
@@ -166,7 +186,7 @@ public class TradeService {
         int unitPrice = item.getPrice();
         int total = Math.multiplyExact(unitPrice, qty);
 
-        TradeCurrency currency = item.getCategory() == TradeCategory.FOOD ? TradeCurrency.COIN : TradeCurrency.POINT;
+        TradeCurrency currency = topCategory == TradeCategory.FOOD ? TradeCurrency.COIN : TradeCurrency.POINT;
 
         UserPoints pointsTx = null;
         UserCoins coinsTx = null;
