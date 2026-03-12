@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>프로필 뷰어</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+      gap: 24px;
+    }
+
+    h1 { font-size: 20px; font-weight: 700; }
+
+    /* ── 로그인 카드 ── */
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card-title { font-size: 15px; font-weight: 600; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+
+    label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 5px; }
+
+    input[type=text], input[type=password] {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+    }
+    input:focus { border-color: var(--accent); }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #238636;
+      color: #fff;
+      transition: background .2s;
+    }
+    button:hover { background: #2ea043; }
+    button:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
+
+    .btn-sm {
+      width: auto;
+      padding: 5px 14px;
+      font-size: 12px;
+      background: #21262d;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-sm:hover { background: #30363d; }
+
+    .error-msg { font-size: 13px; color: #f85149; min-height: 16px; }
+
+    /* ── 프로필 카드 ── */
+    #profile-wrap {
+      display: none;
+      width: 100%;
+      max-width: 640px;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* 배너 */
+    .banner-area {
+      width: 100%;
+      height: 180px;
+      background: #21262d;
+      border-radius: 12px 12px 0 0;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-bottom: none;
+      position: relative;
+    }
+
+    .banner-area img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .banner-empty {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 13px;
+      background: repeating-linear-gradient(
+        45deg,
+        #161b22,
+        #161b22 10px,
+        #1c2128 10px,
+        #1c2128 20px
+      );
+    }
+
+    /* 프로필 정보 영역 */
+    .profile-body {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0 0 12px 12px;
+      padding: 0 24px 24px;
+    }
+
+    .avatar-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-top: -36px;
+      margin-bottom: 16px;
+    }
+
+    .avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 3px solid var(--card);
+      background: #21262d;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      background: #30363d;
+    }
+
+    .meta { display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
+    .meta .name { font-size: 20px; font-weight: 700; }
+    .meta .sub  { font-size: 13px; color: var(--muted); }
+    .meta .uuid { font-size: 11px; color: #484f58; }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+    .info-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .info-item { display: flex; flex-direction: column; gap: 2px; }
+    .info-item .lbl { font-size: 11px; color: var(--muted); }
+    .info-item .val { font-size: 13px; color: var(--text); word-break: break-all; }
+    .info-item .val a { color: var(--accent); text-decoration: none; }
+    .info-item .val a:hover { text-decoration: underline; }
+
+    .no-image { color: #484f58; font-style: italic; }
+
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .actions { display: flex; gap: 8px; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<h1>🖼️ 프로필 뷰어</h1>
+
+<!-- 로그인 -->
+<div class="login-card" id="login-card">
+  <div class="card-title">🔑 로그인</div>
+  <div>
+    <label for="login-id">아이디</label>
+    <input type="text" id="login-id" placeholder="teacher01" autocomplete="username" />
+  </div>
+  <div>
+    <label for="login-pw">비밀번호</label>
+    <input type="password" id="login-pw" placeholder="비밀번호 입력" autocomplete="current-password" />
+  </div>
+  <button id="login-btn" onclick="doLogin()">로그인</button>
+  <div class="error-msg" id="login-error"></div>
+</div>
+
+<!-- 프로필 -->
+<div id="profile-wrap">
+
+  <!-- 배너 -->
+  <div class="banner-area" id="banner-area">
+    <div class="banner-empty" id="banner-empty">배너 이미지 없음</div>
+    <img id="banner-img" src="" alt="배너" style="display:none" />
+  </div>
+
+  <!-- 프로필 바디 -->
+  <div class="profile-body">
+    <div class="avatar-row">
+      <div class="avatar">
+        <div class="avatar-placeholder" id="avatar-placeholder">👤</div>
+        <img id="avatar-img" src="" alt="프로필" style="display:none" />
+      </div>
+      <div class="actions">
+        <button class="btn-sm" onclick="goUpload()">✏️ 이미지 변경</button>
+        <button class="btn-sm" onclick="doLogout()">로그아웃</button>
+      </div>
+    </div>
+
+    <div class="meta">
+      <div class="name" id="display-name"></div>
+      <div class="sub"  id="display-sub"></div>
+      <div class="uuid" id="display-uuid"></div>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="info-row">
+      <div class="info-item">
+        <div class="lbl">프로필 이미지 URL</div>
+        <div class="val" id="info-profile-url"></div>
+      </div>
+      <div class="info-item">
+        <div class="lbl">배너 이미지 URL</div>
+        <div class="val" id="info-banner-url"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /profile-wrap -->
+
+<script>
+  let _token = '', _uuid = '';
+
+  // ── 로그인 ──────────────────────────────────────────
+  async function doLogin() {
+    const id  = document.getElementById('login-id').value.trim();
+    const pw  = document.getElementById('login-pw').value;
+    const btn = document.getElementById('login-btn');
+    const err = document.getElementById('login-error');
+
+    err.textContent = '';
+    if (!id || !pw) { err.textContent = '⚠️ 아이디와 비밀번호를 모두 입력해주세요.'; return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>로그인 중...';
+
+    try {
+      const res  = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, password: pw })
+      });
+      const json = await res.json();
+
+      if (res.ok && json.data) {
+        _token = json.data.accessToken;
+        _uuid  = json.data.uuid;
+        document.getElementById('login-card').style.display = 'none';
+        await loadProfile(_uuid);
+      } else {
+        err.textContent = `❌ ${json.message || '로그인 실패'}`;
+      }
+    } catch (e) {
+      err.textContent = `❌ 네트워크 오류: ${e.message}`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '로그인';
+    }
+  }
+
+  // ── 프로필 로드 (GET /api/users/{uuid}) ────────────
+  async function loadProfile(uuid) {
+    const res  = await fetch(`/api/users/${uuid}`, {
+      headers: { 'Authorization': `Bearer ${_token}` }
+    });
+    const json = await res.json();
+    if (!res.ok) { alert('프로필 조회 실패'); return; }
+
+    const u = json.data;
+
+    const name = (u.useNickname && u.userNickname) ? u.userNickname : u.userRealname;
+    const sub  = (u.useNickname && u.userNickname) ? u.userRealname : (u.userNickname || '');
+
+    document.getElementById('display-name').textContent = name || '-';
+    document.getElementById('display-sub').textContent  = sub  ? `(${sub})` : '';
+    document.getElementById('display-uuid').textContent = uuid;
+
+    // 아바타
+    if (u.profileImage) {
+      const img = document.getElementById('avatar-img');
+      img.src = u.profileImage;
+      img.style.display = 'block';
+      document.getElementById('avatar-placeholder').style.display = 'none';
+
+      const el = document.getElementById('info-profile-url');
+      el.innerHTML = `<a href="${u.profileImage}" target="_blank" rel="noopener">${u.profileImage}</a>`;
+    } else {
+      document.getElementById('info-profile-url').innerHTML = '<span class="no-image">없음</span>';
+    }
+
+    // 배너
+    if (u.profileBanner) {
+      const img = document.getElementById('banner-img');
+      img.src = u.profileBanner;
+      img.style.display = 'block';
+      document.getElementById('banner-empty').style.display = 'none';
+
+      const el = document.getElementById('info-banner-url');
+      el.innerHTML = `<a href="${u.profileBanner}" target="_blank" rel="noopener">${u.profileBanner}</a>`;
+    } else {
+      document.getElementById('info-banner-url').innerHTML = '<span class="no-image">없음</span>';
+    }
+
+    const wrap = document.getElementById('profile-wrap');
+    wrap.style.display = 'flex';
+  }
+
+  // ── 로그아웃 ─────────────────────────────────────────
+  function doLogout() {
+    _token = ''; _uuid = '';
+    document.getElementById('login-id').value = '';
+    document.getElementById('login-pw').value = '';
+    document.getElementById('login-error').textContent = '';
+    document.getElementById('profile-wrap').style.display = 'none';
+
+    // 상태 초기화
+    document.getElementById('avatar-img').style.display = 'none';
+    document.getElementById('avatar-placeholder').style.display = 'flex';
+    document.getElementById('banner-img').style.display = 'none';
+    document.getElementById('banner-empty').style.display = 'flex';
+
+    document.getElementById('login-card').style.display = 'flex';
+  }
+
+  // ── 업로드 페이지로 이동 ─────────────────────────────
+  function goUpload() {
+    location.href = '/upload-test.html';
+  }
+
+  // Enter 키 로그인
+  ['login-id', 'login-pw'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    });
+  });
+</script>
+</body>
+</html>

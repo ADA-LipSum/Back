@@ -75,6 +75,7 @@ public class SecurityConfig {
                         "/github-test.html",
                         "/profile.html",
                         "/upload-test.html",
+                        "/profile-view.html",
                         "/favicon.ico"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/auth/status").permitAll()
