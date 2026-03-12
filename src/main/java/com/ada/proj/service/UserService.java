@@ -91,16 +91,24 @@ public class UserService {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         user.setRole(role);
+        userRepository.save(user);
     }
 
-    @CacheEvict(cacheNames = "users", key = "'profile:' + #uuid")
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "users", key = "'profile:' + #uuid"),
+        @CacheEvict(cacheNames = "users", key = "#uuid")
+    })
     public void toggleUseNickname(String uuid) {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         user.setUseNickname(!user.isUseNickname());
+        userRepository.save(user);
     }
 
-    @CacheEvict(cacheNames = "users", key = "'profile:' + #uuid")
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "users", key = "'profile:' + #uuid"),
+        @CacheEvict(cacheNames = "users", key = "#uuid")
+    })
     public void updateProfile(String uuid, UpdateProfileRequest req) {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -132,6 +140,9 @@ public class UserService {
         if (ud.getSeq() == null) {
             userDataRepository.save(ud);
         }
+
+        // 캐시에서 꺼낸 엔티티는 detached 상태일 수 있으므로 명시적으로 저장
+        userRepository.save(user);
     }
 
     @Caching(evict = {
@@ -287,7 +298,10 @@ public class UserService {
         }
     }
 
-    @CacheEvict(cacheNames = "users", key = "'profile:' + #uuid")
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "users", key = "'profile:' + #uuid"),
+        @CacheEvict(cacheNames = "users", key = "#uuid")
+    })
     public void changeCustomPassword(String uuid, UpdatePasswordRequest req, Authentication auth) {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -296,6 +310,7 @@ public class UserService {
             throw new IllegalArgumentException("Current password does not match");
         }
         user.setPassword(passwordEncoder.encode(req.getNewPassword()));
+        userRepository.save(user);
     }
 
     private void ensureSelfOrAdmin(Authentication auth, String uuid) {
