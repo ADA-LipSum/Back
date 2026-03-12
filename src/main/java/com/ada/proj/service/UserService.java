@@ -57,7 +57,7 @@ public class UserService {
         return userRepository.search(role, query);
     }
 
-    @Cacheable(cacheNames = "users", key = "#uuid")
+    @Cacheable(cacheNames = "users", key = "'profile:' + #uuid")
     public UserProfileResponse getUserProfile(String uuid) {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -93,14 +93,14 @@ public class UserService {
         user.setRole(role);
     }
 
-    @CacheEvict(cacheNames = "users", key = "#uuid")
+    @CacheEvict(cacheNames = "users", key = "'profile:' + #uuid")
     public void toggleUseNickname(String uuid) {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         user.setUseNickname(!user.isUseNickname());
     }
 
-    @CacheEvict(cacheNames = "users", key = "#uuid")
+    @CacheEvict(cacheNames = "users", key = "'profile:' + #uuid")
     public void updateProfile(String uuid, UpdateProfileRequest req) {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -287,7 +287,7 @@ public class UserService {
         }
     }
 
-    @CacheEvict(cacheNames = "users", key = "#uuid")
+    @CacheEvict(cacheNames = "users", key = "'profile:' + #uuid")
     public void changeCustomPassword(String uuid, UpdatePasswordRequest req, Authentication auth) {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
