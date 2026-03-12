@@ -284,6 +284,13 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, password: pw })
       });
+
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        showError(result, `❌ 서버 오류 (${res.status}): 서버 응답이 올바르지 않습니다.`);
+        return;
+      }
+
       const json = await res.json();
 
       if (res.ok && json.data) {
@@ -384,6 +391,14 @@
         headers: { 'Authorization': `Bearer ${_token}` },
         body: formData
       });
+
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await res.text();
+        showError(result, `❌ 서버 오류 (${res.status}): JSON이 아닌 응답을 받았습니다. 서버 배포 상태를 확인하세요.\n\n${text.slice(0, 200)}`);
+        return;
+      }
+
       const json = await res.json();
 
       if (res.ok && json.data) {
