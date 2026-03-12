@@ -10,4 +10,9 @@ public class AuthTokenResponse {
     private String tokenType;
     private String accessToken;
     private long expiresIn;
+
+    private String uuid;
+    private String userRealname;
+    private String userNickname;
+    private String profileImage;
 }

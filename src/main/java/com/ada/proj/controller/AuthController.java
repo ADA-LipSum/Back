@@ -80,6 +80,10 @@ public class AuthController {
                 .tokenType(res.getTokenType())
                 .accessToken(res.getAccessToken())
                 .expiresIn(res.getExpiresIn())
+                .uuid(res.getUuid())
+                .userRealname(res.getUserRealname())
+                .userNickname(res.getUserNickname())
+                .profileImage(res.getProfileImage())
                 .build();
 
         return ResponseEntity.ok()

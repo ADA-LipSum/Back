@@ -124,3 +124,14 @@ app:
 
   cors:
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*}
+
+aws:
+  s3:
+    # 로컬 개발 시 .env에 AWS_ACCESS_KEY / AWS_SECRET_KEY 설정
+    # EC2 IAM Role 환경에서는 두 항목을 비워두거나 제거하세요
+    access-key: ${AWS_ACCESS_KEY:}
+    secret-key: ${AWS_SECRET_KEY:}
+    region: ap-northeast-2
+    bucket: gbsw-s3
+    max-profile-size-mb: 5
+    max-banner-size-mb: 10

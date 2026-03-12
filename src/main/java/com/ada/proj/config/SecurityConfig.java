@@ -74,6 +74,7 @@ public class SecurityConfig {
                         "/api/posts/view",
                         "/github-test.html",
                         "/profile.html",
+                        "/upload-test.html",
                         "/favicon.ico"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/auth/status").permitAll()
@@ -101,6 +102,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/users/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/roles", "/api/roles/*").permitAll()
                 .requestMatchers("/api/users/*/role").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/upload/**").authenticated()
                 .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
