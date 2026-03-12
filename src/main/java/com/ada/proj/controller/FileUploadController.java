@@ -14,6 +14,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/upload")
 @Tag(name = "파일 업로드", description = "S3를 이용한 프로필 이미지 / 배너 업로드 API")
@@ -57,5 +60,38 @@ public class FileUploadController {
         userService.updateProfile(uuid, req);
 
         return ResponseEntity.ok(ApiResponse.ok(url));
+    }
+
+    /**
+     * 프로필 이미지 + 배너를 한 번에 S3 업로드하고 DB에 저장합니다. profileImage, banner 파일은 각각 선택적으로
+     * 포함할 수 있습니다.
+     */
+    @PostMapping(value = "/profile/{uuid}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "프로필 통합 수정",
+            description = "프로필 이미지 / 배너를 선택적으로 받아 S3에 업로드한 뒤 DB에 한 번에 저장합니다.")
+    public ResponseEntity<ApiResponse<Map<String, String>>> updateProfileImages(
+            @Parameter(description = "대상 사용자 UUID") @PathVariable String uuid,
+            @Parameter(description = "프로필 이미지 (선택)") @RequestPart(value = "profileImage", required = false) MultipartFile profileImage,
+            @Parameter(description = "배너 이미지 (선택)") @RequestPart(value = "banner", required = false) MultipartFile banner) {
+
+        UpdateProfileRequest req = new UpdateProfileRequest();
+        Map<String, String> result = new LinkedHashMap<>();
+
+        if (profileImage != null && !profileImage.isEmpty()) {
+            String url = s3Service.uploadProfileImage(profileImage, uuid);
+            req.setProfileImage(url);
+            result.put("profileImageUrl", url);
+        }
+        if (banner != null && !banner.isEmpty()) {
+            String url = s3Service.uploadBanner(banner, uuid);
+            req.setProfileBanner(url);
+            result.put("bannerUrl", url);
+        }
+
+        if (!result.isEmpty()) {
+            userService.updateProfile(uuid, req);
+        }
+
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 }

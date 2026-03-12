@@ -223,9 +223,9 @@
     <button id="logout-btn" onclick="doLogout()">로그아웃</button>
   </div>
 
-  <!-- 프로필 이미지 업로드 -->
+  <!-- 프로필 이미지 선택 -->
   <div class="card">
-    <div class="card-title">🖼️ 프로필 이미지 업로드 <small style="color:#8b949e;font-weight:400;">(jpeg/png/gif/webp · 최대 5MB)</small></div>
+    <div class="card-title">🖼️ 프로필 이미지 <small style="color:#8b949e;font-weight:400;">(jpeg/png/gif/webp · 최대 5MB)</small></div>
     <div class="file-drop" id="profile-drop">
       <input type="file" id="profile-file" accept="image/jpeg,image/png,image/gif,image/webp" />
       <div class="file-drop-text">클릭하거나 파일을 드래그하세요<br><span>이미지 선택</span></div>
@@ -234,13 +234,11 @@
       <img id="profile-preview" src="" alt="미리보기" />
       <div class="preview-name" id="profile-preview-name"></div>
     </div>
-    <button id="profile-btn" onclick="upload('profile')">업로드</button>
-    <div class="result-box" id="profile-result"></div>
   </div>
 
-  <!-- 배너 업로드 -->
+  <!-- 배너 선택 -->
   <div class="card">
-    <div class="card-title">🏞️ 배너 이미지 업로드 <small style="color:#8b949e;font-weight:400;">(jpeg/png/gif/webp · 최대 10MB)</small></div>
+    <div class="card-title">🏞️ 배너 이미지 <small style="color:#8b949e;font-weight:400;">(jpeg/png/gif/webp · 최대 10MB)</small></div>
     <div class="file-drop" id="banner-drop">
       <input type="file" id="banner-file" accept="image/jpeg,image/png,image/gif,image/webp" />
       <div class="file-drop-text">클릭하거나 파일을 드래그하세요<br><span>이미지 선택</span></div>
@@ -249,8 +247,14 @@
       <img id="banner-preview" src="" alt="미리보기" />
       <div class="preview-name" id="banner-preview-name"></div>
     </div>
-    <button id="banner-btn" onclick="upload('banner')">업로드</button>
-    <div class="result-box" id="banner-result"></div>
+  </div>
+
+  <!-- 수정완료 버튼 -->
+  <div class="card">
+    <div class="card-title">✅ 프로필 수정완료</div>
+    <p style="font-size:13px;color:#8b949e;">위에서 선택한 파일을 S3에 업로드하고 DB에 저장합니다.<br>변경하지 않을 항목은 비워두세요.</p>
+    <button id="save-btn" onclick="saveProfile()">프로필 수정완료</button>
+    <div class="result-box" id="save-result"></div>
   </div>
 
 </div><!-- /upload-section -->
@@ -352,29 +356,30 @@
     el.addEventListener('drop',      e  => { e.preventDefault(); el.classList.remove('drag-over'); });
   });
 
-  // ── 업로드 ──────────────────────────────────────────────────
-  async function upload(type) {
-    const fileEl = document.getElementById(`${type}-file`);
-    const btn    = document.getElementById(`${type}-btn`);
-    const result = document.getElementById(`${type}-result`);
+  // ── 프로필 수정완료 (S3 업로드 + DB 저장 통합) ──────────────
+  async function saveProfile() {
+    const profileFile = document.getElementById('profile-file').files[0];
+    const bannerFile  = document.getElementById('banner-file').files[0];
+    const btn         = document.getElementById('save-btn');
+    const result      = document.getElementById('save-result');
 
     result.className = 'result-box';
     result.innerHTML = '';
 
-    if (!fileEl.files[0]) { showError(result, '⚠️ 파일을 선택해주세요.'); return; }
-
-    const endpoint = type === 'profile'
-      ? `/api/upload/profile-image/${_uuid}`
-      : `/api/upload/banner/${_uuid}`;
+    if (!profileFile && !bannerFile) {
+      showError(result, '⚠️ 프로필 이미지 또는 배너 파일을 최소 하나 선택해주세요.');
+      return;
+    }
 
     const formData = new FormData();
-    formData.append('file', fileEl.files[0]);
+    if (profileFile) formData.append('profileImage', profileFile);
+    if (bannerFile)  formData.append('banner', bannerFile);
 
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>업로드 중...';
+    btn.innerHTML = '<span class="spinner"></span>저장 중...';
 
     try {
-      const res  = await fetch(endpoint, {
+      const res  = await fetch(`/api/upload/profile/${_uuid}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${_token}` },
         body: formData
@@ -382,16 +387,23 @@
       const json = await res.json();
 
       if (res.ok && json.data) {
-        result.className = 'result-box success';
-        result.innerHTML =
-          `✅ 업로드 성공!<br><br>` +
-          `<a href="${json.data}" target="_blank" rel="noopener noreferrer">${json.data}</a>`;
-
-        // 업로드 성공 시 유저 아바타도 갱신
-        if (type === 'profile') {
-          document.getElementById('user-avatar').src = json.data;
+        const lines = [];
+        if (json.data.profileImageUrl) {
+          lines.push(`🖼️ 프로필: <a href="${json.data.profileImageUrl}" target="_blank" rel="noopener noreferrer">${json.data.profileImageUrl}</a>`);
+          document.getElementById('user-avatar').src = json.data.profileImageUrl;
           document.getElementById('user-avatar').style.display = '';
         }
+        if (json.data.bannerUrl) {
+          lines.push(`🏞️ 배너: <a href="${json.data.bannerUrl}" target="_blank" rel="noopener noreferrer">${json.data.bannerUrl}</a>`);
+        }
+        result.className = 'result-box success';
+        result.innerHTML = `✅ 프로필 수정 완료!<br><br>${lines.join('<br>')}`;
+
+        // 선택 초기화
+        document.getElementById('profile-file').value = '';
+        document.getElementById('banner-file').value  = '';
+        document.getElementById('profile-preview-wrap').style.display = 'none';
+        document.getElementById('banner-preview-wrap').style.display  = 'none';
       } else {
         const msg = json.message || json.error || JSON.stringify(json);
         showError(result, `❌ 오류 (${res.status}): ${msg}`);
@@ -400,7 +412,7 @@
       showError(result, `❌ 네트워크 오류: ${e.message}`);
     } finally {
       btn.disabled = false;
-      btn.textContent = '업로드';
+      btn.textContent = '프로필 수정완료';
     }
   }
 
