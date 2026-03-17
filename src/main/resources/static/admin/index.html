@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>관리자 도구</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0d1117; color: #e6edf3;
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 32px 16px;
+    }
+    h1 { font-size: 20px; font-weight: 700; color: #f0f6fc; margin-bottom: 24px; }
+    h2 { font-size: 15px; font-weight: 600; color: #f0f6fc; display: flex; align-items: center; gap: 8px; }
+    .card {
+      background: #161b22; border: 1px solid #30363d; border-radius: 12px;
+      padding: 28px; width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 20px;
+      margin-bottom: 20px;
+    }
+    label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; }
+    input {
+      width: 100%; padding: 9px 12px;
+      background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
+      color: #e6edf3; font-size: 14px; outline: none; transition: border-color .15s;
+    }
+    input:focus { border-color: #58a6ff; }
+    .field { display: flex; flex-direction: column; }
+    button {
+      padding: 9px 16px; border-radius: 8px; border: none;
+      font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s;
+    }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-primary { background: #238636; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #2ea043; }
+    .btn-github { background: #21262d; color: #e6edf3; border: 1px solid #30363d; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-github:hover:not(:disabled) { background: #30363d; }
+    .btn-danger { background: #21262d; color: #f85149; border: 1px solid #30363d; }
+    .btn-danger:hover:not(:disabled) { background: #3d2424; border-color: #f85149; }
+    .btn-secondary { background: #21262d; color: #e6edf3; border: 1px solid #30363d; }
+    .btn-secondary:hover:not(:disabled) { background: #30363d; }
+    .btn-row { display: flex; gap: 10px; }
+    .btn-row button { flex: 1; }
+    .status-box {
+      background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
+      padding: 12px; font-size: 13px; line-height: 1.6; min-height: 40px;
+      white-space: pre-wrap; word-break: break-all;
+    }
+    .status-box.ok   { border-color: #238636; color: #56d364; }
+    .status-box.err  { border-color: #f85149; color: #f85149; }
+    .status-box.info { border-color: #58a6ff; color: #79c0ff; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+    .badge.linked   { background: #0f4429; color: #56d364; border: 1px solid #238636; }
+    .badge.unlinked { background: #2d1b1b; color: #f85149; border: 1px solid #3d2424; }
+    .badge.admin    { background: #1a1f6e; color: #79c0ff; border: 1px solid #388bfd; }
+    .divider { border: none; border-top: 1px solid #30363d; }
+    .section { display: flex; flex-direction: column; gap: 14px; }
+    .meta { font-size: 12px; color: #484f58; }
+    .or-divider { display: flex; align-items: center; gap: 10px; color: #484f58; font-size: 12px; }
+    .or-divider::before, .or-divider::after { content: ''; flex: 1; border-top: 1px solid #30363d; }
+    #adminTools { display: none; }
+    #accessDenied { display: none; }
+  </style>
+</head>
+<body>
+<h1>🔧 관리자 도구</h1>
+
+<!-- ── 로그인 카드 ── -->
+<div class="card" id="loginCard">
+  <section class="section" id="loginSection">
+    <h2>로그인 (ADMIN 계정만 접근 가능)</h2>
+    <div class="field">
+      <label for="loginId">아이디</label>
+      <input id="loginId" type="text" placeholder="admin_id 또는 custom_id" />
+    </div>
+    <div class="field">
+      <label for="loginPw">비밀번호</label>
+      <input id="loginPw" type="password" placeholder="password" />
+    </div>
+    <button class="btn-primary" id="loginBtn" onclick="doLogin()">로그인</button>
+    <div class="or-divider">또는</div>
+    <button class="btn-github" id="githubLoginBtn" onclick="startGithubLogin()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+      GitHub으로 로그인
+    </button>
+    <div id="loginStatus" class="status-box" style="display:none"></div>
+  </section>
+</div>
+
+<!-- ── 권한 없음 ── -->
+<div class="card" id="accessDenied">
+  <div class="status-box err">⛔ ADMIN 권한이 없습니다. 관리자 계정으로 로그인하세요.</div>
+  <button class="btn-secondary" onclick="doLogout()">로그아웃</button>
+</div>
+
+<!-- ── 관리자 도구 ── -->
+<div id="adminTools">
+
+  <!-- 세션 정보 -->
+  <div class="card">
+    <section class="section">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <h2>세션 정보</h2>
+        <span class="badge admin" id="roleBadge">ADMIN</span>
+      </div>
+      <div class="meta" id="sessionInfo">-</div>
+      <button class="btn-danger" onclick="doLogout()">로그아웃</button>
+    </section>
+  </div>
+
+  <!-- GitHub 연동 -->
+  <div class="card">
+    <section class="section">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <h2>GitHub 연동</h2>
+        <span id="linkedBadge" class="badge unlinked">● 미연동</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn-github" id="linkBtn" onclick="startLink()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+          연동하기
+        </button>
+        <button class="btn-danger" id="unlinkBtn" onclick="doUnlink()" style="display:none">연동 해제</button>
+      </div>
+      <div id="githubStatus" class="status-box" style="display:none"></div>
+    </section>
+  </div>
+
+  <!-- 프로필/배너 업로드 -->
+  <div class="card">
+    <section class="section">
+      <h2>프로필 / 배너 업로드</h2>
+      <div class="field">
+        <label>대상 UUID</label>
+        <input id="uploadUuid" type="text" placeholder="업로드 대상 사용자 UUID" />
+      </div>
+      <div class="field">
+        <label>프로필 이미지</label>
+        <input id="profileFile" type="file" accept="image/*" style="background:transparent;border:none;padding:0;color:#8b949e" />
+      </div>
+      <div class="field">
+        <label>배너 이미지</label>
+        <input id="bannerFile" type="file" accept="image/*" style="background:transparent;border:none;padding:0;color:#8b949e" />
+      </div>
+      <button class="btn-primary" onclick="doUpload()">업로드</button>
+      <div id="uploadStatus" class="status-box" style="display:none"></div>
+    </section>
+  </div>
+
+  <!-- 프로필 조회 -->
+  <div class="card">
+    <section class="section">
+      <h2>프로필 조회</h2>
+      <div class="field">
+        <label>UUID</label>
+        <input id="viewUuid" type="text" placeholder="조회할 사용자 UUID" />
+      </div>
+      <button class="btn-secondary" onclick="doViewProfile()">조회</button>
+      <div id="profileResult" class="status-box" style="display:none"></div>
+    </section>
+  </div>
+
+</div>
+
+<script>
+  const API = window.location.origin;
+  let accessToken = sessionStorage.getItem('accessToken') || null;
+
+  // ── 페이지 로드 ─────────────────────────────────────────────────
+  (async function init() {
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.has('access_token')) {
+      accessToken = params.get('access_token');
+      sessionStorage.setItem('accessToken', accessToken);
+      history.replaceState({}, '', location.pathname);
+    }
+    if (params.has('github_linked')) {
+      history.replaceState({}, '', location.pathname);
+    }
+    if (params.has('error')) {
+      showLoginMsg('err', '✗ 오류: ' + decodeURIComponent(params.get('error').replace(/\+/g, ' ')));
+      history.replaceState({}, '', location.pathname);
+    }
+
+    if (accessToken) {
+      await checkRoleAndShow();
+    }
+  })();
+
+  async function checkRoleAndShow() {
+    const payload = parseJwt(accessToken);
+    if (!payload) { showLogin(); return; }
+    if (payload.role !== 'ADMIN') {
+      showAccessDenied(); return;
+    }
+    showAdminTools(payload);
+    await checkGithubStatus();
+  }
+
+  function showLogin() {
+    document.getElementById('loginCard').style.display = '';
+    document.getElementById('accessDenied').style.display = 'none';
+    document.getElementById('adminTools').style.display = 'none';
+  }
+
+  function showAccessDenied() {
+    document.getElementById('loginCard').style.display = 'none';
+    document.getElementById('accessDenied').style.display = '';
+    document.getElementById('adminTools').style.display = 'none';
+  }
+
+  function showAdminTools(payload) {
+    document.getElementById('loginCard').style.display = 'none';
+    document.getElementById('accessDenied').style.display = 'none';
+    document.getElementById('adminTools').style.display = '';
+    document.getElementById('sessionInfo').textContent =
+      `UUID: ${payload.sub}\n만료: ${formatExp(payload.exp)}`;
+    document.getElementById('uploadUuid').value = payload.sub;
+    document.getElementById('viewUuid').value = payload.sub;
+  }
+
+  // ── 로그인 ──────────────────────────────────────────────────────
+  async function doLogin() {
+    const id = document.getElementById('loginId').value.trim();
+    const pw = document.getElementById('loginPw').value;
+    if (!id || !pw) { showLoginMsg('err', '아이디와 비밀번호를 입력하세요.'); return; }
+    document.getElementById('loginBtn').disabled = true;
+    document.getElementById('loginBtn').textContent = '로그인 중…';
+    try {
+      const res = await fetch(`${API}/api/auth/login`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, password: pw })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) { showLoginMsg('err', `로그인 실패: ${json.message || res.status}`); return; }
+      accessToken = json.data.accessToken;
+      sessionStorage.setItem('accessToken', accessToken);
+      await checkRoleAndShow();
+    } catch (e) {
+      showLoginMsg('err', '네트워크 오류: ' + e.message);
+    } finally {
+      document.getElementById('loginBtn').disabled = false;
+      document.getElementById('loginBtn').textContent = '로그인';
+    }
+  }
+
+  async function startGithubLogin() {
+    document.getElementById('githubLoginBtn').disabled = true;
+    showLoginMsg('info', 'GitHub 로그인 페이지로 이동 중…');
+    try {
+      const res = await fetch(`${API}/api/auth/github/login`);
+      const json = await res.json();
+      if (!res.ok || !json.success) { showLoginMsg('err', `오류: ${json.message}`); document.getElementById('githubLoginBtn').disabled = false; return; }
+      setTimeout(() => { window.location.href = json.data.redirectUrl; }, 400);
+    } catch (e) {
+      showLoginMsg('err', '네트워크 오류: ' + e.message);
+      document.getElementById('githubLoginBtn').disabled = false;
+    }
+  }
+
+  function doLogout() {
+    sessionStorage.removeItem('accessToken');
+    accessToken = null;
+    showLogin();
+    showLoginMsg('info', '로그아웃 되었습니다.');
+  }
+
+  // ── GitHub 연동 ──────────────────────────────────────────────────
+  async function checkGithubStatus() {
+    try {
+      const res = await fetch(`${API}/api/auth/github/status`, { headers: authHeaders() });
+      if (!res.ok) return;
+      const json = await res.json();
+      setLinkedState(json.data?.githubLinked === true);
+    } catch (_) {}
+  }
+
+  async function startLink() {
+    document.getElementById('linkBtn').disabled = true;
+    showGithubMsg('info', '연동 URL 요청 중…');
+    try {
+      const res = await fetch(`${API}/api/auth/github/link`, { headers: authHeaders() });
+      const json = await res.json();
+      if (!res.ok || !json.success) { showGithubMsg('err', `오류: ${json.message}`); document.getElementById('linkBtn').disabled = false; return; }
+      showGithubMsg('info', 'GitHub 인증 페이지로 이동합니다…');
+      setTimeout(() => { window.location.href = json.data.redirectUrl; }, 800);
+    } catch (e) {
+      showGithubMsg('err', '네트워크 오류: ' + e.message);
+      document.getElementById('linkBtn').disabled = false;
+    }
+  }
+
+  async function doUnlink() {
+    if (!confirm('GitHub 연동을 해제하시겠습니까?')) return;
+    try {
+      const res = await fetch(`${API}/api/auth/github/unlink`, { method: 'DELETE', headers: authHeaders() });
+      const json = await res.json();
+      if (!res.ok || !json.success) { showGithubMsg('err', `오류: ${json.message}`); return; }
+      showGithubMsg('ok', '✓ GitHub 연동이 해제되었습니다.');
+      setLinkedState(false);
+    } catch (e) {
+      showGithubMsg('err', '네트워크 오류: ' + e.message);
+    }
+  }
+
+  function setLinkedState(linked) {
+    document.getElementById('linkedBadge').textContent = linked ? '● 연동됨' : '● 미연동';
+    document.getElementById('linkedBadge').className = 'badge ' + (linked ? 'linked' : 'unlinked');
+    document.getElementById('linkBtn').style.display = linked ? 'none' : '';
+    document.getElementById('unlinkBtn').style.display = linked ? '' : 'none';
+  }
+
+  // ── 프로필/배너 업로드 ──────────────────────────────────────────
+  async function doUpload() {
+    const uuid = document.getElementById('uploadUuid').value.trim();
+    const profileFile = document.getElementById('profileFile').files[0];
+    const bannerFile = document.getElementById('bannerFile').files[0];
+    if (!uuid) { showUploadMsg('err', 'UUID를 입력하세요.'); return; }
+    if (!profileFile && !bannerFile) { showUploadMsg('err', '파일을 선택하세요.'); return; }
+
+    const form = new FormData();
+    if (profileFile) form.append('profileImage', profileFile);
+    if (bannerFile) form.append('banner', bannerFile);
+
+    try {
+      const res = await fetch(`${API}/api/upload/profile/${uuid}`, {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + accessToken }, body: form
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) { showUploadMsg('err', `업로드 실패: ${json.message}`); return; }
+      showUploadMsg('ok', '✓ 업로드 성공\n' + JSON.stringify(json.data, null, 2));
+    } catch (e) {
+      showUploadMsg('err', '네트워크 오류: ' + e.message);
+    }
+  }
+
+  // ── 프로필 조회 ──────────────────────────────────────────────────
+  async function doViewProfile() {
+    const uuid = document.getElementById('viewUuid').value.trim();
+    if (!uuid) { showProfileMsg('err', 'UUID를 입력하세요.'); return; }
+    try {
+      const res = await fetch(`${API}/api/users/${uuid}`, { headers: authHeaders() });
+      const json = await res.json();
+      if (!res.ok || !json.success) { showProfileMsg('err', `조회 실패: ${json.message}`); return; }
+      showProfileMsg('ok', JSON.stringify(json.data, null, 2));
+    } catch (e) {
+      showProfileMsg('err', '네트워크 오류: ' + e.message);
+    }
+  }
+
+  // ── 헬퍼 ────────────────────────────────────────────────────────
+  function authHeaders() {
+    return { 'Authorization': 'Bearer ' + accessToken };
+  }
+
+  function showLoginMsg(type, text) {
+    const el = document.getElementById('loginStatus');
+    el.style.display = ''; el.className = 'status-box ' + type; el.textContent = text;
+  }
+  function showGithubMsg(type, text) {
+    const el = document.getElementById('githubStatus');
+    el.style.display = ''; el.className = 'status-box ' + type; el.textContent = text;
+  }
+  function showUploadMsg(type, text) {
+    const el = document.getElementById('uploadStatus');
+    el.style.display = ''; el.className = 'status-box ' + type; el.textContent = text;
+  }
+  function showProfileMsg(type, text) {
+    const el = document.getElementById('profileResult');
+    el.style.display = ''; el.className = 'status-box ' + type; el.textContent = text;
+  }
+
+  function parseJwt(token) {
+    try { return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); }
+    catch (_) { return null; }
+  }
+  function formatExp(exp) {
+    if (!exp) return '-';
+    return new Date(exp * 1000).toLocaleString('ko-KR');
+  }
+
+  ['loginId', 'loginPw'].forEach(id =>
+    document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); })
+  );
+</script>
+</body>
+</html>

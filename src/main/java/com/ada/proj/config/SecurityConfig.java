@@ -72,10 +72,7 @@ public class SecurityConfig {
                         "/tools/**",
                         "/api/posts",
                         "/api/posts/view",
-                        "/github-test.html",
-                        "/profile.html",
-                        "/upload-test.html",
-                        "/profile-view.html",
+                        "/admin/**",
                         "/favicon.ico"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/auth/status").permitAll()

@@ -107,9 +107,9 @@ github:
     callback-url: ${GITHUB_CALLBACK_URL:http://localhost:8080/api/auth/github/callback}
     # 인증 완료 후 리다이렉트할 프론트엔드 도메인
     frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:8080}
-    link-success-path: ${GITHUB_LINK_SUCCESS_PATH:/github-test.html}
-    login-success-path: ${GITHUB_LOGIN_SUCCESS_PATH:/github-test.html}
-    error-path: ${GITHUB_ERROR_PATH:/github-test.html}
+    link-success-path: ${GITHUB_LINK_SUCCESS_PATH:/admin/}
+    login-success-path: ${GITHUB_LOGIN_SUCCESS_PATH:/admin/}
+    error-path: ${GITHUB_ERROR_PATH:/admin/}
 
 app:
   auto-increment:
