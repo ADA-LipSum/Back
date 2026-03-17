@@ -27,7 +27,7 @@ public class AuthSocialController {
         this.userRepository = userRepository;
     }
 
-    @Operation(summary = "인증 상태 조회", description = "현재 인증 상태와 사용자 기본 정보를 반환합니다.")
+    @Operation(summary = "깃허브 인증 상태 조회", description = "현재 인증 상태와 사용자 기본 정보를 반환합니다.")
     @GetMapping("/status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> status(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
