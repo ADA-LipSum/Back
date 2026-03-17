@@ -2,13 +2,17 @@ package com.ada.proj.service;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
+import javax.crypto.Cipher;
 import javax.crypto.Mac;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.http.HttpEntity;
@@ -160,7 +164,7 @@ public class GitHubOAuthService {
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
         user.setGithubId(info.id());
         user.setGithubLogin(info.login());
-        user.setGithubAccessToken(info.accessToken());
+        user.setGithubAccessToken(encryptToken(info.accessToken()));
         userRepository.save(user); // @Cacheable detached 엔티티이므로 명시적 저장
     }
 
@@ -193,7 +197,7 @@ public class GitHubOAuthService {
                 .orElseThrow(() -> new UserNotFoundException(
                 "연동된 계정이 없습니다. 먼저 관리자가 생성한 계정으로 로그인 후 GitHub를 연동해주세요."));
 
-        user.setGithubAccessToken(info.accessToken());
+        user.setGithubAccessToken(encryptToken(info.accessToken()));
         userRepository.save(user);
 
         var cache = cacheManager.getCache("users");
@@ -314,11 +318,7 @@ public class GitHubOAuthService {
         if (user.getGithubId() == null) {
             throw new ForbiddenException("GitHub 계정이 연동되어 있지 않습니다.");
         }
-        if (user.getGithubAccessToken() == null) {
-            throw new ForbiddenException("RELINK_REQUIRED");
-        }
-
-        String token = user.getGithubAccessToken();
+        String token = decryptToken(user.getGithubAccessToken());
         int resolvedYear = year != null ? year : java.time.Year.now().getValue();
         String dateRange = buildDateRange(year);
 
@@ -423,6 +423,55 @@ public class GitHubOAuthService {
 
     private String encode(String s) {
         return URLEncoder.encode(s, StandardCharsets.UTF_8);
+    }
+
+    private static final String ENC_PREFIX = "enc:";
+
+    private byte[] deriveAesKey() {
+        try {
+            return MessageDigest.getInstance("SHA-256")
+                    .digest(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            throw new RuntimeException("AES key derivation failed", e);
+        }
+    }
+
+    private String encryptToken(String plaintext) {
+        try {
+            byte[] iv = new byte[12];
+            new SecureRandom().nextBytes(iv);
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE,
+                    new SecretKeySpec(deriveAesKey(), "AES"),
+                    new GCMParameterSpec(128, iv));
+            byte[] encrypted = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
+            byte[] combined = new byte[iv.length + encrypted.length];
+            System.arraycopy(iv, 0, combined, 0, iv.length);
+            System.arraycopy(encrypted, 0, combined, iv.length, encrypted.length);
+            return ENC_PREFIX + Base64.getEncoder().encodeToString(combined);
+        } catch (Exception e) {
+            throw new RuntimeException("Token encryption failed", e);
+        }
+    }
+
+    private String decryptToken(String ciphertext) {
+        if (ciphertext == null || !ciphertext.startsWith(ENC_PREFIX)) {
+            throw new ForbiddenException("RELINK_REQUIRED");
+        }
+        try {
+            byte[] combined = Base64.getDecoder().decode(ciphertext.substring(ENC_PREFIX.length()));
+            byte[] iv = new byte[12];
+            byte[] encrypted = new byte[combined.length - 12];
+            System.arraycopy(combined, 0, iv, 0, 12);
+            System.arraycopy(combined, 12, encrypted, 0, encrypted.length);
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE,
+                    new SecretKeySpec(deriveAesKey(), "AES"),
+                    new GCMParameterSpec(128, iv));
+            return new String(cipher.doFinal(encrypted), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new ForbiddenException("RELINK_REQUIRED");
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
