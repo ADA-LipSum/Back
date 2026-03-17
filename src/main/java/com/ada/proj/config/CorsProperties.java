@@ -13,7 +13,8 @@ public class CorsProperties {
     private List<String> allowedOriginPatterns = new ArrayList<>(List.of(
             "http://localhost:*",
             "http://127.0.0.1:*",
-            "http://3.38.107.119:*"
+            "http://3.38.107.119:*",
+            "https://ada-back.com"
     ));
 
     public List<String> getAllowedOriginPatterns() {
