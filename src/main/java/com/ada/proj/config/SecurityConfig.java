@@ -27,7 +27,6 @@ import com.ada.proj.security.RestAuthenticationEntryPoint;
 
 @Configuration
 @EnableWebSecurity
-
 @EnableMethodSecurity
 public class SecurityConfig {
 
@@ -35,15 +34,18 @@ public class SecurityConfig {
     private final RequestLoggingFilter requestLoggingFilter;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
+    private final CorsProperties corsProperties;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
             RequestLoggingFilter requestLoggingFilter,
             RestAuthenticationEntryPoint restAuthenticationEntryPoint,
-            RestAccessDeniedHandler restAccessDeniedHandler) {
+            RestAccessDeniedHandler restAccessDeniedHandler,
+            CorsProperties corsProperties) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.requestLoggingFilter = requestLoggingFilter;
         this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
         this.restAccessDeniedHandler = restAccessDeniedHandler;
+        this.corsProperties = corsProperties;
     }
 
     @Bean
@@ -120,11 +122,15 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        List<String> allowedPatterns = corsProperties.getAllowedOriginPatterns();
+
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*")); // ngrok 등 외부 도메인 허용
+        configuration.setAllowedOriginPatterns(allowedPatterns == null || allowedPatterns.isEmpty()
+                ? List.of("http://localhost:*", "http://127.0.0.1:*")
+                : allowedPatterns);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition", "Location", "X-Request-Id"));
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition", "Location", "X-Request-Id", "Set-Cookie"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
