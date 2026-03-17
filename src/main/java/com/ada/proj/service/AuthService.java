@@ -320,8 +320,11 @@ public class AuthService {
                 || candidate.startsWith("$2y$")) {
             matched = passwordEncoder.matches(rawPassword, candidate);
         } else {
-            // 평문 비밀번호는 허용하지 않음 — 레거시 계정은 관리자가 비밀번호를 재설정해야 합니다.
-            matched = false;
+            // 레거시 평문 비밀번호 — 일치 확인 후 BCrypt로 자동 업그레이드
+            matched = rawPassword.equals(candidate);
+            if (matched) {
+                user.setPassword(passwordEncoder.encode(rawPassword));
+            }
         }
 
         if (!matched) {

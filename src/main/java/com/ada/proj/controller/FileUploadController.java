@@ -1,6 +1,7 @@
 package com.ada.proj.controller;
 
 import com.ada.proj.dto.ApiResponse;
+import com.ada.proj.exception.ForbiddenException;
 import com.ada.proj.service.S3Service;
 import com.ada.proj.service.UserService;
 import com.ada.proj.dto.UpdateProfileRequest;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,13 +32,24 @@ public class FileUploadController {
         this.userService = userService;
     }
 
+    private void ensureSelfOrAdmin(Authentication auth, String targetUuid) {
+        if (auth == null) throw new ForbiddenException("인증이 필요합니다.");
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin && !auth.getName().equals(targetUuid)) {
+            throw new ForbiddenException("본인의 파일만 업로드할 수 있습니다.");
+        }
+    }
+
     @PostMapping(value = "/profile-image/{uuid}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "프로필 이미지 업로드",
             description = "이미지 파일(jpeg/png/gif/webp, 최대 5MB)을 S3에 업로드하고, 해당 유저의 profileImage를 갱신합니다.")
     public ResponseEntity<ApiResponse<String>> uploadProfileImage(
             @Parameter(description = "대상 사용자 UUID") @PathVariable String uuid,
-            @Parameter(description = "업로드할 이미지 파일") @RequestPart("file") MultipartFile file) {
+            @Parameter(description = "업로드할 이미지 파일") @RequestPart("file") MultipartFile file,
+            Authentication auth) {
 
+        ensureSelfOrAdmin(auth, uuid);
         String url = s3Service.uploadProfileImage(file, uuid);
 
         UpdateProfileRequest req = new UpdateProfileRequest();
@@ -51,8 +64,10 @@ public class FileUploadController {
             description = "이미지 파일(jpeg/png/gif/webp, 최대 10MB)을 S3에 업로드하고, 해당 유저의 profileBanner를 갱신합니다.")
     public ResponseEntity<ApiResponse<String>> uploadBanner(
             @Parameter(description = "대상 사용자 UUID") @PathVariable String uuid,
-            @Parameter(description = "업로드할 배너 파일") @RequestPart("file") MultipartFile file) {
+            @Parameter(description = "업로드할 배너 파일") @RequestPart("file") MultipartFile file,
+            Authentication auth) {
 
+        ensureSelfOrAdmin(auth, uuid);
         String url = s3Service.uploadBanner(file, uuid);
 
         UpdateProfileRequest req = new UpdateProfileRequest();
@@ -72,7 +87,10 @@ public class FileUploadController {
     public ResponseEntity<ApiResponse<Map<String, String>>> updateProfileImages(
             @Parameter(description = "대상 사용자 UUID") @PathVariable String uuid,
             @Parameter(description = "프로필 이미지 (선택)") @RequestPart(value = "profileImage", required = false) MultipartFile profileImage,
-            @Parameter(description = "배너 이미지 (선택)") @RequestPart(value = "banner", required = false) MultipartFile banner) {
+            @Parameter(description = "배너 이미지 (선택)") @RequestPart(value = "banner", required = false) MultipartFile banner,
+            Authentication auth) {
+
+        ensureSelfOrAdmin(auth, uuid);
 
         UpdateProfileRequest req = new UpdateProfileRequest();
         Map<String, String> result = new LinkedHashMap<>();
