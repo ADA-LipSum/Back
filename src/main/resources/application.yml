@@ -129,7 +129,7 @@ app:
     max-age: 604800
 
   cors:
-    allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*}
+    allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*,https://ada-back.com,https://www.ada-back.com}
 
 aws:
   s3:
