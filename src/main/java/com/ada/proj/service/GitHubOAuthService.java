@@ -17,6 +17,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -48,18 +50,21 @@ public class GitHubOAuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final RestTemplate restTemplate;
+    private final CacheManager cacheManager;
 
     public GitHubOAuthService(
             GitHubProperties gitHubProperties,
             JwtProperties jwtProperties,
             UserRepository userRepository,
             JwtTokenProvider jwtTokenProvider,
-            RefreshTokenRepository refreshTokenRepository) {
+            RefreshTokenRepository refreshTokenRepository,
+            CacheManager cacheManager) {
         this.gitHubProperties = gitHubProperties;
         this.jwtProperties = jwtProperties;
         this.userRepository = userRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.cacheManager = cacheManager;
         this.restTemplate = new RestTemplate();
     }
 
@@ -140,6 +145,7 @@ public class GitHubOAuthService {
     // ──────────────────────────────────────────────────────────────────────────
     // 계정 연동
     // ──────────────────────────────────────────────────────────────────────────
+    @CacheEvict(cacheNames = "users", key = "#uuid")
     public void linkGitHub(String uuid, String code) {
         GitHubUserInfo info = fetchGitHubUserInfo(code);
 
@@ -158,6 +164,7 @@ public class GitHubOAuthService {
         userRepository.save(user); // @Cacheable detached 엔티티이므로 명시적 저장
     }
 
+    @CacheEvict(cacheNames = "users", key = "#uuid")
     public void unlinkGitHub(String uuid) {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
@@ -188,6 +195,11 @@ public class GitHubOAuthService {
 
         user.setGithubAccessToken(info.accessToken());
         userRepository.save(user);
+
+        var cache = cacheManager.getCache("users");
+        if (cache != null) {
+            cache.evict(user.getUuid());
+        }
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());

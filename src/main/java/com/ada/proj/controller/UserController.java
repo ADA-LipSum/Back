@@ -88,7 +88,7 @@ public class UserController {
     }
 
     @GetMapping("/users/{uuid}")
-    @Operation(summary = "유저 정보 조회")
+    @Operation(summary = "깃허브 연동 조회")
     public ResponseEntity<ApiResponse<UserProfileResponse>> get(
             @Parameter(description = "대상 사용자 UUID")
             @PathVariable String uuid) {
