@@ -320,10 +320,8 @@ public class AuthService {
                 || candidate.startsWith("$2y$")) {
             matched = passwordEncoder.matches(rawPassword, candidate);
         } else {
-            matched = rawPassword.equals(candidate);
-            if (matched) {
-                user.setPassword(passwordEncoder.encode(candidate));
-            }
+            // 평문 비밀번호는 허용하지 않음 — 레거시 계정은 관리자가 비밀번호를 재설정해야 합니다.
+            matched = false;
         }
 
         if (!matched) {
