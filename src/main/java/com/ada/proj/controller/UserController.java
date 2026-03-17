@@ -94,5 +94,4 @@ public class UserController {
             @PathVariable String uuid) {
         return ResponseEntity.ok(ApiResponse.ok(userService.getUserProfile(uuid)));
     }
-
 }

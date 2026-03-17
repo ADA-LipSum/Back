@@ -13,12 +13,15 @@ import org.springframework.web.bind.annotation.*;
 import com.ada.proj.enums.TradeCategory;
 import com.ada.proj.entity.TradeItem;
 import com.ada.proj.entity.TradeLog;
+import com.ada.proj.service.CartService;
 import com.ada.proj.service.TradeService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/trade")
@@ -28,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 public class TradeController {
 
     private final TradeService tradeService;
+    private final CartService cartService;
 
     @PostMapping("/items")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
@@ -227,6 +231,64 @@ public class TradeController {
     ) {
         tradeService.deleteItem(itemId);
         return ApiResponse.success();
+    }
+
+    // ── 장바구니 ──────────────────────────────────────────────────────────────
+
+    @PostMapping("/cart")
+    @Operation(
+            summary = "카트에 아이템 추가",
+            description = "FOOD 카테고리 아이템만 카트에 담을 수 있습니다.\n\n"
+            + "동일 아이템을 다시 추가하면 수량이 누적됩니다.\n\n"
+            + "ETC 아이템은 POST /api/trade/transactions 를 이용하세요."
+    )
+    public ApiResponse<CartItemResponse> addToCart(
+            @Valid @RequestBody CartAddRequest req,
+            Authentication auth
+    ) {
+        if (auth == null) throw new SecurityException("Unauthenticated");
+        return ApiResponse.success(cartService.addToCart(auth.getName(), req));
+    }
+
+    @GetMapping("/cart")
+    @Operation(summary = "내 카트 조회", description = "현재 로그인한 사용자의 카트 목록을 조회합니다.")
+    public ApiResponse<List<CartItemResponse>> getCart(Authentication auth) {
+        if (auth == null) throw new SecurityException("Unauthenticated");
+        return ApiResponse.success(cartService.getCart(auth.getName()));
+    }
+
+    @PatchMapping("/cart/{cartItemUuid}")
+    @Operation(summary = "카트 수량 변경", description = "카트 아이템의 수량을 변경합니다. 수량을 0으로 줄이려면 DELETE를 사용하세요.")
+    public ApiResponse<CartItemResponse> updateCartItem(
+            @Parameter(description = "카트 아이템 UUID") @PathVariable String cartItemUuid,
+            @Valid @RequestBody CartUpdateRequest req,
+            Authentication auth
+    ) {
+        if (auth == null) throw new SecurityException("Unauthenticated");
+        return ApiResponse.success(cartService.updateQuantity(auth.getName(), cartItemUuid, req));
+    }
+
+    @DeleteMapping("/cart/{cartItemUuid}")
+    @Operation(summary = "카트 아이템 삭제", description = "카트에서 특정 아이템을 제거합니다.")
+    public ApiResponse<Void> removeCartItem(
+            @Parameter(description = "카트 아이템 UUID") @PathVariable String cartItemUuid,
+            Authentication auth
+    ) {
+        if (auth == null) throw new SecurityException("Unauthenticated");
+        cartService.removeFromCart(auth.getName(), cartItemUuid);
+        return ApiResponse.success();
+    }
+
+    @PostMapping("/cart/checkout")
+    @Operation(
+            summary = "카트 일괄 결제",
+            description = "카트의 모든 FOOD 아이템을 코인으로 일괄 결제합니다.\n\n"
+            + "재고 부족 또는 비활성 아이템이 하나라도 있으면 전체 결제가 취소됩니다.\n\n"
+            + "결제 성공 시 카트가 비워집니다."
+    )
+    public ApiResponse<CartCheckoutResponse> checkout(Authentication auth) {
+        if (auth == null) throw new SecurityException("Unauthenticated");
+        return ApiResponse.success(cartService.checkout(auth.getName()));
     }
 
     @PostMapping("/items/{uuid}stock")
