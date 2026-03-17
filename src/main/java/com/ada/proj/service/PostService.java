@@ -210,14 +210,16 @@ public class PostService {
 
     @Transactional
     public boolean toggleLike(@NonNull String userUuid, @NonNull String postUuid) {
-        Post post = getPostByUuidOrThrow(postUuid);
+        if (!postRepository.existsById(postUuid)) {
+            throw new EntityNotFoundException("Post not found: " + postUuid);
+        }
 
         boolean alreadyLiked = postLikeRepository.existsByUserUuidAndPostUuid(userUuid, postUuid);
 
         if (alreadyLiked) {
             // 좋아요 취소
             postLikeRepository.deleteByUserUuidAndPostUuid(userUuid, postUuid);
-            post.setLikes(Math.max(0, post.getLikes() - 1));
+            postRepository.decreaseLikes(postUuid);
             return false; // 좋아요 취소됨
         } else {
             // 좋아요 추가
@@ -227,7 +229,7 @@ public class PostService {
                     .build();
             postLikeRepository.save(Objects.requireNonNull(like));
 
-            post.setLikes(post.getLikes() + 1);
+            postRepository.increaseLikes(postUuid);
             return true; // 좋아요 눌림
         }
 
@@ -244,14 +246,15 @@ public class PostService {
         }
 
         String postUuid = Objects.requireNonNull(like.getPostUuid(), "postUuid is required");
-        Post post = postRepository.findById(postUuid)
-                .orElseThrow(() -> new EntityNotFoundException("Post not found: " + like.getPostUuid()));
+        if (!postRepository.existsById(postUuid)) {
+            throw new EntityNotFoundException("Post not found: " + postUuid);
+        }
 
         // 좋아요 삭제
         postLikeRepository.deleteById(likeId);
 
-        // 카운트 보정
-        post.setLikes(Math.max(0, post.getLikes() - 1));
+        // 원자적 카운트 감소
+        postRepository.decreaseLikes(postUuid);
     }
 
 }
