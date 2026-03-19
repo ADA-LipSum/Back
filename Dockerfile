@@ -11,10 +11,10 @@ RUN ./gradlew --no-daemon clean bootJar -x test
 
 FROM eclipse-temurin:17-jre
 WORKDIR /app
-RUN useradd -m appuser
-USER appuser
-
+RUN useradd -m appuser && mkdir -p /app/logs
 COPY --from=build /app/build/libs/*.jar /app/app.jar
+RUN chown -R appuser /app
+USER appuser
 
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","/app/app.jar"]

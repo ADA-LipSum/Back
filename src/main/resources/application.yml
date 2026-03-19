@@ -78,6 +78,8 @@ server:
     accept-count: 200
 
 logging:
+  file:
+    name: ${LOG_FILE:logs/app.log}
   charset:
     console: UTF-8
     file: UTF-8
