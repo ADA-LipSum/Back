@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -237,21 +236,8 @@ public class AuthService {
         refreshTokenRepository.deleteByUuid(uuid);
     }
 
-    public void globalLogout(Authentication authentication) {
 
-        if (authentication == null) {
-            throw new com.ada.proj.exception.UnauthenticatedException("Unauthenticated");
-        }
-        if (authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .noneMatch(a -> a.equals("ROLE_ADMIN"))) {
-            throw new ForbiddenException("Forbidden");
-        }
-
-        refreshTokenRepository.deleteAll();
-    }
-
-    @Transactional(readOnly = true)
+@Transactional(readOnly = true)
     public AuthMeResponse me(Authentication authentication) {
         if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
             throw new UnauthenticatedException("Unauthenticated");

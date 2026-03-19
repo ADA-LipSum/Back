@@ -254,37 +254,7 @@ public class AuthController {
                 .body(ApiResponse.okMessage("logged out"));
     }
 
-    @PostMapping("/logout/all")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(
-            summary = "전체 로그아웃 (관리자 전용)",
-            description = """
-                    모든 사용자의 refresh token을 일괄 폐기합니다. ADMIN 권한만 사용 가능합니다.
-
-                    **Request Body:** 없음 (ADMIN Bearer token으로 인증)
-
-                    **Response:** 성공 메시지 반환 (`"all users logged out"`)
-
-                    ADMIN이 아닌 경우 403을 반환합니다.
-                    """,
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
-    public ResponseEntity<ApiResponse<Void>> globalLogout(Authentication authentication) {
-
-        authService.globalLogout(authentication);
-
-        ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
-                .httpOnly(cookieProperties.isHttpOnly())
-                .secure(cookieProperties.isSecure())
-                .sameSite(cookieProperties.getSameSite())
-                .path("/")
-                .maxAge(0)
-                .build();
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(ApiResponse.okMessage("all users logged out"));
-    }
+    // [비활성화] POST /logout/all — 전체 강제 로그아웃은 서비스 중단 위험으로 제거됨
 
     @PostMapping("/signup/teacher")
     @Operation(
