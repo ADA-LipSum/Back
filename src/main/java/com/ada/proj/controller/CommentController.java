@@ -34,7 +34,26 @@ public class CommentController {
     @PostMapping("/posts/{postUuid}/comments")
     @Operation(
             summary = "댓글 작성",
-            description = "게시물에 댓글을 작성합니다. parentId가 존재하면 대댓글로 등록됩니다."
+            description = """
+                    게시물에 댓글을 작성합니다. 로그인이 필요합니다.
+
+                    **Path Variable:**
+                    - `postUuid` (필수): 댓글을 달 게시글 UUID
+
+                    **Request Body:**
+                    - `content` (필수): 댓글 내용
+                    - `parentId` (선택): 부모 댓글 ID — 대댓글인 경우에만 포함
+
+                    **Response:**
+                    - `id`: 생성된 댓글 ID
+                    - `postId`: 게시글 UUID
+                    - `parentId`: 부모 댓글 ID (대댓글인 경우)
+                    - `content`: 댓글 내용
+                    - `writerUuid`: 작성자 UUID
+                    - `likes`: 좋아요 수 (초기 0)
+                    - `pinned`: 고정 여부 (초기 false)
+                    - `createdAt`: 작성 시각
+                    """
     )
     public ResponseEntity<ApiResponse<CommentResponse>> createComment(
             @Parameter(description = "게시글 UUID") @PathVariable("postId") String postId,
@@ -46,7 +65,17 @@ public class CommentController {
     }
 
     @GetMapping("/posts/{postUuid}/comments")
-    @Operation(summary = "댓글 목록 조회", description = "게시글의 댓글 및 대댓글 출력")
+    @Operation(
+            summary = "댓글 목록 조회",
+            description = """
+                    게시글에 달린 댓글 및 대댓글 전체를 조회합니다.
+
+                    **Path Variable:**
+                    - `postUuid` (필수): 게시글 UUID
+
+                    **Response:** 댓글 목록 배열 (id, postId, parentId, content, writerUuid, likes, pinned, createdAt)
+                    """
+    )
     public ResponseEntity<ApiResponse<List<CommentResponse>>> getComments(
             @Parameter(description = "게시글 UUID") @PathVariable("postId") String postId
     ) {
@@ -56,7 +85,19 @@ public class CommentController {
     @PutMapping("/{commentId}")
     @Operation(
             summary = "댓글 수정",
-            description = "로그인한 사용자가 자신의 댓글을 수정합니다. 본인이 작성한 댓글만 수정할 수 있습니다."
+            description = """
+                    본인이 작성한 댓글을 수정합니다.
+
+                    **Path Variable:**
+                    - `commentId` (필수): 수정할 댓글 ID
+
+                    **Request Body:**
+                    - `content` (필수): 수정할 댓글 내용
+
+                    **Response:** 수정된 댓글 정보 (id, content, updatedAt 등)
+
+                    본인이 작성하지 않은 댓글은 403을 반환합니다.
+                    """
     )
     public ResponseEntity<ApiResponse<CommentResponse>> updateComment(
             @PathVariable Long commentId,
@@ -70,7 +111,18 @@ public class CommentController {
     @DeleteMapping("/{commentId}")
     @Operation(
             summary = "댓글 삭제",
-            description = "로그인한 사용자가 자신의 댓글을 삭제합니다. 본인이 작성한 댓글만 삭제할 수 있습니다."
+            description = """
+                    본인이 작성한 댓글을 삭제합니다.
+
+                    **Path Variable:**
+                    - `commentId` (필수): 삭제할 댓글 ID
+
+                    **Request Body:** 없음
+
+                    **Response:** 성공 응답 (data: null)
+
+                    본인이 작성하지 않은 댓글은 403을 반환합니다.
+                    """
     )
     public ResponseEntity<ApiResponse<Void>> deleteComment(
             @PathVariable Long commentId
@@ -80,7 +132,20 @@ public class CommentController {
     }
 
     @PutMapping("/{commentId}/like")
-    @Operation(summary = "댓글 좋아요", description = "이 댓글을 좋아합니다.")
+    @Operation(
+            summary = "댓글 좋아요",
+            description = """
+                    댓글에 좋아요를 추가합니다.
+
+                    **Path Variable:**
+                    - `commentId` (필수): 좋아요를 추가할 댓글 ID
+
+                    **Request Body:** 없음
+
+                    **Response:**
+                    - `likes`: 현재 좋아요 수
+                    """
+    )
     public ResponseEntity<ApiResponse<Map<String, Object>>> addLike(
             @PathVariable Long commentId
     ) {
@@ -88,7 +153,20 @@ public class CommentController {
     }
 
     @DeleteMapping("/{commentId}/like")
-    @Operation(summary = "댓글 좋아요 해제", description = "댓글 좋아요를 취소합니다.")
+    @Operation(
+            summary = "댓글 좋아요 해제",
+            description = """
+                    댓글 좋아요를 취소합니다.
+
+                    **Path Variable:**
+                    - `commentId` (필수): 좋아요를 취소할 댓글 ID
+
+                    **Request Body:** 없음
+
+                    **Response:**
+                    - `likes`: 현재 좋아요 수
+                    """
+    )
     public ResponseEntity<ApiResponse<Map<String, Object>>> removeLike(
             @PathVariable Long commentId
     ) {
@@ -96,7 +174,20 @@ public class CommentController {
     }
 
     @PutMapping("/{commentId}/pin")
-    @Operation(summary = "댓글 고정", description = "게시글 작성자만 댓글을 고정할 수 있습니다.")
+    @Operation(
+            summary = "댓글 고정",
+            description = """
+                    댓글을 고정합니다. 게시글 작성자만 사용 가능합니다.
+
+                    **Path Variable:**
+                    - `commentId` (필수): 고정할 댓글 ID
+
+                    **Request Body:** 없음
+
+                    **Response:**
+                    - `pinned`: 고정 여부 (true)
+                    """
+    )
     public ResponseEntity<ApiResponse<Map<String, Object>>> pinComment(
             @PathVariable Long commentId
     ) {
@@ -104,7 +195,20 @@ public class CommentController {
     }
 
     @DeleteMapping("/{commentId}/pin")
-    @Operation(summary = "댓글 고정 해제", description = "게시글 작성자만 댓글 고정을 해제할 수 있습니다.")
+    @Operation(
+            summary = "댓글 고정 해제",
+            description = """
+                    댓글 고정을 해제합니다. 게시글 작성자만 사용 가능합니다.
+
+                    **Path Variable:**
+                    - `commentId` (필수): 고정 해제할 댓글 ID
+
+                    **Request Body:** 없음
+
+                    **Response:**
+                    - `pinned`: 고정 여부 (false)
+                    """
+    )
     public ResponseEntity<ApiResponse<Map<String, Object>>> unpinComment(
             @PathVariable Long commentId
     ) {

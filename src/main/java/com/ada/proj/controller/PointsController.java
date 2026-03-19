@@ -46,7 +46,29 @@ public class PointsController {
     }
 
     @PostMapping("/adjustments")
-    @Operation(summary = "포인트 조정", description = "type에 따라 포인트를 지급(GAIN), 차감(LOSS), 사용(USE) 합니다.")
+    @Operation(
+            summary = "포인트 조정",
+            description = """
+                    포인트를 지급/차감/사용 처리합니다.
+
+                    **Request Body:**
+                    - `userUuid` (필수): 대상 사용자 UUID
+                    - `type` (필수): 조정 유형 (GAIN: 지급 | LOSS: 차감 | USE: 사용)
+                    - `points` (필수): 포인트 수량 (최소 1)
+                    - `description` (선택): 조정 사유 또는 메모
+                    - `refRuleId` (선택): 포인트 규칙 ID (GAIN/LOSS 시 사용)
+                    - `usedFor` (선택): 사용 대상 설명 (USE 시 사용)
+                    - `metadata` (선택): 추가 메타데이터 JSON 문자열 (USE 시 사용)
+
+                    **Response:**
+                    - `userUuid`: 대상 사용자 UUID
+                    - `type`: 조정 유형
+                    - `points`: 조정된 포인트 수량
+                    - `balance`: 조정 후 잔액
+                    - `description`: 메모
+                    - `createdAt`: 조정 시각
+                    """
+    )
     public ApiResponse<PointsTransactionResponse> adjust(
             @Valid @RequestBody PointsAdjustRequest req,
             Authentication auth) {

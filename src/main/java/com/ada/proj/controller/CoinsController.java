@@ -46,7 +46,28 @@ public class CoinsController {
     }
 
     @PostMapping("/adjustments")
-    @Operation(summary = "코인 조정", description = "type에 따라 코인을 지급(GAIN), 차감(LOSS), 사용(USE) 합니다.")
+    @Operation(
+            summary = "코인 조정",
+            description = """
+                    코인을 지급/차감/사용 처리합니다. ADMIN만 가능합니다.
+
+                    **Request Body:**
+                    - `userUuid` (필수): 대상 사용자 UUID
+                    - `type` (필수): 조정 유형 (GAIN: 지급 | LOSS: 차감 | USE: 사용)
+                    - `coins` (필수): 코인 수량 (최소 1)
+                    - `description` (선택): 조정 사유 또는 메모
+
+                    **Response:**
+                    - `userUuid`: 대상 사용자 UUID
+                    - `type`: 조정 유형
+                    - `coins`: 조정된 코인 수량
+                    - `balance`: 조정 후 잔액
+                    - `description`: 메모
+                    - `createdAt`: 조정 시각
+
+                    ADMIN이 아닌 경우 403을 반환합니다.
+                    """
+    )
     public ApiResponse<CoinsTransactionResponse> adjust(
             @Valid @RequestBody CoinsAdjustRequest req,
             Authentication auth) {

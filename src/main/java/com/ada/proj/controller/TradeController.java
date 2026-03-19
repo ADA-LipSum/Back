@@ -238,9 +238,23 @@ public class TradeController {
     @PostMapping("/cart")
     @Operation(
             summary = "카트에 아이템 추가",
-            description = "FOOD 카테고리 아이템만 카트에 담을 수 있습니다.\n\n"
-            + "동일 아이템을 다시 추가하면 수량이 누적됩니다.\n\n"
-            + "ETC 아이템은 POST /api/trade/transactions 를 이용하세요."
+            description = """
+                    카트에 아이템을 추가합니다. FOOD 카테고리 아이템만 카트에 담을 수 있습니다.
+
+                    **Request Body:**
+                    - `itemUuid` (필수): 추가할 아이템 UUID
+                    - `quantity` (필수): 수량 (최소 1)
+
+                    **Response:**
+                    - `cartItemUuid`: 카트 아이템 UUID
+                    - `itemUuid`: 아이템 UUID
+                    - `itemName`: 아이템 이름
+                    - `quantity`: 수량
+                    - `price`: 단가 (코인)
+
+                    동일 아이템을 다시 추가하면 수량이 누적됩니다.
+                    ETC 아이템은 `POST /api/trade/transactions`를 이용하세요.
+                    """
     )
     public ApiResponse<CartItemResponse> addToCart(
             @Valid @RequestBody CartAddRequest req,
@@ -258,7 +272,22 @@ public class TradeController {
     }
 
     @PatchMapping("/cart/{cartItemUuid}")
-    @Operation(summary = "카트 수량 변경", description = "카트 아이템의 수량을 변경합니다. 수량을 0으로 줄이려면 DELETE를 사용하세요.")
+    @Operation(
+            summary = "카트 수량 변경",
+            description = """
+                    카트 아이템의 수량을 변경합니다.
+
+                    **Path Variable:**
+                    - `cartItemUuid` (필수): 카트 아이템 UUID
+
+                    **Request Body:**
+                    - `quantity` (필수): 변경할 수량 (최소 1)
+
+                    **Response:** 변경된 카트 아이템 정보
+
+                    수량을 0으로 줄이려면 `DELETE /api/trade/cart/{cartItemUuid}`를 사용하세요.
+                    """
+    )
     public ApiResponse<CartItemResponse> updateCartItem(
             @Parameter(description = "카트 아이템 UUID") @PathVariable String cartItemUuid,
             @Valid @RequestBody CartUpdateRequest req,
@@ -292,7 +321,18 @@ public class TradeController {
     }
 
     @PostMapping("/items/{uuid}stock")
-    @Operation(summary = "재고 충전", description = "ADMIN 또는 TEACHER만 재고를 충전할 수 있습니다.")
+    @Operation(
+            summary = "재고 충전",
+            description = """
+                    아이템 재고를 충전합니다. ADMIN 또는 TEACHER만 가능합니다.
+
+                    **Request Body:**
+                    - `itemUuid` (필수): 재고를 충전할 아이템 UUID
+                    - `amount` (필수): 충전할 수량
+
+                    **Response:** 성공 응답 (data: null)
+                    """
+    )
     public ApiResponse<Void> restock(
             @RequestBody RestockRequest req,
             Authentication auth

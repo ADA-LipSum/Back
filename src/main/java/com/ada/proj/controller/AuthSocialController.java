@@ -27,7 +27,24 @@ public class AuthSocialController {
         this.userRepository = userRepository;
     }
 
-    @Operation(summary = "깃허브 인증 상태 조회", description = "현재 인증 상태와 사용자 기본 정보를 반환합니다.")
+    @Operation(
+            summary = "인증 상태 조회",
+            description = """
+                    현재 로그인 상태와 사용자 기본 정보를 반환합니다.
+
+                    **Request Body:** 없음
+
+                    **Response (인증된 경우):**
+                    - `authenticated`: true
+                    - `uuid`: 사용자 UUID
+                    - `user.realname`: 실명
+                    - `user.nickname`: 닉네임
+                    - `user.profileImage`: 프로필 이미지 URL
+
+                    **Response (미인증 상태):**
+                    - `authenticated`: false
+                    """
+    )
     @GetMapping("/status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> status(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {

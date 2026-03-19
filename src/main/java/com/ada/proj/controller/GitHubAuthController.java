@@ -41,7 +41,16 @@ public class GitHubAuthController {
     @PreAuthorize("isAuthenticated()")
     @Operation(
             summary = "GitHub 연동 시작",
-            description = "로그인된 사용자의 계정에 GitHub를 연동하기 위한 OAuth URL을 반환합니다.",
+            description = """
+                    로그인된 계정에 GitHub를 연동하기 위한 OAuth 인증 URL을 반환합니다.
+
+                    **Request Body:** 없음
+
+                    **Response:**
+                    - `redirectUrl`: GitHub OAuth 인증 페이지 URL
+
+                    반환된 URL로 사용자를 리다이렉트하면 GitHub 로그인 후 콜백이 처리됩니다.
+                    """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Map<String, String>>> startLink(Authentication authentication) {
@@ -54,7 +63,17 @@ public class GitHubAuthController {
     @GetMapping("/login")
     @Operation(
             summary = "GitHub 로그인 시작",
-            description = "GitHub OAuth를 통해 로그인하기 위한 URL을 반환합니다. (먼저 관리자 계정에 GitHub를 연동해야 합니다.)"
+            description = """
+                    GitHub OAuth 로그인을 위한 인증 URL을 반환합니다.
+
+                    **Request Body:** 없음
+
+                    **Response:**
+                    - `redirectUrl`: GitHub OAuth 인증 페이지 URL
+
+                    반환된 URL로 사용자를 리다이렉트하면 GitHub 로그인 후 콜백에서 access token을 발급합니다.
+                    먼저 관리자 계정에 GitHub 연동(`GET /api/auth/github/link`)이 되어 있어야 합니다.
+                    """
     )
     public ResponseEntity<ApiResponse<Map<String, String>>> startLogin() {
         String state = gitHubOAuthService.generateLoginState();
@@ -107,6 +126,15 @@ public class GitHubAuthController {
     @PreAuthorize("isAuthenticated()")
     @Operation(
             summary = "GitHub 연동 해제",
+            description = """
+                    현재 로그인된 계정의 GitHub 연동을 해제합니다.
+
+                    **Request Body:** 없음
+
+                    **Response:** 성공 메시지 반환 (`"GitHub 연동이 해제되었습니다."`)
+
+                    GitHub가 연동되어 있지 않은 경우 400을 반환합니다.
+                    """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Void>> unlink(Authentication authentication) {
@@ -118,6 +146,14 @@ public class GitHubAuthController {
     @PreAuthorize("isAuthenticated()")
     @Operation(
             summary = "GitHub 연동 상태 조회",
+            description = """
+                    현재 로그인된 계정의 GitHub 연동 여부를 확인합니다.
+
+                    **Request Body:** 없음
+
+                    **Response:**
+                    - `githubLinked`: GitHub 연동 여부 (true | false)
+                    """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Map<String, Object>>> status(Authentication authentication) {
@@ -130,7 +166,19 @@ public class GitHubAuthController {
     @PreAuthorize("isAuthenticated()")
     @Operation(
             summary = "GitHub 잔디(contribution) 데이터 조회",
-            description = "연동된 GitHub 계정의 contribution 데이터를 반환합니다. year 파라미터로 연도 지정 가능 (기본: 현재 연도)",
+            description = """
+                    연동된 GitHub 계정의 contribution 데이터를 반환합니다.
+
+                    **Query Parameters:**
+                    - `year` (선택): 조회할 연도 (기본값: 현재 연도)
+
+                    **Response:**
+                    - `totalContributions`: 해당 연도 총 contribution 수
+                    - `weeks`: 주별 contribution 데이터 배열
+                    - `contributionCalendar`: 날짜별 contribution 상세 데이터
+
+                    GitHub가 연동되어 있지 않으면 400을 반환합니다.
+                    """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Map<String, Object>>> contributions(

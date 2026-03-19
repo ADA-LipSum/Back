@@ -66,7 +66,28 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "로그인")
+    @Operation(
+            summary = "로그인",
+            description = """
+                    커스텀 ID/PW로 로그인합니다.
+
+                    **Request Body:**
+                    - `id` (필수): 로그인 ID (customId)
+                    - `password` (필수): 비밀번호
+
+                    **Response:**
+                    - `tokenType`: 토큰 타입 (Bearer)
+                    - `accessToken`: 발급된 access token (유효기간 1시간)
+                    - `expiresIn`: access token 만료 시간 (초)
+                    - `uuid`: 사용자 UUID
+                    - `userRealname`: 사용자 실명
+                    - `userNickname`: 사용자 닉네임
+                    - `profileImage`: 프로필 이미지 URL
+
+                    로그인 성공 시 `refreshToken`은 HttpOnly 쿠키로 자동 설정됩니다.
+                    ID 또는 비밀번호가 틀린 경우 401을 반환합니다.
+                    """
+    )
     public ResponseEntity<ApiResponse<AuthTokenResponse>> login(@Valid @RequestBody LoginRequest request) {
 
         LoginResponse res = authService.login(request);
@@ -92,7 +113,28 @@ public class AuthController {
     }
 
     @PostMapping("/reissue")
-    @Operation(summary = "토큰 재발급")
+    @Operation(
+            summary = "토큰 재발급",
+            description = """
+                    만료된 access token을 refresh token으로 재발급합니다.
+
+                    refresh token은 아래 세 가지 방법 중 하나로 전달할 수 있습니다 (우선순위 순):
+                    1. **HttpOnly 쿠키** `refreshToken` (권장 — 로그인 시 자동 설정)
+                    2. **Authorization 헤더**: `Authorization: Bearer <refreshToken>`
+                    3. **Request Body** `refreshToken` 필드 (위 두 방법이 없을 때만 사용)
+
+                    **Request Body (선택):**
+                    - `refreshToken`: refresh token 문자열 (쿠키/헤더로 전달한 경우 불필요)
+
+                    **Response:**
+                    - `tokenType`: 토큰 타입 (Bearer)
+                    - `accessToken`: 새로 발급된 access token (유효기간 1시간)
+                    - `expiresIn`: access token 만료 시간 (초)
+
+                    재발급 성공 시 새 `refreshToken`이 HttpOnly 쿠키로 교체됩니다.
+                    refresh token이 만료되었거나 폐기된 경우 401을 반환합니다. 이 경우 재로그인이 필요합니다.
+                    """
+    )
     public ResponseEntity<ApiResponse<AuthTokenResponse>> reissue(
             HttpServletRequest httpServletRequest,
             @RequestBody(required = false) TokenReissueRequest request) {
@@ -178,7 +220,20 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "로그아웃", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(
+            summary = "로그아웃",
+            description = """
+                    현재 로그인된 사용자의 refresh token을 폐기하고 쿠키를 만료시킵니다.
+
+                    **Request Body:** 없음 (Authorization 헤더의 Bearer access token으로 인증)
+
+                    **Response:** 성공 메시지 반환 (`"logged out"`)
+
+                    로그아웃 성공 시 `refreshToken` 쿠키가 빈 값으로 만료 처리됩니다.
+                    인증되지 않은 요청은 401을 반환합니다.
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     public ResponseEntity<ApiResponse<Void>> logout(Authentication authentication) {
         if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
             throw new UnauthenticatedException("Unauthenticated");
@@ -201,7 +256,19 @@ public class AuthController {
 
     @PostMapping("/logout/all")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "전체 로그아웃 (관리자 전용)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(
+            summary = "전체 로그아웃 (관리자 전용)",
+            description = """
+                    모든 사용자의 refresh token을 일괄 폐기합니다. ADMIN 권한만 사용 가능합니다.
+
+                    **Request Body:** 없음 (ADMIN Bearer token으로 인증)
+
+                    **Response:** 성공 메시지 반환 (`"all users logged out"`)
+
+                    ADMIN이 아닌 경우 403을 반환합니다.
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     public ResponseEntity<ApiResponse<Void>> globalLogout(Authentication authentication) {
 
         authService.globalLogout(authentication);
@@ -220,7 +287,25 @@ public class AuthController {
     }
 
     @PostMapping("/signup/teacher")
-    @Operation(summary = "선생님 회원가입")
+    @Operation(
+            summary = "선생님 회원가입",
+            description = """
+                    선생님 계정을 신규 등록합니다.
+
+                    **Request Body:**
+                    - `teacherId` (필수): 선생님 고유 ID (최대 50자)
+                    - `userRealname` (필수): 실명 (최대 10자)
+                    - `userNickname` (필수): 닉네임 (최대 10자)
+                    - `customId` (필수): 로그인에 사용할 커스텀 ID (3~50자)
+                    - `password` (필수): 비밀번호 (6~255자)
+
+                    **Response:**
+                    - `uuid`: 생성된 사용자 UUID
+                    - `adminId`: 관리자 ID (teacherId)
+                    - `customId`: 커스텀 로그인 ID
+                    - `role`: 부여된 역할 (TEACHER)
+                    """
+    )
     public ResponseEntity<ApiResponse<CreateUserResponse>> signupTeacher(
             @Valid @RequestBody TeacherSignupRequest req) {
 
@@ -237,7 +322,29 @@ public class AuthController {
 
     @PostMapping("/admin/create")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "관리자: 사용자 생성", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(
+            summary = "관리자: 사용자 생성",
+            description = """
+                    ADMIN 권한으로 새 사용자를 생성합니다.
+
+                    **Request Body:**
+                    - `adminId` (필수): 관리자 그룹 ID (소속 기관/학교 ID)
+                    - `userRealname` (필수): 실명 (최대 10자)
+                    - `userNickname` (필수): 닉네임 (최대 10자)
+                    - `role`: 역할 (STUDENT | TEACHER | ADMIN, 기본값: STUDENT)
+                    - `customId`: 커스텀 로그인 ID (3~50자, 선택)
+                    - `password`: 초기 비밀번호 (6~255자, 선택)
+
+                    **Response:**
+                    - `uuid`: 생성된 사용자 UUID
+                    - `adminId`: 관리자 그룹 ID
+                    - `customId`: 커스텀 로그인 ID
+                    - `role`: 부여된 역할
+
+                    ADMIN이 아닌 경우 403을 반환합니다.
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     public ResponseEntity<ApiResponse<CreateUserResponse>> createUserByAdmin(
             @Valid @RequestBody AdminCreateUserRequest req,
             Authentication authentication) {
@@ -262,7 +369,26 @@ public class AuthController {
     }
 
     @PostMapping("/admin/init")
-    @Operation(summary = "초기 관리자 생성")
+    @Operation(
+            summary = "초기 관리자 생성",
+            description = """
+                    최초 관리자 계정을 생성합니다. 시스템 초기 설정 시 1회만 사용합니다.
+
+                    **Request Body:**
+                    - `adminId` (필수): 관리자 그룹 ID
+                    - `userRealname` (필수): 실명 (최대 10자)
+                    - `userNickname` (필수): 닉네임 (최대 10자)
+                    - `role`: 역할 (기본값: ADMIN)
+                    - `customId`: 커스텀 로그인 ID (3~50자, 선택)
+                    - `password`: 비밀번호 (6~255자, 선택)
+
+                    **Response:**
+                    - `uuid`: 생성된 관리자 UUID
+                    - `adminId`: 관리자 그룹 ID
+                    - `customId`: 커스텀 로그인 ID
+                    - `role`: 부여된 역할 (ADMIN)
+                    """
+    )
     public ResponseEntity<ApiResponse<CreateUserResponse>> initAdmin(
             @Valid @RequestBody CreateUserRequest req) {
 

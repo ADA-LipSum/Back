@@ -45,7 +45,26 @@ public class ReportController {
 
     @Operation(
             summary = "신고 생성",
-            description = "신고자는 JWT 정보에서 자동으로 식별되며 요청 본문에는 대상/유형/사유만 담습니다.")
+            description = """
+                    신고를 접수합니다. 신고자는 JWT에서 자동으로 식별됩니다.
+
+                    **Request Body:**
+                    - `targetUuid` (필수): 신고 대상 사용자 UUID (UUID 형식)
+                    - `reportType` (필수): 신고 유형 (예: SPAM | ABUSE | INAPPROPRIATE | OTHER)
+                    - `reason` (필수): 신고 사유 (3~255자)
+
+                    **Response:**
+                    - `id`: 신고 ID
+                    - `reporterUuid`: 신고자 UUID
+                    - `targetUuid`: 피신고자 UUID
+                    - `reportType`: 신고 유형
+                    - `reason`: 신고 사유
+                    - `status`: 처리 상태 (PENDING | RESOLVED | DISMISSED)
+                    - `createdAt`: 신고 접수 시각
+
+                    성공 시 HTTP 201을 반환합니다.
+                    """
+    )
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "신고 접수 완료",
                 content = @Content(schema = @Schema(implementation = ReportResponse.class))),
@@ -89,7 +108,21 @@ public class ReportController {
 
     @Operation(
             summary = "신고 상태 변경",
-            description = "관리자 또는 교사가 신고 상태를 처리 상태로 변경합니다.")
+            description = """
+                    신고 처리 상태를 변경합니다. ADMIN/TEACHER만 가능합니다.
+
+                    **Path Variable:**
+                    - `reportId` (필수): 상태를 변경할 신고 ID
+
+                    **Request Body:**
+                    - `status` (필수): 변경할 처리 상태 (PENDING | RESOLVED | DISMISSED)
+
+                    **Response:**
+                    - `id`: 신고 ID
+                    - `status`: 변경된 처리 상태
+                    - `updatedAt`: 상태 변경 시각
+                    """
+    )
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "상태 변경 완료",
                 content = @Content(schema = @Schema(implementation = ReportResponse.class))),
