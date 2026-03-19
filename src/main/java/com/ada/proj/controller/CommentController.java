@@ -56,7 +56,7 @@ public class CommentController {
                     """
     )
     public ResponseEntity<ApiResponse<CommentResponse>> createComment(
-            @Parameter(description = "게시글 UUID") @PathVariable("postId") String postId,
+            @Parameter(description = "게시글 UUID") @PathVariable("postUuid") String postId,
             @RequestBody @Valid CommentCreateRequest request
     ) {
         CommentCreateRequest payload = Objects.requireNonNull(request, "request");
@@ -77,7 +77,7 @@ public class CommentController {
                     """
     )
     public ResponseEntity<ApiResponse<List<CommentResponse>>> getComments(
-            @Parameter(description = "게시글 UUID") @PathVariable("postId") String postId
+            @Parameter(description = "게시글 UUID") @PathVariable("postUuid") String postId
     ) {
         return ResponseEntity.ok(ApiResponse.success(commentService.getCommentsByPost(postId)));
     }

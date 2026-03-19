@@ -20,13 +20,8 @@ import com.ada.proj.service.PostService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Encoding;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -95,7 +90,7 @@ public class PostController {
     )
     public ResponseEntity<ApiResponse<Void>> update(
             @Parameter(description = "게시글 UUID", example = "post-uuid-...")
-            @PathVariable("uuid") String uuid,
+            @PathVariable String uuid,
             @RequestBody PostUpdateRequest req,
             Authentication authentication) {
         postService.update(requireUuid(uuid), requireUpdateRequest(req), authentication);
@@ -121,7 +116,7 @@ public class PostController {
     )
     public ResponseEntity<ApiResponse<Void>> delete(
             @Parameter(description = "게시글 UUID", example = "post-uuid-...")
-            @PathVariable("uuid") String uuid,
+            @PathVariable String uuid,
             Authentication authentication) {
         postService.delete(requireUuid(uuid), authentication);
         return ResponseEntity.ok(ApiResponse.success());
@@ -150,7 +145,7 @@ public class PostController {
     )
     public ResponseEntity<ApiResponse<PostDetailResponse>> detail(
             @Parameter(description = "게시글 UUID", example = "post-uuid-...")
-            @PathVariable("uuid") String uuid) {
+            @PathVariable String uuid) {
         return ResponseEntity.ok(ApiResponse.success(postService.detail(requireUuid(uuid))));
     }
 
@@ -199,7 +194,7 @@ public class PostController {
                     """
     )
     public ResponseEntity<ApiResponse<Boolean>> toggleLike(
-            @PathVariable("uuid") String uuid,
+            @PathVariable String uuid,
             Authentication auth
     ) {
         if (auth == null) {
@@ -229,7 +224,7 @@ public class PostController {
     )
     public ResponseEntity<ApiResponse<Void>> deleteLikeById(
             @Parameter(description = "좋아요 id", example = "1")
-            @PathVariable("id") Long id,
+            @PathVariable Long id,
             Authentication auth
     ) {
         if (auth == null) {
@@ -261,8 +256,8 @@ public class PostController {
                     """
     )
     public ResponseEntity<ApiResponse<java.util.List<CommentResponse>>> comments(
-            @Parameter(description = "게시글 UUID") @PathVariable("postUuid") String postUuid) {
-        return ResponseEntity.ok(ApiResponse.success(commentService.getCommentsByPost(requireUuid(postUuid))));
+            @Parameter(description = "게시글 UUID") @PathVariable String uuid) {
+        return ResponseEntity.ok(ApiResponse.success(commentService.getCommentsByPost(requireUuid(uuid))));
     }
 
     private @NonNull

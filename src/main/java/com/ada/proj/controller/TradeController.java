@@ -320,7 +320,7 @@ public class TradeController {
         return ApiResponse.success(cartService.checkout(auth.getName()));
     }
 
-    @PostMapping("/items/{uuid}stock")
+    @PostMapping("/items/{uuid}/stock")
     @Operation(
             summary = "재고 충전",
             description = """
