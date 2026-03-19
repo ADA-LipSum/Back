@@ -23,7 +23,7 @@ public class HealthController {
         this.healthLogService = healthLogService;
     }
 
-    @GetMapping("api/health")
+    @GetMapping("/api/health")
     @Operation(summary = "로그 기반 헬스체크: 최근 로그 요약 반환")
     public ResponseEntity<ApiResponse<HealthLogResponse>> health() {
         long start = System.nanoTime();
