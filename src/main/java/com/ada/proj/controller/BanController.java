@@ -82,9 +82,9 @@ public class BanController {
             }
     )
     @PostMapping("/bans")
-    public ResponseEntity<BanResponse> createBan(@Valid @RequestBody BanRequest request) {
+    public ResponseEntity<com.ada.proj.dto.ApiResponse<BanResponse>> createBan(@Valid @RequestBody BanRequest request) {
         BanResponse response = banService.createBan(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(com.ada.proj.dto.ApiResponse.success(response));
     }
 
     @Operation(
@@ -105,12 +105,12 @@ public class BanController {
                     """
     )
     @GetMapping("/bans")
-    public PageResponse<BanInfoResponse> getBans(
+    public com.ada.proj.dto.ApiResponse<PageResponse<BanInfoResponse>> getBans(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "true") boolean activeOnly
     ) {
-        return banService.getBanList(activeOnly, page, size);
+        return com.ada.proj.dto.ApiResponse.success(banService.getBanList(activeOnly, page, size));
     }
 
     @Operation(
@@ -128,11 +128,11 @@ public class BanController {
                     """
     )
     @GetMapping("/bans/users/{userUuid}")
-    public List<BanInfoResponse> getBanHistory(
+    public com.ada.proj.dto.ApiResponse<List<BanInfoResponse>> getBanHistory(
             @PathVariable String userUuid,
             @RequestParam(defaultValue = "true") boolean activeOnly
     ) {
-        return banService.getBanHistoryForUser(userUuid, activeOnly);
+        return com.ada.proj.dto.ApiResponse.success(banService.getBanHistoryForUser(userUuid, activeOnly));
     }
 
     @Operation(
@@ -149,9 +149,9 @@ public class BanController {
                     """
     )
     @PostMapping("/bans/{userUuid}/release")
-    public String releaseBan(@PathVariable String userUuid) {
+    public com.ada.proj.dto.ApiResponse<Void> releaseBan(@PathVariable String userUuid) {
         banService.releaseBan(userUuid);
-        return "제재가 해제되었습니다.";
+        return com.ada.proj.dto.ApiResponse.okMessage("제재가 해제되었습니다.");
     }
 
     @Operation(
@@ -168,8 +168,8 @@ public class BanController {
                     """
     )
     @PostMapping("/bans/{banId}/release/manual")
-    public String releaseManual(@PathVariable Long banId) {
+    public com.ada.proj.dto.ApiResponse<Void> releaseManual(@PathVariable Long banId) {
         banService.releaseBanManual(banId);
-        return "success";
+        return com.ada.proj.dto.ApiResponse.success();
     }
 }

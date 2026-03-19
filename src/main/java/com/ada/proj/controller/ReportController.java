@@ -73,8 +73,8 @@ public class ReportController {
     })
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ReportResponse createReport(@Valid @RequestBody ReportCreateRequest req) {
-        return reportService.createReport(req);
+    public com.ada.proj.dto.ApiResponse<ReportResponse> createReport(@Valid @RequestBody ReportCreateRequest req) {
+        return com.ada.proj.dto.ApiResponse.success(reportService.createReport(req));
     }
 
     @Operation(
@@ -96,14 +96,14 @@ public class ReportController {
     })
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @GetMapping
-    public PageResponse<ReportResponse> getReports(
+    public com.ada.proj.dto.ApiResponse<PageResponse<ReportResponse>> getReports(
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
             @RequestParam(defaultValue = "createdAt,desc") String sort,
             @RequestParam(required = false) ReportStatus status,
             @RequestParam(name = "reportType", required = false) ReportType type
     ) {
-        return reportService.getReportList(page, size, sort, status, type);
+        return com.ada.proj.dto.ApiResponse.success(reportService.getReportList(page, size, sort, status, type));
     }
 
     @Operation(
@@ -131,10 +131,10 @@ public class ReportController {
     })
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @PatchMapping("/{reportId}")
-    public ReportResponse updateReportStatus(
+    public com.ada.proj.dto.ApiResponse<ReportResponse> updateReportStatus(
             @PathVariable Long reportId,
             @Valid @RequestBody ReportStatusUpdateRequest request
     ) {
-        return reportService.updateStatus(reportId, request.getStatus());
+        return com.ada.proj.dto.ApiResponse.success(reportService.updateStatus(reportId, request.getStatus()));
     }
 }
