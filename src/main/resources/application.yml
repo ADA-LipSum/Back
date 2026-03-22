@@ -97,8 +97,7 @@ logging:
 
 jwt:
   secret: ${JWT_SECRET}
-  # Access token TTL (ms). 60s is too short for normal usage.
-  access-expiration-ms: 900000
+  access-expiration-ms: 60000
   refresh-expiration-ms: 604800000
 
 github:
