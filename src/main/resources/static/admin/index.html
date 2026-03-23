@@ -682,12 +682,17 @@
       });
     }
 
-    img.onload = initCropper;
-    // src를 빈 값으로 초기화해야 같은 URL 재사용 시에도 onload가 반드시 발화됨
-    img.src = '';
+    // 같은 URL 재사용(재편집) — 이미 로드된 경우 바로 초기화
+    if (img.naturalWidth > 0 && img.src === url) {
+      initCropper();
+      return;
+    }
+
+    img.onload = () => { img.onload = null; initCropper(); };
     img.src = url;
-    // 이미 캐시된 경우 onload가 동기로 건너뛰어질 수 있으므로 수동 호출
-    if (img.complete && img.naturalWidth > 0) initCropper();
+
+    // 동기 캐시 히트 대비
+    if (img.complete && img.naturalWidth > 0) { img.onload = null; initCropper(); }
   }
 
   function closeCropModal() {
