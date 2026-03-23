@@ -11,6 +11,7 @@ import lombok.Data;
 public class LoginResponse {
     private String tokenType;
     private String accessToken;
+    private String refreshToken;
     private long expiresIn;
 
     private String uuid;

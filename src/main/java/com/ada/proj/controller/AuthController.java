@@ -19,9 +19,7 @@ import com.ada.proj.dto.LoginRequest;
 import com.ada.proj.dto.LoginResponse;
 import com.ada.proj.dto.TeacherSignupRequest;
 import com.ada.proj.dto.TokenReissueRequest;
-import com.ada.proj.entity.RefreshToken;
 import com.ada.proj.exception.UnauthenticatedException;
-import com.ada.proj.repository.RefreshTokenRepository;
 import com.ada.proj.service.AuthService;
 import com.ada.proj.service.UserService;
 
@@ -39,19 +37,16 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserService userService;
-    private final RefreshTokenRepository refreshTokenRepository;
 
     private final com.ada.proj.config.CookieProperties cookieProperties;
 
     public AuthController(
             AuthService authService,
             UserService userService,
-            RefreshTokenRepository refreshTokenRepository,
             com.ada.proj.config.CookieProperties cookieProperties
     ) {
         this.authService = authService;
         this.userService = userService;
-        this.refreshTokenRepository = refreshTokenRepository;
         this.cookieProperties = cookieProperties;
     }
 
@@ -92,10 +87,7 @@ public class AuthController {
 
         LoginResponse res = authService.login(request);
 
-        RefreshToken token = refreshTokenRepository.findByUuid(res.getUuid())
-                .orElseThrow(() -> new RuntimeException("Refresh token not generated"));
-
-        ResponseCookie cookie = createCookie(token.getToken());
+        ResponseCookie cookie = createCookie(res.getRefreshToken());
 
         AuthTokenResponse body = AuthTokenResponse.builder()
                 .tokenType(res.getTokenType())
@@ -165,10 +157,7 @@ public class AuthController {
 
         LoginResponse res = authService.reissue(effectiveRequest);
 
-        RefreshToken token = refreshTokenRepository.findByUuid(res.getUuid())
-                .orElseThrow(() -> new RuntimeException("Refresh token not found"));
-
-        ResponseCookie cookie = createCookie(token.getToken());
+        ResponseCookie cookie = createCookie(res.getRefreshToken());
 
         AuthTokenResponse body = AuthTokenResponse.builder()
                 .tokenType(res.getTokenType())
