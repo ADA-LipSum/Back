@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>관리자 도구</title>
+  <title>테스트 도구</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -19,12 +19,12 @@
       margin-bottom: 20px;
     }
     label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; }
-    input {
+    input[type="text"], input[type="password"] {
       width: 100%; padding: 9px 12px;
       background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
       color: #e6edf3; font-size: 14px; outline: none; transition: border-color .15s;
     }
-    input:focus { border-color: #58a6ff; }
+    input[type="text"]:focus, input[type="password"]:focus { border-color: #58a6ff; }
     .field { display: flex; flex-direction: column; }
     button {
       padding: 9px 16px; border-radius: 8px; border: none;
@@ -49,26 +49,54 @@
     .status-box.ok   { border-color: #238636; color: #56d364; }
     .status-box.err  { border-color: #f85149; color: #f85149; }
     .status-box.info { border-color: #58a6ff; color: #79c0ff; }
+    .status-box a { color: #388bfd; text-decoration: none; }
+    .status-box a:hover { text-decoration: underline; }
     .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
     .badge.linked   { background: #0f4429; color: #56d364; border: 1px solid #238636; }
     .badge.unlinked { background: #2d1b1b; color: #f85149; border: 1px solid #3d2424; }
     .badge.admin    { background: #1a1f6e; color: #79c0ff; border: 1px solid #388bfd; }
+    .badge.user     { background: #1c2128; color: #8b949e; border: 1px solid #30363d; }
     .divider { border: none; border-top: 1px solid #30363d; }
     .section { display: flex; flex-direction: column; gap: 14px; }
     .meta { font-size: 12px; color: #484f58; }
     .or-divider { display: flex; align-items: center; gap: 10px; color: #484f58; font-size: 12px; }
     .or-divider::before, .or-divider::after { content: ''; flex: 1; border-top: 1px solid #30363d; }
-    #adminTools { display: none; }
-    #accessDenied { display: none; }
+    .user-badge { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #8b949e; }
+    .user-badge img { width: 36px; height: 36px; border-radius: 50%; border: 1px solid #30363d; object-fit: cover; }
+    .user-badge .name { color: #e6edf3; font-weight: 600; font-size: 14px; }
+    .user-badge .uuid { font-size: 11px; color: #484f58; margin-top: 2px; }
+    /* 파일 드롭 */
+    .file-drop {
+      border: 2px dashed #30363d; border-radius: 8px;
+      padding: 20px; text-align: center; cursor: pointer;
+      transition: border-color .2s; position: relative;
+    }
+    .file-drop:hover, .file-drop.drag-over { border-color: #388bfd; }
+    .file-drop input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .file-drop-text { font-size: 13px; color: #8b949e; pointer-events: none; }
+    .file-drop-text span { color: #388bfd; }
+    .preview-wrap { display: none; flex-direction: column; align-items: center; gap: 8px; }
+    .preview-wrap img { max-width: 100%; max-height: 160px; border-radius: 8px; border: 1px solid #30363d; object-fit: cover; }
+    .preview-name { font-size: 12px; color: #8b949e; }
+    .spinner {
+      display: inline-block; width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+      border-radius: 50%; animation: spin .7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #mainTools { display: none; width: 100%; max-width: 480px; display: none; flex-direction: column; }
   </style>
 </head>
 <body>
-<h1>🔧 관리자 도구</h1>
+<h1>🔧 테스트 도구</h1>
 
 <!-- ── 로그인 카드 ── -->
 <div class="card" id="loginCard">
-  <section class="section" id="loginSection">
-    <h2>로그인 (ADMIN 계정만 접근 가능)</h2>
+  <section class="section">
+    <h2>로그인</h2>
     <div class="field">
       <label for="loginId">아이디</label>
       <input id="loginId" type="text" placeholder="admin_id 또는 custom_id" />
@@ -87,21 +115,22 @@
   </section>
 </div>
 
-<!-- ── 권한 없음 ── -->
-<div class="card" id="accessDenied">
-  <div class="status-box err">⛔ ADMIN 권한이 없습니다. 관리자 계정으로 로그인하세요.</div>
-  <button class="btn-secondary" onclick="doLogout()">로그아웃</button>
-</div>
-
-<!-- ── 관리자 도구 ── -->
-<div id="adminTools">
+<!-- ── 로그인 후 도구들 ── -->
+<div id="mainTools">
 
   <!-- 세션 정보 -->
   <div class="card">
     <section class="section">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <h2>세션 정보</h2>
-        <span class="badge admin" id="roleBadge">ADMIN</span>
+        <span id="roleBadge" class="badge user">USER</span>
+      </div>
+      <div class="user-badge">
+        <img id="userAvatar" src="" alt="" onerror="this.style.display='none'" style="display:none" />
+        <div>
+          <div class="name" id="userName">-</div>
+          <div class="uuid" id="userUuid"></div>
+        </div>
       </div>
       <div class="meta" id="sessionInfo">-</div>
       <button class="btn-danger" onclick="doLogout()">로그아웃</button>
@@ -134,15 +163,32 @@
         <label>대상 UUID</label>
         <input id="uploadUuid" type="text" placeholder="업로드 대상 사용자 UUID" />
       </div>
+
       <div class="field">
-        <label>프로필 이미지</label>
-        <input id="profileFile" type="file" accept="image/*" style="background:transparent;border:none;padding:0;color:#8b949e" />
+        <label>프로필 이미지 <span style="color:#484f58;font-weight:400;">(jpeg/png/gif/webp · 최대 5MB)</span></label>
+        <div class="file-drop" id="profileDrop">
+          <input type="file" id="profileFile" accept="image/jpeg,image/png,image/gif,image/webp" />
+          <div class="file-drop-text">클릭하거나 드래그하세요 · <span>이미지 선택</span></div>
+        </div>
+        <div class="preview-wrap" id="profilePreviewWrap">
+          <img id="profilePreview" src="" alt="미리보기" />
+          <div class="preview-name" id="profilePreviewName"></div>
+        </div>
       </div>
+
       <div class="field">
-        <label>배너 이미지</label>
-        <input id="bannerFile" type="file" accept="image/*" style="background:transparent;border:none;padding:0;color:#8b949e" />
+        <label>배너 이미지 <span style="color:#484f58;font-weight:400;">(jpeg/png/gif/webp · 최대 10MB)</span></label>
+        <div class="file-drop" id="bannerDrop">
+          <input type="file" id="bannerFile" accept="image/jpeg,image/png,image/gif,image/webp" />
+          <div class="file-drop-text">클릭하거나 드래그하세요 · <span>이미지 선택</span></div>
+        </div>
+        <div class="preview-wrap" id="bannerPreviewWrap">
+          <img id="bannerPreview" src="" alt="미리보기" />
+          <div class="preview-name" id="bannerPreviewName"></div>
+        </div>
       </div>
-      <button class="btn-primary" onclick="doUpload()">업로드</button>
+
+      <button class="btn-primary" id="uploadBtn" onclick="doUpload()">업로드</button>
       <div id="uploadStatus" class="status-box" style="display:none"></div>
     </section>
   </div>
@@ -166,7 +212,7 @@
   const API = window.location.origin;
   let accessToken = sessionStorage.getItem('accessToken') || null;
 
-  // ── 페이지 로드 ─────────────────────────────────────────────────
+  // ── 페이지 로드 ──────────────────────────────────────────────
   (async function init() {
     const params = new URLSearchParams(window.location.search);
 
@@ -177,6 +223,7 @@
     }
     if (params.has('github_linked')) {
       history.replaceState({}, '', location.pathname);
+      if (accessToken) showGithubMsg('ok', '✓ GitHub 계정 연동 완료!');
     }
     if (params.has('error')) {
       showLoginMsg('err', '✗ 오류: ' + decodeURIComponent(params.get('error').replace(/\+/g, ' ')));
@@ -184,49 +231,66 @@
     }
 
     if (accessToken) {
-      await checkRoleAndShow();
+      await showMainTools();
     }
   })();
 
-  async function checkRoleAndShow() {
+  async function showMainTools() {
     const payload = parseJwt(accessToken);
-    if (!payload) { showLogin(); return; }
-    if (payload.role !== 'ADMIN') {
-      showAccessDenied(); return;
-    }
-    showAdminTools(payload);
+    if (!payload) { showLoginView(); return; }
+
+    document.getElementById('loginCard').style.display = 'none';
+    document.getElementById('mainTools').style.display = 'flex';
+
+    // 역할 배지
+    const role = payload.role || 'USER';
+    const roleBadge = document.getElementById('roleBadge');
+    roleBadge.textContent = role;
+    roleBadge.className = 'badge ' + (role === 'ADMIN' ? 'admin' : 'user');
+
+    // UUID/만료
+    document.getElementById('userUuid').textContent = payload.sub || '';
+    document.getElementById('sessionInfo').textContent = `만료: ${formatExp(payload.exp)}`;
+    document.getElementById('uploadUuid').value = payload.sub || '';
+    document.getElementById('viewUuid').value = payload.sub || '';
+
+    // 프로필 정보 조회 (이름/아바타)
+    try {
+      const res = await fetch(`${API}/api/users/${payload.sub}`, { headers: authHeaders() });
+      if (res.ok) {
+        const json = await res.json();
+        const d = json.data;
+        if (d) {
+          const name = d.userNickname || d.userRealname || d.nickname || d.name || payload.sub;
+          document.getElementById('userName').textContent = name;
+          const avatar = d.profileImage || d.profileImageUrl || d.avatar;
+          if (avatar) {
+            const img = document.getElementById('userAvatar');
+            img.src = avatar;
+            img.style.display = '';
+          }
+        }
+      }
+    } catch (_) {}
+
     await checkGithubStatus();
   }
 
-  function showLogin() {
+  function showLoginView() {
+    sessionStorage.removeItem('accessToken');
+    accessToken = null;
     document.getElementById('loginCard').style.display = '';
-    document.getElementById('accessDenied').style.display = 'none';
-    document.getElementById('adminTools').style.display = 'none';
+    document.getElementById('mainTools').style.display = 'none';
   }
 
-  function showAccessDenied() {
-    document.getElementById('loginCard').style.display = 'none';
-    document.getElementById('accessDenied').style.display = '';
-    document.getElementById('adminTools').style.display = 'none';
-  }
-
-  function showAdminTools(payload) {
-    document.getElementById('loginCard').style.display = 'none';
-    document.getElementById('accessDenied').style.display = 'none';
-    document.getElementById('adminTools').style.display = '';
-    document.getElementById('sessionInfo').textContent =
-      `UUID: ${payload.sub}\n만료: ${formatExp(payload.exp)}`;
-    document.getElementById('uploadUuid').value = payload.sub;
-    document.getElementById('viewUuid').value = payload.sub;
-  }
-
-  // ── 로그인 ──────────────────────────────────────────────────────
+  // ── 로그인 ──────────────────────────────────────────────────
   async function doLogin() {
     const id = document.getElementById('loginId').value.trim();
     const pw = document.getElementById('loginPw').value;
     if (!id || !pw) { showLoginMsg('err', '아이디와 비밀번호를 입력하세요.'); return; }
-    document.getElementById('loginBtn').disabled = true;
-    document.getElementById('loginBtn').textContent = '로그인 중…';
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>로그인 중…';
     try {
       const res = await fetch(`${API}/api/auth/login`, {
         method: 'POST', credentials: 'include',
@@ -237,12 +301,23 @@
       if (!res.ok || !json.success) { showLoginMsg('err', `로그인 실패: ${json.message || res.status}`); return; }
       accessToken = json.data.accessToken;
       sessionStorage.setItem('accessToken', accessToken);
-      await checkRoleAndShow();
+
+      // 로그인 응답에서 이름/아바타 미리 세팅
+      if (json.data.userNickname || json.data.userRealname) {
+        document.getElementById('userName').textContent = json.data.userNickname || json.data.userRealname;
+      }
+      if (json.data.profileImage) {
+        const img = document.getElementById('userAvatar');
+        img.src = json.data.profileImage;
+        img.style.display = '';
+      }
+
+      await showMainTools();
     } catch (e) {
       showLoginMsg('err', '네트워크 오류: ' + e.message);
     } finally {
-      document.getElementById('loginBtn').disabled = false;
-      document.getElementById('loginBtn').textContent = '로그인';
+      btn.disabled = false;
+      btn.textContent = '로그인';
     }
   }
 
@@ -252,7 +327,11 @@
     try {
       const res = await fetch(`${API}/api/auth/github/login`);
       const json = await res.json();
-      if (!res.ok || !json.success) { showLoginMsg('err', `오류: ${json.message}`); document.getElementById('githubLoginBtn').disabled = false; return; }
+      if (!res.ok || !json.success) {
+        showLoginMsg('err', `오류: ${json.message}`);
+        document.getElementById('githubLoginBtn').disabled = false;
+        return;
+      }
       setTimeout(() => { window.location.href = json.data.redirectUrl; }, 400);
     } catch (e) {
       showLoginMsg('err', '네트워크 오류: ' + e.message);
@@ -263,11 +342,14 @@
   function doLogout() {
     sessionStorage.removeItem('accessToken');
     accessToken = null;
-    showLogin();
+    document.getElementById('loginCard').style.display = '';
+    document.getElementById('mainTools').style.display = 'none';
+    document.getElementById('loginId').value = '';
+    document.getElementById('loginPw').value = '';
     showLoginMsg('info', '로그아웃 되었습니다.');
   }
 
-  // ── GitHub 연동 ──────────────────────────────────────────────────
+  // ── GitHub 연동 ──────────────────────────────────────────────
   async function checkGithubStatus() {
     try {
       const res = await fetch(`${API}/api/auth/github/status`, { headers: authHeaders() });
@@ -283,7 +365,11 @@
     try {
       const res = await fetch(`${API}/api/auth/github/link`, { headers: authHeaders() });
       const json = await res.json();
-      if (!res.ok || !json.success) { showGithubMsg('err', `오류: ${json.message}`); document.getElementById('linkBtn').disabled = false; return; }
+      if (!res.ok || !json.success) {
+        showGithubMsg('err', `오류: ${json.message}`);
+        document.getElementById('linkBtn').disabled = false;
+        return;
+      }
       showGithubMsg('info', 'GitHub 인증 페이지로 이동합니다…');
       setTimeout(() => { window.location.href = json.data.redirectUrl; }, 800);
     } catch (e) {
@@ -312,13 +398,17 @@
     document.getElementById('unlinkBtn').style.display = linked ? '' : 'none';
   }
 
-  // ── 프로필/배너 업로드 ──────────────────────────────────────────
+  // ── 프로필/배너 업로드 ──────────────────────────────────────
   async function doUpload() {
     const uuid = document.getElementById('uploadUuid').value.trim();
     const profileFile = document.getElementById('profileFile').files[0];
     const bannerFile = document.getElementById('bannerFile').files[0];
     if (!uuid) { showUploadMsg('err', 'UUID를 입력하세요.'); return; }
     if (!profileFile && !bannerFile) { showUploadMsg('err', '파일을 선택하세요.'); return; }
+
+    const btn = document.getElementById('uploadBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>업로드 중…';
 
     const form = new FormData();
     if (profileFile) form.append('profileImage', profileFile);
@@ -330,13 +420,39 @@
       });
       const json = await res.json();
       if (!res.ok || !json.success) { showUploadMsg('err', `업로드 실패: ${json.message}`); return; }
-      showUploadMsg('ok', '✓ 업로드 성공\n' + JSON.stringify(json.data, null, 2));
+
+      const d = json.data;
+      const lines = [];
+      if (d?.profileImageUrl) {
+        lines.push(`🖼️ 프로필: <a href="${d.profileImageUrl}" target="_blank" rel="noopener">${d.profileImageUrl}</a>`);
+        const img = document.getElementById('userAvatar');
+        img.src = d.profileImageUrl;
+        img.style.display = '';
+      }
+      if (d?.bannerUrl) {
+        lines.push(`🏞️ 배너: <a href="${d.bannerUrl}" target="_blank" rel="noopener">${d.bannerUrl}</a>`);
+      }
+      if (!lines.length) lines.push(JSON.stringify(d, null, 2));
+
+      const el = document.getElementById('uploadStatus');
+      el.style.display = '';
+      el.className = 'status-box ok';
+      el.innerHTML = '✓ 업로드 성공\n\n' + lines.join('\n');
+
+      // 미리보기 초기화
+      document.getElementById('profileFile').value = '';
+      document.getElementById('bannerFile').value = '';
+      document.getElementById('profilePreviewWrap').style.display = 'none';
+      document.getElementById('bannerPreviewWrap').style.display = 'none';
     } catch (e) {
       showUploadMsg('err', '네트워크 오류: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '업로드';
     }
   }
 
-  // ── 프로필 조회 ──────────────────────────────────────────────────
+  // ── 프로필 조회 ──────────────────────────────────────────────
   async function doViewProfile() {
     const uuid = document.getElementById('viewUuid').value.trim();
     if (!uuid) { showProfileMsg('err', 'UUID를 입력하세요.'); return; }
@@ -350,10 +466,27 @@
     }
   }
 
-  // ── 헬퍼 ────────────────────────────────────────────────────────
-  function authHeaders() {
-    return { 'Authorization': 'Bearer ' + accessToken };
+  // ── 파일 미리보기 ────────────────────────────────────────────
+  function setupPreview(inputId, previewId, wrapId, nameId, dropId) {
+    const input = document.getElementById(inputId);
+    input.addEventListener('change', () => {
+      const file = input.files[0];
+      if (!file) return;
+      document.getElementById(previewId).src = URL.createObjectURL(file);
+      document.getElementById(nameId).textContent = `${file.name}  (${(file.size / 1024).toFixed(1)} KB)`;
+      document.getElementById(wrapId).style.display = 'flex';
+    });
+    const drop = document.getElementById(dropId);
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+    drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('drag-over'); });
   }
+
+  setupPreview('profileFile', 'profilePreview', 'profilePreviewWrap', 'profilePreviewName', 'profileDrop');
+  setupPreview('bannerFile', 'bannerPreview', 'bannerPreviewWrap', 'bannerPreviewName', 'bannerDrop');
+
+  // ── 헬퍼 ────────────────────────────────────────────────────
+  function authHeaders() { return { 'Authorization': 'Bearer ' + accessToken }; }
 
   function showLoginMsg(type, text) {
     const el = document.getElementById('loginStatus');
