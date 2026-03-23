@@ -26,4 +26,16 @@ public class UpdateProfileRequest {
 
     @Schema(description = "기술 스택(배열)", example = "[\"React\", \"Spring\", \"MySQL\"]")
     private List<String> techStack;
+
+    @Schema(description = "GitHub 프로필 URL", example = "https://github.com/username")
+    private String githubUrl;
+
+    @Schema(description = "Notion 페이지 URL", example = "https://notion.so/username")
+    private String notionUrl;
+
+    @Schema(description = "LinkedIn 프로필 URL", example = "https://linkedin.com/in/username")
+    private String linkedinUrl;
+
+    @Schema(description = "개인 웹사이트 URL", example = "https://mysite.dev")
+    private String personalWebsiteUrl;
 }

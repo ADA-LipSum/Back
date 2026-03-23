@@ -43,4 +43,6 @@ public interface PostRepository extends JpaRepository<Post, String> {
 
     // seq 기반 검색 지원
     java.util.Optional<Post> findBySeq(Long seq);
+
+    long countByWriterUuid(String writerUuid);
 }

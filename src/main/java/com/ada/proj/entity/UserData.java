@@ -41,6 +41,18 @@ public class UserData {
     @Column(name = "contribution_data", columnDefinition = "JSON")
     private String contributionData;
 
+    @Column(name = "github_url", length = 500)
+    private String githubUrl;
+
+    @Column(name = "notion_url", length = 500)
+    private String notionUrl;
+
+    @Column(name = "linkedin_url", length = 500)
+    private String linkedinUrl;
+
+    @Column(name = "personal_website_url", length = 500)
+    private String personalWebsiteUrl;
+
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;

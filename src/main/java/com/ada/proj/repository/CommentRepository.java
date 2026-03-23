@@ -21,4 +21,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     long countByPost(Post post);
 
     boolean existsByCommentUuid(String commentUuid);
+
+    long countByAuthor_Uuid(String uuid);
 }
