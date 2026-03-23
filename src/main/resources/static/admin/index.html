@@ -3,173 +3,462 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>관리자 도구</title>
+  <title>테스트 도구</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #0d1117; color: #e6edf3;
-      min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 32px 16px;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+    header {
+      background: #1a1d2e; border-bottom: 1px solid #2d3748;
+      padding: 16px 32px; display: flex; align-items: center; gap: 12px;
     }
-    h1 { font-size: 20px; font-weight: 700; color: #f0f6fc; margin-bottom: 24px; }
-    h2 { font-size: 15px; font-weight: 600; color: #f0f6fc; display: flex; align-items: center; gap: 8px; }
-    .card {
-      background: #161b22; border: 1px solid #30363d; border-radius: 12px;
-      padding: 28px; width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 20px;
-      margin-bottom: 20px;
+    header h1 { font-size: 1.2rem; color: #58a6ff; }
+    header span { font-size: 0.8rem; color: #64748b; }
+
+    .token-bar {
+      background: #12151f; border-bottom: 1px solid #1e2535;
+      padding: 8px 32px; font-size: 0.75rem; color: #64748b;
+      display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
     }
-    label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; }
-    input {
-      width: 100%; padding: 9px 12px;
-      background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
-      color: #e6edf3; font-size: 14px; outline: none; transition: border-color .15s;
+    .t-label { color: #475569; }
+    .t-val { color: #34d399; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .t-val.empty { color: #4b5563; font-style: italic; }
+    .t-role { font-size: 0.7rem; font-weight: 600; padding: 1px 7px; border-radius: 4px; }
+    .t-role.admin { background: #1a1f6e; color: #79c0ff; border: 1px solid #388bfd; }
+    .t-role.user  { background: #1c2128; color: #8b949e; border: 1px solid #30363d; }
+
+    .tabs { display: flex; gap: 4px; padding: 16px 32px 0; border-bottom: 1px solid #1e2535; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 8px 20px; border: none; background: transparent; color: #64748b;
+      cursor: pointer; font-size: 0.9rem; border-radius: 6px 6px 0 0;
+      border-bottom: 2px solid transparent; transition: all 0.15s;
     }
-    input:focus { border-color: #58a6ff; }
-    .field { display: flex; flex-direction: column; }
-    button {
-      padding: 9px 16px; border-radius: 8px; border: none;
-      font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s;
+    .tab-btn:hover { color: #58a6ff; }
+    .tab-btn.active { color: #58a6ff; border-bottom-color: #58a6ff; background: #1a1d2e; }
+    .tab-btn:disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+
+    .tab-content { display: none; padding: 24px 32px; }
+    .tab-content.active { display: block; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
+
+    .card { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .card h3 { font-size: 0.9rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 0.8rem; color: #64748b; }
+    .form-group input[type="text"],
+    .form-group input[type="password"] {
+      width: 100%; background: #0f1117; border: 1px solid #2d3748;
+      border-radius: 6px; padding: 8px 12px; color: #e2e8f0;
+      font-size: 0.9rem; outline: none; transition: border-color 0.15s;
     }
-    button:disabled { opacity: .45; cursor: not-allowed; }
-    .btn-primary { background: #238636; color: #fff; }
-    .btn-primary:hover:not(:disabled) { background: #2ea043; }
-    .btn-github { background: #21262d; color: #e6edf3; border: 1px solid #30363d; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn-github:hover:not(:disabled) { background: #30363d; }
-    .btn-danger { background: #21262d; color: #f85149; border: 1px solid #30363d; }
-    .btn-danger:hover:not(:disabled) { background: #3d2424; border-color: #f85149; }
-    .btn-secondary { background: #21262d; color: #e6edf3; border: 1px solid #30363d; }
-    .btn-secondary:hover:not(:disabled) { background: #30363d; }
-    .btn-row { display: flex; gap: 10px; }
-    .btn-row button { flex: 1; }
-    .status-box {
-      background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
-      padding: 12px; font-size: 13px; line-height: 1.6; min-height: 40px;
-      white-space: pre-wrap; word-break: break-all;
+    .form-group input:focus { border-color: #58a6ff; }
+
+    .btn {
+      padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;
+      font-size: 0.85rem; font-weight: 500; transition: all 0.15s;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     }
-    .status-box.ok   { border-color: #238636; color: #56d364; }
-    .status-box.err  { border-color: #f85149; color: #f85149; }
-    .status-box.info { border-color: #58a6ff; color: #79c0ff; }
-    .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
-    .badge.linked   { background: #0f4429; color: #56d364; border: 1px solid #238636; }
-    .badge.unlinked { background: #2d1b1b; color: #f85149; border: 1px solid #3d2424; }
-    .badge.admin    { background: #1a1f6e; color: #79c0ff; border: 1px solid #388bfd; }
-    .divider { border: none; border-top: 1px solid #30363d; }
-    .section { display: flex; flex-direction: column; gap: 14px; }
-    .meta { font-size: 12px; color: #484f58; }
-    .or-divider { display: flex; align-items: center; gap: 10px; color: #484f58; font-size: 12px; }
-    .or-divider::before, .or-divider::after { content: ''; flex: 1; border-top: 1px solid #30363d; }
-    #adminTools { display: none; }
-    #accessDenied { display: none; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary   { background: #238636; color: #fff; }
+    .btn-primary:hover:not(:disabled)   { background: #2ea043; }
+    .btn-secondary { background: #1e2535; color: #94a3b8; border: 1px solid #2d3748; }
+    .btn-secondary:hover:not(:disabled) { background: #252d42; }
+    .btn-danger    { background: #3d2424; color: #f85149; border: 1px solid #30363d; }
+    .btn-danger:hover:not(:disabled)    { background: #4a2020; border-color: #f85149; }
+    .btn-github    { background: #21262d; color: #e6edf3; border: 1px solid #30363d; }
+    .btn-github:hover:not(:disabled)    { background: #30363d; }
+    .btn-full { width: 100%; }
+    .btn-icon { padding: 6px 10px; font-size: 1rem; }
+
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-row .btn { flex: 1; }
+
+    .or-divider { display: flex; align-items: center; gap: 10px; color: #475569; font-size: 12px; }
+    .or-divider::before, .or-divider::after { content: ''; flex: 1; border-top: 1px solid #2d3748; }
+
+    .info-box {
+      background: #0f172a; border: 1px solid #1e3a5f; border-radius: 6px;
+      padding: 10px 14px; font-size: 0.8rem; color: #60a5fa;
+      line-height: 1.6; white-space: pre-wrap; word-break: break-all;
+    }
+    .info-box.success { background: #022c22; border-color: #065f46; color: #6ee7b7; }
+    .info-box.error   { background: #2a0f0f; border-color: #7f1d1d; color: #f87171; }
+    .info-box.warn    { background: #1c1200; border-color: #78350f; color: #fbbf24; }
+    .info-box a { color: #60a5fa; }
+    .info-box a:hover { text-decoration: underline; }
+
+    .badge-linked   { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 2px 8px; border-radius: 20px; font-weight: 600; background: #0f4429; color: #56d364; border: 1px solid #238636; }
+    .badge-unlinked { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 2px 8px; border-radius: 20px; font-weight: 600; background: #2d1b1b; color: #f85149; border: 1px solid #3d2424; }
+
+    /* 파일 드롭 */
+    .file-drop {
+      border: 2px dashed #2d3748; border-radius: 8px;
+      padding: 20px; text-align: center; cursor: pointer;
+      transition: border-color .2s; position: relative; overflow: hidden;
+    }
+    .file-drop:hover, .file-drop.drag-over { border-color: #58a6ff; background: #12151f; }
+    .file-drop input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .file-drop-inner { pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .file-drop-icon  { font-size: 1.6rem; }
+    .file-drop-text  { font-size: 0.82rem; color: #64748b; }
+    .file-drop-text span { color: #58a6ff; }
+
+    /* 크롭 미리보기 */
+    .crop-preview-box {
+      display: none;
+      position: relative; border-radius: 8px; overflow: hidden;
+      border: 1px solid #2d3748; background: #0f1117;
+    }
+    .crop-preview-box img {
+      width: 100%; display: block; object-fit: cover;
+    }
+    .crop-preview-box.circle img { border-radius: 50%; }
+    .crop-edit-btn {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(0,0,0,.65); border: 1px solid #2d3748;
+      color: #e2e8f0; border-radius: 6px; padding: 4px 10px;
+      font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 4px;
+    }
+    .crop-edit-btn:hover { background: rgba(0,0,0,.85); }
+    .crop-preview-label {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: rgba(0,0,0,.5); font-size: 0.72rem; color: #94a3b8;
+      padding: 4px 8px; text-align: center;
+    }
+
+    /* 유저 정보 */
+    .user-badge { display: flex; align-items: center; gap: 12px; }
+    .user-badge img { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #2d3748; object-fit: cover; }
+    .user-badge .uname { font-size: 0.95rem; font-weight: 600; color: #e2e8f0; }
+    .user-badge .uuuid { font-size: 0.75rem; color: #475569; margin-top: 2px; }
+
+    /* 프로필 뷰어 */
+    .profile-card { background: #12151f; border: 1px solid #2d3748; border-radius: 10px; overflow: hidden; }
+    .profile-banner-area { width: 100%; height: 130px; background: linear-gradient(135deg,#1a1d2e 0%,#2d3748 100%); overflow: hidden; }
+    .profile-banner-area img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .profile-body { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .profile-avatar-row { display: flex; align-items: flex-end; gap: 12px; margin-top: -36px; }
+    .profile-avatar { width: 68px; height: 68px; border-radius: 50%; border: 3px solid #12151f; object-fit: cover; background: #1a1d2e; flex-shrink: 0; }
+    .profile-info .pname { font-size: 1rem; font-weight: 700; color: #e2e8f0; }
+    .profile-info .phandle { font-size: 0.78rem; color: #475569; margin-top: 2px; }
+    .profile-detail { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 0.8rem; margin-top: 8px; }
+    .profile-detail .k { color: #475569; white-space: nowrap; }
+    .profile-detail .v { color: #94a3b8; word-break: break-all; }
+
+    .spinner {
+      display: inline-block; width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+      border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none !important; }
+
+    /* ── 크롭 모달 ── */
+    .crop-overlay {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,.85); align-items: center; justify-content: center;
+    }
+    .crop-overlay.open { display: flex; }
+    .crop-modal {
+      background: #1a1d2e; border: 1px solid #2d3748; border-radius: 12px;
+      width: min(680px, 96vw); display: flex; flex-direction: column; overflow: hidden;
+      max-height: 92vh;
+    }
+    .crop-modal-header {
+      padding: 14px 20px; border-bottom: 1px solid #2d3748;
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .crop-modal-header h4 { font-size: 0.95rem; color: #e2e8f0; }
+    .crop-modal-close { background: none; border: none; color: #64748b; font-size: 1.3rem; cursor: pointer; padding: 0 4px; line-height: 1; }
+    .crop-modal-close:hover { color: #e2e8f0; }
+    .crop-modal-body { flex: 1; overflow: hidden; background: #0f1117; min-height: 300px; max-height: 55vh; position: relative; }
+    .crop-modal-body img { display: block; max-width: 100%; }
+    .crop-modal-footer {
+      padding: 12px 20px; border-top: 1px solid #2d3748; flex-shrink: 0;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .crop-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .crop-controls label { font-size: 0.78rem; color: #64748b; white-space: nowrap; }
+    .crop-zoom-slider {
+      flex: 1; min-width: 100px; accent-color: #58a6ff;
+      height: 4px; cursor: pointer;
+    }
+    .crop-aspect-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .crop-aspect-btn {
+      padding: 3px 10px; font-size: 0.75rem; border-radius: 4px; border: 1px solid #2d3748;
+      background: #0f1117; color: #64748b; cursor: pointer; transition: all .15s;
+    }
+    .crop-aspect-btn:hover { border-color: #58a6ff; color: #58a6ff; }
+    .crop-aspect-btn.active { background: #1e3a5f; border-color: #58a6ff; color: #58a6ff; }
+    .crop-action-btns { display: flex; gap: 8px; justify-content: flex-end; }
+
+    /* 하단 응답 패널 */
+    .response-panel {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 200px;
+      background: #0a0c14; border-top: 1px solid #1e2535; display: flex; flex-direction: column;
+    }
+    .response-header {
+      padding: 6px 16px; display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid #1e2535; flex-shrink: 0;
+    }
+    .response-header span { font-size: 0.78rem; color: #475569; }
+    #responseStatus { font-size: 0.82rem; font-weight: 600; }
+    .status-ok  { color: #34d399; }
+    .status-err { color: #f87171; }
+    #responseBody {
+      flex: 1; overflow-y: auto; padding: 10px 16px;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 0.76rem; color: #94a3b8; white-space: pre-wrap; word-break: break-all;
+    }
+    .spacer { height: 220px; }
   </style>
 </head>
 <body>
-<h1>🔧 관리자 도구</h1>
 
-<!-- ── 로그인 카드 ── -->
-<div class="card" id="loginCard">
-  <section class="section" id="loginSection">
-    <h2>로그인 (ADMIN 계정만 접근 가능)</h2>
-    <div class="field">
-      <label for="loginId">아이디</label>
-      <input id="loginId" type="text" placeholder="admin_id 또는 custom_id" />
-    </div>
-    <div class="field">
-      <label for="loginPw">비밀번호</label>
-      <input id="loginPw" type="password" placeholder="password" />
-    </div>
-    <button class="btn-primary" id="loginBtn" onclick="doLogin()">로그인</button>
-    <div class="or-divider">또는</div>
-    <button class="btn-github" id="githubLoginBtn" onclick="startGithubLogin()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
-      GitHub으로 로그인
-    </button>
-    <div id="loginStatus" class="status-box" style="display:none"></div>
-  </section>
+<header>
+  <h1>🔧 테스트 도구</h1>
+  <span>API Test Page</span>
+</header>
+
+<div class="token-bar">
+  <span class="t-label">Access Token:</span>
+  <span class="t-val empty" id="displayToken">없음</span>
+  <span id="displayRole" class="hidden"></span>
+  <span class="t-label" style="margin-left:8px">만료:</span>
+  <span class="t-val empty" id="displayExp">-</span>
+  <button class="btn btn-secondary" style="font-size:0.7rem;padding:3px 10px;margin-left:auto" onclick="doLogout()">로그아웃</button>
 </div>
 
-<!-- ── 권한 없음 ── -->
-<div class="card" id="accessDenied">
-  <div class="status-box err">⛔ ADMIN 권한이 없습니다. 관리자 계정으로 로그인하세요.</div>
-  <button class="btn-secondary" onclick="doLogout()">로그아웃</button>
+<div class="tabs">
+  <button class="tab-btn active"  id="tab-btn-auth"    onclick="switchTab('auth',    this)">🔑 로그인</button>
+  <button class="tab-btn" disabled id="tab-btn-github"  onclick="switchTab('github',  this)">🐙 GitHub</button>
+  <button class="tab-btn" disabled id="tab-btn-upload"  onclick="switchTab('upload',  this)">📦 업로드</button>
+  <button class="tab-btn" disabled id="tab-btn-profile" onclick="switchTab('profile', this)">👤 프로필 조회</button>
 </div>
 
-<!-- ── 관리자 도구 ── -->
-<div id="adminTools">
-
-  <!-- 세션 정보 -->
-  <div class="card">
-    <section class="section">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <h2>세션 정보</h2>
-        <span class="badge admin" id="roleBadge">ADMIN</span>
+<!-- ══ 로그인 탭 ══════════════════════════════════════════════ -->
+<div id="tab-auth" class="tab-content active">
+  <div class="grid">
+    <div class="card" id="loginCard">
+      <h3>로그인</h3>
+      <div class="form-group">
+        <label>아이디</label>
+        <input id="loginId" type="text" placeholder="admin_id 또는 custom_id" />
       </div>
-      <div class="meta" id="sessionInfo">-</div>
-      <button class="btn-danger" onclick="doLogout()">로그아웃</button>
-    </section>
-  </div>
+      <div class="form-group">
+        <label>비밀번호</label>
+        <input id="loginPw" type="password" placeholder="password" />
+      </div>
+      <button class="btn btn-primary btn-full" id="loginBtn" onclick="doLogin()">로그인</button>
+      <div class="or-divider">또는</div>
+      <button class="btn btn-github btn-full" id="githubLoginBtn" onclick="startGithubLogin()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+        GitHub으로 로그인
+      </button>
+      <div id="loginStatus" class="info-box hidden"></div>
+    </div>
 
-  <!-- GitHub 연동 -->
-  <div class="card">
-    <section class="section">
+    <div class="card hidden" id="sessionCard">
+      <h3>현재 세션</h3>
+      <div class="user-badge">
+        <img id="userAvatar" src="" alt="" onerror="this.style.display='none'" style="display:none" />
+        <div>
+          <div class="uname" id="userName">-</div>
+          <div class="uuuid" id="userUuid"></div>
+        </div>
+      </div>
+      <div id="sessionInfo" class="info-box">-</div>
+      <button class="btn btn-danger btn-full" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GitHub 탭 ══════════════════════════════════════════════ -->
+<div id="tab-github" class="tab-content">
+  <div class="grid">
+    <div class="card">
+      <h3>GitHub 연동</h3>
       <div style="display:flex;align-items:center;justify-content:space-between;">
-        <h2>GitHub 연동</h2>
-        <span id="linkedBadge" class="badge unlinked">● 미연동</span>
+        <span style="font-size:0.85rem;color:#94a3b8">연동 상태</span>
+        <span id="linkedBadge" class="badge-unlinked">● 미연동</span>
       </div>
       <div class="btn-row">
-        <button class="btn-github" id="linkBtn" onclick="startLink()">
+        <button class="btn btn-github" id="linkBtn" onclick="startLink()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
           연동하기
         </button>
-        <button class="btn-danger" id="unlinkBtn" onclick="doUnlink()" style="display:none">연동 해제</button>
+        <button class="btn btn-danger" id="unlinkBtn" onclick="doUnlink()" style="display:none">연동 해제</button>
       </div>
-      <div id="githubStatus" class="status-box" style="display:none"></div>
-    </section>
+      <div id="githubStatus" class="info-box hidden"></div>
+    </div>
   </div>
+</div>
 
-  <!-- 프로필/배너 업로드 -->
-  <div class="card">
-    <section class="section">
-      <h2>프로필 / 배너 업로드</h2>
-      <div class="field">
+<!-- ══ 업로드 탭 ══════════════════════════════════════════════ -->
+<div id="tab-upload" class="tab-content">
+  <div class="grid">
+    <div class="card">
+      <h3>이미지 선택 &amp; 크롭</h3>
+      <div class="form-group">
         <label>대상 UUID</label>
         <input id="uploadUuid" type="text" placeholder="업로드 대상 사용자 UUID" />
       </div>
-      <div class="field">
-        <label>프로필 이미지</label>
-        <input id="profileFile" type="file" accept="image/*" style="background:transparent;border:none;padding:0;color:#8b949e" />
-      </div>
-      <div class="field">
-        <label>배너 이미지</label>
-        <input id="bannerFile" type="file" accept="image/*" style="background:transparent;border:none;padding:0;color:#8b949e" />
-      </div>
-      <button class="btn-primary" onclick="doUpload()">업로드</button>
-      <div id="uploadStatus" class="status-box" style="display:none"></div>
-    </section>
-  </div>
 
-  <!-- 프로필 조회 -->
-  <div class="card">
-    <section class="section">
-      <h2>프로필 조회</h2>
-      <div class="field">
+      <!-- 프로필 이미지 -->
+      <div class="form-group">
+        <label>프로필 이미지 <span style="color:#475569;font-weight:400">(1:1 · 최대 5MB)</span></label>
+        <div class="file-drop" id="profileDrop">
+          <input type="file" id="profileFileInput" accept="image/*" />
+          <div class="file-drop-inner">
+            <div class="file-drop-icon">🖼️</div>
+            <div class="file-drop-text">클릭하거나 드래그 · <span>이미지 선택</span></div>
+          </div>
+        </div>
+        <div class="crop-preview-box" id="profilePreviewBox">
+          <img id="profilePreviewImg" src="" alt="크롭 미리보기" style="height:140px;object-fit:cover;" />
+          <button class="crop-edit-btn" onclick="reOpenCrop('profile')">✏️ 다시 편집</button>
+          <div class="crop-preview-label" id="profilePreviewLabel"></div>
+        </div>
+      </div>
+
+      <!-- 배너 이미지 -->
+      <div class="form-group">
+        <label>배너 이미지 <span style="color:#475569;font-weight:400">(최대 10MB)</span></label>
+        <div class="file-drop" id="bannerDrop">
+          <input type="file" id="bannerFileInput" accept="image/*" />
+          <div class="file-drop-inner">
+            <div class="file-drop-icon">🏞️</div>
+            <div class="file-drop-text">클릭하거나 드래그 · <span>이미지 선택</span></div>
+          </div>
+        </div>
+        <div class="crop-preview-box" id="bannerPreviewBox">
+          <img id="bannerPreviewImg" src="" alt="크롭 미리보기" style="height:100px;object-fit:cover;" />
+          <button class="crop-edit-btn" onclick="reOpenCrop('banner')">✏️ 다시 편집</button>
+          <div class="crop-preview-label" id="bannerPreviewLabel"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" id="uploadBtn" onclick="doUpload()">업로드</button>
+      <div id="uploadStatus" class="info-box hidden"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 프로필 조회 탭 ══════════════════════════════════════════ -->
+<div id="tab-profile" class="tab-content">
+  <div class="grid">
+    <div class="card">
+      <h3>UUID로 조회</h3>
+      <div class="form-group">
         <label>UUID</label>
         <input id="viewUuid" type="text" placeholder="조회할 사용자 UUID" />
       </div>
-      <button class="btn-secondary" onclick="doViewProfile()">조회</button>
-      <div id="profileResult" class="status-box" style="display:none"></div>
-    </section>
-  </div>
+      <button class="btn btn-secondary btn-full" onclick="doViewProfile()">조회</button>
+      <div id="profileStatus" class="info-box hidden"></div>
+    </div>
 
+    <div class="card hidden" id="profileViewer">
+      <h3>프로필</h3>
+      <div class="profile-card">
+        <div class="profile-banner-area" id="profileBannerArea">
+          <!-- 배너 이미지는 JS로 삽입 -->
+        </div>
+        <div class="profile-body">
+          <div class="profile-avatar-row">
+            <img id="profileAvatarImg" src="" alt="avatar" class="profile-avatar" />
+            <div class="profile-info">
+              <div class="pname" id="profileName">-</div>
+              <div class="phandle" id="profileHandle"></div>
+            </div>
+          </div>
+          <div class="profile-detail" id="profileDetail"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
+<!-- ══ 크롭 모달 ════════════════════════════════════════════════ -->
+<div class="crop-overlay" id="cropOverlay">
+  <div class="crop-modal">
+    <div class="crop-modal-header">
+      <h4 id="cropModalTitle">이미지 편집</h4>
+      <button class="crop-modal-close" onclick="closeCropModal()">✕</button>
+    </div>
+    <div class="crop-modal-body">
+      <img id="cropImage" src="" alt="crop" />
+    </div>
+    <div class="crop-modal-footer">
+      <!-- 비율 버튼 (배너용으로만 표시) -->
+      <div id="cropAspectRow" class="crop-controls hidden">
+        <span style="font-size:0.78rem;color:#64748b">비율</span>
+        <div class="crop-aspect-btns" id="cropAspectBtns">
+          <button class="crop-aspect-btn active" data-ratio="3"    onclick="setAspect(3,    this)">3:1</button>
+          <button class="crop-aspect-btn"        data-ratio="2.35" onclick="setAspect(2.35, this)">21:9</button>
+          <button class="crop-aspect-btn"        data-ratio="1.78" onclick="setAspect(1.78, this)">16:9</button>
+          <button class="crop-aspect-btn"        data-ratio="0"    onclick="setAspect(0,    this)">자유</button>
+        </div>
+      </div>
+      <!-- 줌 슬라이더 -->
+      <div class="crop-controls">
+        <label>🔍 줌</label>
+        <input type="range" class="crop-zoom-slider" id="cropZoomSlider"
+               min="-1" max="2" step="0.01" value="0"
+               oninput="onZoomSlider(this.value)" />
+        <button class="btn btn-secondary btn-icon" onclick="rotateCrop(-90)" title="반시계 회전">↺</button>
+        <button class="btn btn-secondary btn-icon" onclick="rotateCrop(90)"  title="시계 회전">↻</button>
+        <button class="btn btn-secondary btn-icon" onclick="flipCrop('h')"   title="좌우 반전">↔</button>
+        <button class="btn btn-secondary btn-icon" onclick="flipCrop('v')"   title="상하 반전">↕</button>
+      </div>
+      <div class="crop-action-btns">
+        <button class="btn btn-secondary" onclick="closeCropModal()">취소</button>
+        <button class="btn btn-primary"   onclick="confirmCrop()">✓ 적용</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 하단 응답 패널 -->
+<div class="response-panel">
+  <div class="response-header">
+    <span>마지막 응답</span>
+    <span id="responseStatus">-</span>
+    <span id="responseEndpoint" style="color:#334155;margin-left:4px;font-size:0.75rem"></span>
+  </div>
+  <pre id="responseBody">요청을 보내면 응답이 여기에 표시됩니다.</pre>
+</div>
+<div class="spacer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script>
   const API = window.location.origin;
   let accessToken = sessionStorage.getItem('accessToken') || null;
 
-  // ── 페이지 로드 ─────────────────────────────────────────────────
+  // 크롭된 결과 블롭 저장
+  const croppedBlobs = { profile: null, banner: null };
+  // 원본 파일 URL (재편집용)
+  const originalUrls = { profile: null, banner: null };
+  // 현재 크롭 대상
+  let cropTarget = null;
+  let cropperInst = null;
+  let flipH = 1, flipV = 1;
+
+  // ── 탭 전환 ──────────────────────────────────────────────────
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ── 페이지 로드 ──────────────────────────────────────────────
   (async function init() {
     const params = new URLSearchParams(window.location.search);
-
     if (params.has('access_token')) {
       accessToken = params.get('access_token');
       sessionStorage.setItem('accessToken', accessToken);
@@ -177,213 +466,422 @@
     }
     if (params.has('github_linked')) {
       history.replaceState({}, '', location.pathname);
+      if (accessToken) {
+        setMsg('githubStatus', 'success', '✓ GitHub 계정 연동 완료!');
+        switchTab('github', document.getElementById('tab-btn-github'));
+      }
     }
     if (params.has('error')) {
-      showLoginMsg('err', '✗ 오류: ' + decodeURIComponent(params.get('error').replace(/\+/g, ' ')));
+      setMsg('loginStatus', 'error', '✗ ' + decodeURIComponent(params.get('error').replace(/\+/g,' ')));
       history.replaceState({}, '', location.pathname);
     }
-
-    if (accessToken) {
-      await checkRoleAndShow();
-    }
+    if (accessToken) await applyLogin();
   })();
 
-  async function checkRoleAndShow() {
-    const payload = parseJwt(accessToken);
-    if (!payload) { showLogin(); return; }
-    if (payload.role !== 'ADMIN') {
-      showAccessDenied(); return;
-    }
-    showAdminTools(payload);
+  // ── 로그인 적용 ──────────────────────────────────────────────
+  async function applyLogin() {
+    const p = parseJwt(accessToken);
+    if (!p) { clearSession(); return; }
+
+    ['github','upload','profile'].forEach(t =>
+      document.getElementById('tab-btn-' + t).removeAttribute('disabled'));
+
+    // 토큰 바
+    const tv = document.getElementById('displayToken');
+    tv.textContent = accessToken.slice(0, 44) + '…'; tv.className = 't-val';
+    const ev = document.getElementById('displayExp');
+    ev.textContent = formatExp(p.exp); ev.className = 't-val';
+    const rv = document.getElementById('displayRole');
+    rv.textContent = p.role || 'USER';
+    rv.className = 't-role ' + ((p.role === 'ADMIN') ? 'admin' : 'user');
+    rv.classList.remove('hidden');
+
+    // 세션 카드
+    document.getElementById('loginCard').classList.add('hidden');
+    document.getElementById('sessionCard').classList.remove('hidden');
+    document.getElementById('userUuid').textContent = p.sub || '';
+    document.getElementById('sessionInfo').textContent =
+      `UUID: ${p.sub}\n역할: ${p.role || 'USER'}\n만료: ${formatExp(p.exp)}`;
+
+    document.getElementById('uploadUuid').value = p.sub || '';
+    document.getElementById('viewUuid').value   = p.sub || '';
+
+    // 프로필 조회로 이름/아바타
+    try {
+      const r = await apiFetch('GET', `/api/users/${p.sub}`, null, true);
+      if (r.ok && r.json?.data) {
+        const d = r.json.data;
+        document.getElementById('userName').textContent =
+          d.userNickname || d.nickname || d.userRealname || d.name || p.sub;
+        const av = d.profileImage || d.profileImageUrl || d.avatarUrl;
+        if (av) {
+          const img = document.getElementById('userAvatar');
+          img.src = av; img.style.display = '';
+        }
+      }
+    } catch (_) {}
+
     await checkGithubStatus();
   }
 
-  function showLogin() {
-    document.getElementById('loginCard').style.display = '';
-    document.getElementById('accessDenied').style.display = 'none';
-    document.getElementById('adminTools').style.display = 'none';
+  function clearSession() {
+    sessionStorage.removeItem('accessToken'); accessToken = null;
+    ['github','upload','profile'].forEach(t =>
+      document.getElementById('tab-btn-' + t).setAttribute('disabled',''));
+    document.getElementById('loginCard').classList.remove('hidden');
+    document.getElementById('sessionCard').classList.add('hidden');
+    const tv = document.getElementById('displayToken');
+    tv.textContent = '없음'; tv.className = 't-val empty';
+    const ev = document.getElementById('displayExp');
+    ev.textContent = '-'; ev.className = 't-val empty';
+    document.getElementById('displayRole').classList.add('hidden');
+    switchTab('auth', document.getElementById('tab-btn-auth'));
   }
 
-  function showAccessDenied() {
-    document.getElementById('loginCard').style.display = 'none';
-    document.getElementById('accessDenied').style.display = '';
-    document.getElementById('adminTools').style.display = 'none';
-  }
-
-  function showAdminTools(payload) {
-    document.getElementById('loginCard').style.display = 'none';
-    document.getElementById('accessDenied').style.display = 'none';
-    document.getElementById('adminTools').style.display = '';
-    document.getElementById('sessionInfo').textContent =
-      `UUID: ${payload.sub}\n만료: ${formatExp(payload.exp)}`;
-    document.getElementById('uploadUuid').value = payload.sub;
-    document.getElementById('viewUuid').value = payload.sub;
-  }
-
-  // ── 로그인 ──────────────────────────────────────────────────────
+  // ── 로그인 ──────────────────────────────────────────────────
   async function doLogin() {
     const id = document.getElementById('loginId').value.trim();
     const pw = document.getElementById('loginPw').value;
-    if (!id || !pw) { showLoginMsg('err', '아이디와 비밀번호를 입력하세요.'); return; }
-    document.getElementById('loginBtn').disabled = true;
-    document.getElementById('loginBtn').textContent = '로그인 중…';
+    if (!id || !pw) { setMsg('loginStatus','warn','아이디와 비밀번호를 입력하세요.'); return; }
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 로그인 중…';
     try {
-      const res = await fetch(`${API}/api/auth/login`, {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, password: pw })
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) { showLoginMsg('err', `로그인 실패: ${json.message || res.status}`); return; }
-      accessToken = json.data.accessToken;
+      const r = await apiFetch('POST', '/api/auth/login', { id, password: pw });
+      if (!r.ok) { setMsg('loginStatus','error',`로그인 실패: ${r.json?.message || r.status}`); return; }
+      accessToken = r.json.data.accessToken;
       sessionStorage.setItem('accessToken', accessToken);
-      await checkRoleAndShow();
+      await applyLogin();
     } catch (e) {
-      showLoginMsg('err', '네트워크 오류: ' + e.message);
+      setMsg('loginStatus','error','네트워크 오류: ' + e.message);
     } finally {
-      document.getElementById('loginBtn').disabled = false;
-      document.getElementById('loginBtn').textContent = '로그인';
+      btn.disabled = false; btn.textContent = '로그인';
     }
   }
 
   async function startGithubLogin() {
     document.getElementById('githubLoginBtn').disabled = true;
-    showLoginMsg('info', 'GitHub 로그인 페이지로 이동 중…');
+    setMsg('loginStatus','','GitHub 로그인 페이지로 이동 중…');
     try {
-      const res = await fetch(`${API}/api/auth/github/login`);
-      const json = await res.json();
-      if (!res.ok || !json.success) { showLoginMsg('err', `오류: ${json.message}`); document.getElementById('githubLoginBtn').disabled = false; return; }
-      setTimeout(() => { window.location.href = json.data.redirectUrl; }, 400);
+      const r = await apiFetch('GET', '/api/auth/github/login');
+      if (!r.ok) { setMsg('loginStatus','error',`오류: ${r.json?.message}`); document.getElementById('githubLoginBtn').disabled=false; return; }
+      setTimeout(() => { window.location.href = r.json.data.redirectUrl; }, 400);
     } catch (e) {
-      showLoginMsg('err', '네트워크 오류: ' + e.message);
+      setMsg('loginStatus','error','네트워크 오류: ' + e.message);
       document.getElementById('githubLoginBtn').disabled = false;
     }
   }
 
   function doLogout() {
-    sessionStorage.removeItem('accessToken');
-    accessToken = null;
-    showLogin();
-    showLoginMsg('info', '로그아웃 되었습니다.');
+    clearSession();
+    document.getElementById('loginId').value = '';
+    document.getElementById('loginPw').value = '';
   }
 
-  // ── GitHub 연동 ──────────────────────────────────────────────────
+  // ── GitHub ──────────────────────────────────────────────────
   async function checkGithubStatus() {
     try {
-      const res = await fetch(`${API}/api/auth/github/status`, { headers: authHeaders() });
-      if (!res.ok) return;
-      const json = await res.json();
-      setLinkedState(json.data?.githubLinked === true);
+      const r = await apiFetch('GET', '/api/auth/github/status', null, true);
+      if (r.ok) setLinkedState(r.json.data?.githubLinked === true);
     } catch (_) {}
   }
-
   async function startLink() {
     document.getElementById('linkBtn').disabled = true;
-    showGithubMsg('info', '연동 URL 요청 중…');
+    setMsg('githubStatus','','연동 URL 요청 중…');
     try {
-      const res = await fetch(`${API}/api/auth/github/link`, { headers: authHeaders() });
-      const json = await res.json();
-      if (!res.ok || !json.success) { showGithubMsg('err', `오류: ${json.message}`); document.getElementById('linkBtn').disabled = false; return; }
-      showGithubMsg('info', 'GitHub 인증 페이지로 이동합니다…');
-      setTimeout(() => { window.location.href = json.data.redirectUrl; }, 800);
+      const r = await apiFetch('GET', '/api/auth/github/link', null, true);
+      if (!r.ok) { setMsg('githubStatus','error',`오류: ${r.json?.message}`); document.getElementById('linkBtn').disabled=false; return; }
+      setMsg('githubStatus','','GitHub 인증 페이지로 이동합니다…');
+      setTimeout(() => { window.location.href = r.json.data.redirectUrl; }, 800);
     } catch (e) {
-      showGithubMsg('err', '네트워크 오류: ' + e.message);
+      setMsg('githubStatus','error','네트워크 오류: ' + e.message);
       document.getElementById('linkBtn').disabled = false;
     }
   }
-
   async function doUnlink() {
     if (!confirm('GitHub 연동을 해제하시겠습니까?')) return;
     try {
-      const res = await fetch(`${API}/api/auth/github/unlink`, { method: 'DELETE', headers: authHeaders() });
-      const json = await res.json();
-      if (!res.ok || !json.success) { showGithubMsg('err', `오류: ${json.message}`); return; }
-      showGithubMsg('ok', '✓ GitHub 연동이 해제되었습니다.');
+      const r = await apiFetch('DELETE', '/api/auth/github/unlink', null, true);
+      if (!r.ok) { setMsg('githubStatus','error',`오류: ${r.json?.message}`); return; }
+      setMsg('githubStatus','success','✓ GitHub 연동이 해제되었습니다.');
       setLinkedState(false);
-    } catch (e) {
-      showGithubMsg('err', '네트워크 오류: ' + e.message);
-    }
+    } catch (e) { setMsg('githubStatus','error','네트워크 오류: ' + e.message); }
   }
-
   function setLinkedState(linked) {
     document.getElementById('linkedBadge').textContent = linked ? '● 연동됨' : '● 미연동';
-    document.getElementById('linkedBadge').className = 'badge ' + (linked ? 'linked' : 'unlinked');
-    document.getElementById('linkBtn').style.display = linked ? 'none' : '';
+    document.getElementById('linkedBadge').className   = linked ? 'badge-linked' : 'badge-unlinked';
+    document.getElementById('linkBtn').style.display   = linked ? 'none' : '';
     document.getElementById('unlinkBtn').style.display = linked ? '' : 'none';
   }
 
-  // ── 프로필/배너 업로드 ──────────────────────────────────────────
+  // ── 파일 선택 → 크롭 모달 ────────────────────────────────────
+  function setupFileDrop(inputId, dropId, target) {
+    const input = document.getElementById(inputId);
+    const drop  = document.getElementById(dropId);
+
+    input.addEventListener('change', () => {
+      if (input.files[0]) openCropModal(target, input.files[0]);
+    });
+    drop.addEventListener('dragover',  e => { e.preventDefault(); drop.classList.add('drag-over'); });
+    drop.addEventListener('dragleave', ()  => drop.classList.remove('drag-over'));
+    drop.addEventListener('drop', e => {
+      e.preventDefault(); drop.classList.remove('drag-over');
+      if (e.dataTransfer.files[0]) openCropModal(target, e.dataTransfer.files[0]);
+    });
+  }
+  setupFileDrop('profileFileInput', 'profileDrop', 'profile');
+  setupFileDrop('bannerFileInput',  'bannerDrop',  'banner');
+
+  function reOpenCrop(target) {
+    if (!originalUrls[target]) return;
+    openCropModalFromUrl(target, originalUrls[target]);
+  }
+
+  function openCropModal(target, file) {
+    const url = URL.createObjectURL(file);
+    originalUrls[target] = url;
+    openCropModalFromUrl(target, url);
+  }
+
+  function openCropModalFromUrl(target, url) {
+    cropTarget = target;
+    flipH = 1; flipV = 1;
+
+    const isProfile = target === 'profile';
+    document.getElementById('cropModalTitle').textContent = isProfile ? '프로필 이미지 편집' : '배너 이미지 편집';
+    document.getElementById('cropAspectRow').classList.toggle('hidden', isProfile);
+    document.getElementById('cropZoomSlider').value = 0;
+
+    // 기존 cropper 먼저 제거
+    if (cropperInst) { cropperInst.destroy(); cropperInst = null; }
+
+    // 오버레이 먼저 열어야 컨테이너 크기가 계산됨
+    document.getElementById('cropOverlay').classList.add('open');
+
+    const img = document.getElementById('cropImage');
+    img.onload = null;
+
+    function initCropper() {
+      if (cropperInst) { cropperInst.destroy(); cropperInst = null; }
+      const aspect = isProfile ? 1 : 3;
+      requestAnimationFrame(() => {
+        cropperInst = new Cropper(img, {
+          aspectRatio: aspect,
+          viewMode: 1,
+          dragMode: 'move',
+          autoCropArea: 0.85,
+          background: false,
+          zoomOnWheel: true,
+          zoom(e) {
+            document.getElementById('cropZoomSlider').value = e.detail.ratio - 1;
+          },
+        });
+        if (!isProfile) {
+          document.querySelectorAll('.crop-aspect-btn').forEach(b => b.classList.remove('active'));
+          document.querySelector('.crop-aspect-btn[data-ratio="3"]').classList.add('active');
+        }
+      });
+    }
+
+    img.onload = initCropper;
+    // src를 빈 값으로 초기화해야 같은 URL 재사용 시에도 onload가 반드시 발화됨
+    img.src = '';
+    img.src = url;
+    // 이미 캐시된 경우 onload가 동기로 건너뛰어질 수 있으므로 수동 호출
+    if (img.complete && img.naturalWidth > 0) initCropper();
+  }
+
+  function closeCropModal() {
+    document.getElementById('cropOverlay').classList.remove('open');
+    if (cropperInst) { cropperInst.destroy(); cropperInst = null; }
+  }
+
+  function confirmCrop() {
+    if (!cropperInst) return;
+    const isProfile = cropTarget === 'profile';
+    const w = isProfile ? 400 : 1200;
+    const h = isProfile ? 400 : 400;
+
+    cropperInst.getCroppedCanvas({ width: w, height: h, imageSmoothingQuality: 'high' }).toBlob(blob => {
+      croppedBlobs[cropTarget] = blob;
+
+      const url = URL.createObjectURL(blob);
+      const previewImg = document.getElementById(cropTarget + 'PreviewImg');
+      const previewBox = document.getElementById(cropTarget + 'PreviewBox');
+      const previewLabel = document.getElementById(cropTarget + 'PreviewLabel');
+
+      previewImg.src = url;
+      previewBox.style.display = 'block';
+      previewLabel.textContent = `${(blob.size / 1024).toFixed(0)} KB · ${w}×${h}`;
+
+      closeCropModal();
+    }, 'image/jpeg', 0.92);
+  }
+
+  // ── 크롭 컨트롤 ──────────────────────────────────────────────
+  function onZoomSlider(val) {
+    if (!cropperInst) return;
+    cropperInst.zoomTo(Math.max(0.05, 1 + parseFloat(val)));
+  }
+  function rotateCrop(deg) {
+    if (cropperInst) cropperInst.rotate(deg);
+  }
+  function flipCrop(axis) {
+    if (!cropperInst) return;
+    if (axis === 'h') { flipH *= -1; cropperInst.scaleX(flipH); }
+    else              { flipV *= -1; cropperInst.scaleY(flipV); }
+  }
+  function setAspect(ratio, btn) {
+    if (!cropperInst) return;
+    cropperInst.setAspectRatio(ratio === 0 ? NaN : ratio);
+    document.querySelectorAll('.crop-aspect-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  // ── 업로드 ──────────────────────────────────────────────────
   async function doUpload() {
     const uuid = document.getElementById('uploadUuid').value.trim();
-    const profileFile = document.getElementById('profileFile').files[0];
-    const bannerFile = document.getElementById('bannerFile').files[0];
-    if (!uuid) { showUploadMsg('err', 'UUID를 입력하세요.'); return; }
-    if (!profileFile && !bannerFile) { showUploadMsg('err', '파일을 선택하세요.'); return; }
+    const pb = croppedBlobs.profile;
+    const bb = croppedBlobs.banner;
+    if (!uuid) { setMsg('uploadStatus','warn','UUID를 입력하세요.'); return; }
+    if (!pb && !bb) { setMsg('uploadStatus','warn','이미지를 선택하고 크롭을 완료해주세요.'); return; }
+
+    const btn = document.getElementById('uploadBtn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 업로드 중…';
 
     const form = new FormData();
-    if (profileFile) form.append('profileImage', profileFile);
-    if (bannerFile) form.append('banner', bannerFile);
+    if (pb) form.append('profileImage', pb, 'profile.jpg');
+    if (bb) form.append('banner', bb, 'banner.jpg');
 
     try {
-      const res = await fetch(`${API}/api/upload/profile/${uuid}`, {
-        method: 'POST', headers: { 'Authorization': 'Bearer ' + accessToken }, body: form
+      const r = await apiFetch('POST', `/api/upload/profile/${uuid}`, form, true);
+      if (!r.ok) { setMsg('uploadStatus','error',`업로드 실패: ${r.json?.message}`); return; }
+      const d = r.json.data;
+      const lines = ['✓ 업로드 성공'];
+      if (d?.profileImageUrl) lines.push(`🖼️ 프로필: <a href="${d.profileImageUrl}" target="_blank">${d.profileImageUrl}</a>`);
+      if (d?.bannerUrl)       lines.push(`🏞️ 배너: <a href="${d.bannerUrl}" target="_blank">${d.bannerUrl}</a>`);
+      const el = document.getElementById('uploadStatus');
+      el.className = 'info-box success'; el.classList.remove('hidden');
+      el.innerHTML = lines.join('\n');
+
+      if (d?.profileImageUrl) {
+        const av = document.getElementById('userAvatar');
+        av.src = d.profileImageUrl; av.style.display = '';
+      }
+      // 미리보기/블롭 초기화
+      ['profile','banner'].forEach(t => {
+        croppedBlobs[t] = null;
+        document.getElementById(t + 'PreviewBox').style.display = 'none';
+        document.getElementById(t + 'FileInput').value = '';
       });
-      const json = await res.json();
-      if (!res.ok || !json.success) { showUploadMsg('err', `업로드 실패: ${json.message}`); return; }
-      showUploadMsg('ok', '✓ 업로드 성공\n' + JSON.stringify(json.data, null, 2));
     } catch (e) {
-      showUploadMsg('err', '네트워크 오류: ' + e.message);
+      setMsg('uploadStatus','error','네트워크 오류: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '업로드';
     }
   }
 
-  // ── 프로필 조회 ──────────────────────────────────────────────────
+  // ── 프로필 조회 ──────────────────────────────────────────────
   async function doViewProfile() {
     const uuid = document.getElementById('viewUuid').value.trim();
-    if (!uuid) { showProfileMsg('err', 'UUID를 입력하세요.'); return; }
+    if (!uuid) { setMsg('profileStatus','warn','UUID를 입력하세요.'); return; }
     try {
-      const res = await fetch(`${API}/api/users/${uuid}`, { headers: authHeaders() });
-      const json = await res.json();
-      if (!res.ok || !json.success) { showProfileMsg('err', `조회 실패: ${json.message}`); return; }
-      showProfileMsg('ok', JSON.stringify(json.data, null, 2));
-    } catch (e) {
-      showProfileMsg('err', '네트워크 오류: ' + e.message);
+      const r = await apiFetch('GET', `/api/users/${uuid}`, null, !!accessToken);
+      if (!r.ok) {
+        setMsg('profileStatus','error',`조회 실패: ${r.json?.message || r.status}`);
+        document.getElementById('profileViewer').classList.add('hidden');
+        return;
+      }
+      document.getElementById('profileStatus').classList.add('hidden');
+      renderProfile(r.json.data);
+    } catch (e) { setMsg('profileStatus','error','네트워크 오류: ' + e.message); }
+  }
+
+  function renderProfile(d) {
+    if (!d) return;
+    const viewer = document.getElementById('profileViewer');
+    viewer.classList.remove('hidden');
+
+    // 배너
+    const bannerArea = document.getElementById('profileBannerArea');
+    const bannerUrl  = d.banner || d.bannerUrl || d.bannerImage || d.bannerImageUrl;
+    bannerArea.innerHTML = '';
+    if (bannerUrl) {
+      const img = document.createElement('img');
+      img.src = bannerUrl;
+      img.alt = 'banner';
+      img.onerror = () => { bannerArea.innerHTML = ''; };
+      bannerArea.appendChild(img);
+    }
+
+    // 아바타
+    const avatarUrl = d.profileImage || d.profileImageUrl || d.avatarUrl || d.avatar;
+    const avatarImg = document.getElementById('profileAvatarImg');
+    avatarImg.src = avatarUrl || '';
+    avatarImg.onerror = () => { avatarImg.src = ''; };
+
+    // 이름/핸들
+    document.getElementById('profileName').textContent =
+      d.userNickname || d.nickname || d.userRealname || d.name || '-';
+    document.getElementById('profileHandle').textContent =
+      d.customId || d.adminId || d.id || d.uuid || '';
+
+    // 상세
+    const skip = new Set(['profileImage','profileImageUrl','avatarUrl','avatar',
+      'banner','bannerUrl','bannerImage','bannerImageUrl',
+      'userNickname','nickname','userRealname','name','customId','adminId']);
+    const detail = document.getElementById('profileDetail');
+    detail.innerHTML = '';
+    for (const [k, v] of Object.entries(d)) {
+      if (skip.has(k) || v === null || v === undefined) continue;
+      const kEl = document.createElement('div'); kEl.className = 'k'; kEl.textContent = k;
+      const vEl = document.createElement('div'); vEl.className = 'v';
+      vEl.textContent = typeof v === 'object' ? JSON.stringify(v) : String(v);
+      detail.appendChild(kEl); detail.appendChild(vEl);
     }
   }
 
-  // ── 헬퍼 ────────────────────────────────────────────────────────
-  function authHeaders() {
-    return { 'Authorization': 'Bearer ' + accessToken };
+  // ── 공통 fetch ───────────────────────────────────────────────
+  async function apiFetch(method, path, body, withAuth) {
+    const headers = {};
+    if (withAuth && accessToken) headers['Authorization'] = 'Bearer ' + accessToken;
+    let reqBody;
+    if (body instanceof FormData) { reqBody = body; }
+    else if (body) { headers['Content-Type'] = 'application/json'; reqBody = JSON.stringify(body); }
+
+    const res = await fetch(API + path, { method, headers, body: reqBody, credentials: 'include' });
+    let json = {};
+    try { json = await res.json(); } catch (_) {}
+
+    const st = document.getElementById('responseStatus');
+    st.textContent = `${res.status} ${res.statusText}`;
+    st.className = res.ok ? 'status-ok' : 'status-err';
+    document.getElementById('responseEndpoint').textContent = `${method} ${path}`;
+    document.getElementById('responseBody').textContent = JSON.stringify(json, null, 2);
+    return { ok: res.ok, status: res.status, json };
   }
 
-  function showLoginMsg(type, text) {
-    const el = document.getElementById('loginStatus');
-    el.style.display = ''; el.className = 'status-box ' + type; el.textContent = text;
-  }
-  function showGithubMsg(type, text) {
-    const el = document.getElementById('githubStatus');
-    el.style.display = ''; el.className = 'status-box ' + type; el.textContent = text;
-  }
-  function showUploadMsg(type, text) {
-    const el = document.getElementById('uploadStatus');
-    el.style.display = ''; el.className = 'status-box ' + type; el.textContent = text;
-  }
-  function showProfileMsg(type, text) {
-    const el = document.getElementById('profileResult');
-    el.style.display = ''; el.className = 'status-box ' + type; el.textContent = text;
+  // ── UI 메시지 ────────────────────────────────────────────────
+  function setMsg(id, type, text) {
+    const el = document.getElementById(id);
+    el.className = 'info-box' + (type ? ' ' + type : '');
+    el.classList.remove('hidden');
+    el.textContent = text;
   }
 
+  // ── JWT / 날짜 ──────────────────────────────────────────────
   function parseJwt(token) {
-    try { return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); }
+    try { return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
     catch (_) { return null; }
   }
   function formatExp(exp) {
-    if (!exp) return '-';
-    return new Date(exp * 1000).toLocaleString('ko-KR');
+    return exp ? new Date(exp * 1000).toLocaleString('ko-KR') : '-';
   }
 
-  ['loginId', 'loginPw'].forEach(id =>
-    document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); })
-  );
+  // ── 키보드 단축키 ────────────────────────────────────────────
+  ['loginId','loginPw'].forEach(id =>
+    document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); }));
+  document.getElementById('viewUuid').addEventListener('keydown', e => { if (e.key === 'Enter') doViewProfile(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCropModal(); });
 </script>
 </body>
 </html>
