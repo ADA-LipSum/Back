@@ -192,11 +192,30 @@ public class UserController {
                     - `intro`: 자기소개
                     - `techStack`: 기술 스택 목록
                     - `role`: 역할
+                    - `socialLinks`: 소셜 링크
+                    - `activitySummary`: 활동 내역
                     """
     )
     public ResponseEntity<ApiResponse<UserProfileResponse>> get(
             @Parameter(description = "대상 사용자 UUID")
             @PathVariable String uuid) {
         return ResponseEntity.ok(ApiResponse.ok(userService.getUserProfile(uuid)));
+    }
+
+    @GetMapping("/users/by-username/{username}")
+    @Operation(
+            summary = "username으로 유저 정보 조회",
+            description = """
+                    customId(username)으로 사용자 프로필을 조회합니다.
+                    프론트엔드 `/profile/{username}` 경로에서 사용합니다.
+
+                    **Path Variable:**
+                    - `username` (필수): 사용자의 customId
+                    """
+    )
+    public ResponseEntity<ApiResponse<UserProfileResponse>> getByUsername(
+            @Parameter(description = "사용자 customId (username)")
+            @PathVariable String username) {
+        return ResponseEntity.ok(ApiResponse.ok(userService.getUserProfileByUsername(username)));
     }
 }

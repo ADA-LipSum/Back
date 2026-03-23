@@ -25,4 +25,6 @@ public class UserProfileResponse {
     private String badge;
     private Integer activityScore;
     private String contributionData; // JSON 문자열
+    private SocialLinks socialLinks;
+    private ActivitySummary activitySummary;
 }

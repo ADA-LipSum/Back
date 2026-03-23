@@ -17,8 +17,10 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.cache.annotation.Cacheable;
 
+import com.ada.proj.dto.ActivitySummary;
 import com.ada.proj.dto.CreateCustomLoginRequest;
 import com.ada.proj.dto.CreateUserRequest;
+import com.ada.proj.dto.SocialLinks;
 import com.ada.proj.dto.UpdatePasswordRequest;
 import com.ada.proj.dto.UpdateProfileRequest;
 import com.ada.proj.dto.UserProfileResponse;
@@ -28,6 +30,8 @@ import com.ada.proj.entity.UserData;
 import com.ada.proj.exception.ForbiddenException;
 import com.ada.proj.exception.UnauthenticatedException;
 import com.ada.proj.exception.UserNotFoundException;
+import com.ada.proj.repository.CommentRepository;
+import com.ada.proj.repository.PostRepository;
 import com.ada.proj.repository.UserDataRepository;
 import com.ada.proj.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -40,15 +44,21 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserDataRepository userDataRepository;
+    private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
 
     public UserService(UserRepository userRepository,
             UserDataRepository userDataRepository,
+            PostRepository postRepository,
+            CommentRepository commentRepository,
             PasswordEncoder passwordEncoder,
             ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.userDataRepository = userDataRepository;
+        this.postRepository = postRepository;
+        this.commentRepository = commentRepository;
         this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
     }
@@ -61,6 +71,18 @@ public class UserService {
     public UserProfileResponse getUserProfile(String uuid) {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return buildUserProfileResponse(user);
+    }
+
+    @Cacheable(cacheNames = "users", key = "'profile:username:' + #username")
+    public UserProfileResponse getUserProfileByUsername(String username) {
+        User user = userRepository.findByCustomId(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return buildUserProfileResponse(user);
+    }
+
+    private UserProfileResponse buildUserProfileResponse(User user) {
+        String uuid = user.getUuid();
         Optional<UserData> userDataOpt = userDataRepository.findByUuid(uuid);
         UserData ud = userDataOpt.orElse(null);
 
@@ -69,8 +91,20 @@ public class UserService {
             techList = parseTechStack(ud.getTechStack());
         }
 
+        SocialLinks socialLinks = ud == null ? null : SocialLinks.builder()
+                .githubUrl(ud.getGithubUrl())
+                .notionUrl(ud.getNotionUrl())
+                .linkedinUrl(ud.getLinkedinUrl())
+                .personalWebsiteUrl(ud.getPersonalWebsiteUrl())
+                .build();
+
+        ActivitySummary activitySummary = ActivitySummary.builder()
+                .postCount(postRepository.countByWriterUuid(uuid))
+                .commentCount(commentRepository.countByAuthor_Uuid(uuid))
+                .build();
+
         return UserProfileResponse.builder()
-                .uuid(user.getUuid())
+                .uuid(uuid)
                 .adminId(user.getAdminId())
                 .customId(user.getCustomId())
                 .userRealname(user.getUserRealname())
@@ -84,6 +118,8 @@ public class UserService {
                 .badge(ud == null ? null : ud.getBadge())
                 .activityScore(ud == null ? null : ud.getActivityScore())
                 .contributionData(ud == null ? null : ud.getContributionData())
+                .socialLinks(socialLinks)
+                .activitySummary(activitySummary)
                 .build();
     }
 
@@ -134,6 +170,18 @@ public class UserService {
         }
         if (req.getTechStack() != null) {
             ud.setTechStack(serializeTechStack(req.getTechStack()));
+        }
+        if (req.getGithubUrl() != null) {
+            ud.setGithubUrl(req.getGithubUrl());
+        }
+        if (req.getNotionUrl() != null) {
+            ud.setNotionUrl(req.getNotionUrl());
+        }
+        if (req.getLinkedinUrl() != null) {
+            ud.setLinkedinUrl(req.getLinkedinUrl());
+        }
+        if (req.getPersonalWebsiteUrl() != null) {
+            ud.setPersonalWebsiteUrl(req.getPersonalWebsiteUrl());
         }
 
         // persist if new or changed
