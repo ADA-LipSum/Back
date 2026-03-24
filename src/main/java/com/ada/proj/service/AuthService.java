@@ -86,6 +86,8 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .expiresIn(jwtProperties.getAccessExpirationMs())
                 .uuid(user.getUuid())
+                .adminId(user.getAdminId())
+                .customId(user.getCustomId())
                 .role(user.getRole())
                 .userRealname(user.getUserRealname())
                 .userNickname(user.getUserNickname())
@@ -130,6 +132,8 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .expiresIn(jwtProperties.getAccessExpirationMs())
                 .uuid(user.getUuid())
+                .adminId(user.getAdminId())
+                .customId(user.getCustomId())
                 .role(user.getRole())
                 .userRealname(user.getUserRealname())
                 .userNickname(user.getUserNickname())
@@ -174,6 +178,8 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .expiresIn(jwtProperties.getAccessExpirationMs())
                 .uuid(user.getUuid())
+                .adminId(user.getAdminId())
+                .customId(user.getCustomId())
                 .role(user.getRole())
                 .userRealname(user.getUserRealname())
                 .userNickname(user.getUserNickname())
@@ -230,7 +236,9 @@ public class AuthService {
                 .role(role == null ? null : Role.valueOf(role));
 
         if (user != null) {
-            builder.userRealname(user.getUserRealname())
+            builder.adminId(user.getAdminId())
+                    .customId(user.getCustomId())
+                    .userRealname(user.getUserRealname())
                     .userNickname(user.getUserNickname())
                     .profileImage(user.getProfileImage())
                     .firstLogin(user.getLoginCount() == 0L);
@@ -258,6 +266,8 @@ public class AuthService {
 
         return AuthMeResponse.builder()
                 .uuid(user.getUuid())
+                .adminId(user.getAdminId())
+                .customId(user.getCustomId())
                 .role(user.getRole())
                 .userRealname(user.getUserRealname())
                 .userNickname(user.getUserNickname())

@@ -1,8 +1,5 @@
 package com.ada.proj.controller;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,58 +7,45 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ada.proj.dto.ApiResponse;
-import com.ada.proj.entity.User;
-import com.ada.proj.repository.UserRepository;
+import com.ada.proj.dto.AuthMeResponse;
+import com.ada.proj.service.AuthService;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/auth")
-@Tag(name = "인증", description = "인증 상태 확인 관련 API")
+@Tag(name = "로그인/인증")
 public class AuthSocialController {
 
-    private final UserRepository userRepository;
+    private final AuthService authService;
 
-    public AuthSocialController(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public AuthSocialController(AuthService authService) {
+        this.authService = authService;
     }
 
+    @GetMapping("/status")
     @Operation(
             summary = "인증 상태 조회",
             description = """
-                    현재 로그인 상태와 사용자 기본 정보를 반환합니다.
+                    현재 로그인된 사용자의 정보를 반환합니다.
 
-                    **Request Body:** 없음
-
-                    **Response (인증된 경우):**
-                    - `authenticated`: true
+                    **Response:**
                     - `uuid`: 사용자 UUID
-                    - `user.realname`: 실명
-                    - `user.nickname`: 닉네임
-                    - `user.profileImage`: 프로필 이미지 URL
+                    - `adminId`: 관리자 발급 ID
+                    - `customId`: 커스텀 로그인 ID
+                    - `role`: 사용자 역할 (STUDENT | TEACHER | ADMIN)
+                    - `userRealname`: 실명
+                    - `userNickname`: 닉네임
+                    - `profileImage`: 프로필 이미지 URL
+                    - `isFirstLogin`: 첫 로그인 여부
 
-                    **Response (미인증 상태):**
-                    - `authenticated`: false
-                    """
+                    인증되지 않은 요청은 401을 반환합니다.
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
     )
-    @GetMapping("/status")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> status(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null) {
-            return ResponseEntity.ok(ApiResponse.ok(Map.of("authenticated", false)));
-        }
-
-        String userUuid = authentication.getName();
-        User user = userRepository.findByUuid(userUuid).orElse(null);
-
-        Map<String, Object> resp = new HashMap<>();
-        resp.put("authenticated", true);
-        resp.put("uuid", userUuid);
-        resp.put("user", user == null ? null : Map.of(
-                "realname", user.getUserRealname(),
-                "nickname", user.getUserNickname(),
-                "profileImage", user.getProfileImage()));
-
-        return ResponseEntity.ok(ApiResponse.ok(resp));
+    public ResponseEntity<ApiResponse<AuthMeResponse>> status(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.me(authentication)));
     }
 }

@@ -1,5 +1,6 @@
 package com.ada.proj.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +24,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByCustomId(String customId);
 
     boolean existsByCustomId(String customId);
+
+    List<User> findByUuidIn(Collection<String> uuids);
 
     Optional<User> findByGithubId(String githubId);
 

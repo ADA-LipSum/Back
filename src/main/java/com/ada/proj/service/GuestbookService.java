@@ -4,18 +4,19 @@ import com.ada.proj.dto.GuestbookRequest;
 import com.ada.proj.dto.GuestbookResponse;
 import com.ada.proj.entity.GuestbookEntry;
 import com.ada.proj.entity.User;
-import com.ada.proj.exception.ForbiddenException;
 import com.ada.proj.exception.UnauthenticatedException;
 import com.ada.proj.exception.UserNotFoundException;
 import com.ada.proj.repository.GuestbookRepository;
 import com.ada.proj.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -30,21 +31,27 @@ public class GuestbookService {
         this.userRepository = userRepository;
     }
 
-    @Transactional(readOnly = true)
-    public Page<GuestbookResponse> listEntries(String targetUuid, Pageable pageable) {
-        userRepository.findByUuid(targetUuid)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-        return guestbookRepository.findByTargetUuidOrderByCreatedAtDesc(targetUuid, pageable)
-                .map(this::toResponse);
+    private String resolveTargetUuid(String customId) {
+        return userRepository.findByCustomId(customId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"))
+                .getUuid();
     }
 
-    public GuestbookResponse addEntry(String targetUuid, GuestbookRequest req, Authentication auth) {
+    @Transactional(readOnly = true)
+    public List<GuestbookResponse> listEntries(String customId) {
+        String targetUuid = resolveTargetUuid(customId);
+        List<GuestbookEntry> entries = guestbookRepository.findByTargetUuidOrderByCreatedAtDesc(targetUuid);
+        List<String> writerUuids = entries.stream().map(GuestbookEntry::getWriterUuid).distinct().collect(Collectors.toList());
+        Map<String, User> userMap = userRepository.findByUuidIn(writerUuids).stream()
+                .collect(Collectors.toMap(User::getUuid, u -> u));
+        return entries.stream().map(e -> toResponse(e, userMap)).collect(Collectors.toList());
+    }
+
+    public GuestbookResponse addEntry(String customId, GuestbookRequest req, Authentication auth) {
         if (auth == null) {
             throw new UnauthenticatedException("Unauthenticated");
         }
-        userRepository.findByUuid(targetUuid)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-
+        String targetUuid = resolveTargetUuid(customId);
         String writerUuid = auth.getName();
         if (guestbookRepository.existsByTargetUuidAndWriterUuid(targetUuid, writerUuid)) {
             throw new IllegalStateException("이미 방명록을 작성했습니다. 수정 API를 사용하세요.");
@@ -57,50 +64,40 @@ public class GuestbookService {
         return toResponse(guestbookRepository.save(entry));
     }
 
-    public GuestbookResponse updateEntry(String targetUuid, Long entryId, GuestbookRequest req, Authentication auth) {
+    public GuestbookResponse updateEntry(String customId, GuestbookRequest req, Authentication auth) {
         if (auth == null) {
             throw new UnauthenticatedException("Unauthenticated");
         }
-        GuestbookEntry entry = guestbookRepository.findById(entryId)
-                .orElseThrow(() -> new EntityNotFoundException("Entry not found"));
-        if (!entry.getTargetUuid().equals(targetUuid)) {
-            throw new ForbiddenException("Forbidden");
-        }
-
+        String targetUuid = resolveTargetUuid(customId);
         String callerUuid = auth.getName();
-        boolean isAdmin = isAdmin(auth);
-        if (!isAdmin && !entry.getWriterUuid().equals(callerUuid)) {
-            throw new ForbiddenException("본인 방명록만 수정할 수 있습니다.");
-        }
+        GuestbookEntry entry = guestbookRepository.findByTargetUuidAndWriterUuid(targetUuid, callerUuid)
+                .orElseThrow(() -> new EntityNotFoundException("Entry not found"));
         entry.setContent(req.getContent());
         return toResponse(entry);
     }
 
-    public void deleteEntry(String targetUuid, Long entryId, Authentication auth) {
+    public void deleteEntry(String customId, Authentication auth) {
         if (auth == null) {
             throw new UnauthenticatedException("Unauthenticated");
         }
-        GuestbookEntry entry = guestbookRepository.findById(entryId)
-                .orElseThrow(() -> new EntityNotFoundException("Entry not found"));
-
+        String targetUuid = resolveTargetUuid(customId);
         String callerUuid = auth.getName();
-        boolean isWriter = entry.getWriterUuid().equals(callerUuid);
-        boolean isProfileOwner = targetUuid.equals(callerUuid);
-
-        if (!isAdmin(auth) && !isWriter && !isProfileOwner) {
-            throw new ForbiddenException("Forbidden");
-        }
+        GuestbookEntry entry = guestbookRepository.findByTargetUuidAndWriterUuid(targetUuid, callerUuid)
+                .orElseThrow(() -> new EntityNotFoundException("Entry not found"));
         guestbookRepository.delete(entry);
-    }
-
-    private boolean isAdmin(Authentication auth) {
-        return auth.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch(a -> a.equals("ROLE_ADMIN"));
     }
 
     private GuestbookResponse toResponse(GuestbookEntry entry) {
         User writer = userRepository.findByUuid(entry.getWriterUuid()).orElse(null);
+        return buildResponse(entry, writer);
+    }
+
+    private GuestbookResponse toResponse(GuestbookEntry entry, Map<String, User> userMap) {
+        User writer = userMap.get(entry.getWriterUuid());
+        return buildResponse(entry, writer);
+    }
+
+    private GuestbookResponse buildResponse(GuestbookEntry entry, User writer) {
         String writerName = null;
         String writerProfileImage = null;
         if (writer != null) {

@@ -11,6 +11,8 @@ import lombok.Data;
 public class AuthMeResponse {
 
     private String uuid;
+    private String adminId;
+    private String customId;
     private Role role;
     private String userRealname;
     private String userNickname;

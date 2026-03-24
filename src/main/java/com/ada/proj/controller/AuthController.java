@@ -75,6 +75,8 @@ public class AuthController {
                     - `accessToken`: 발급된 access token (유효기간 1시간)
                     - `expiresIn`: access token 만료 시간 (초)
                     - `uuid`: 사용자 UUID
+                    - `adminId`: 관리자 발급 ID
+                    - `customId`: 커스텀 로그인 ID
                     - `userRealname`: 사용자 실명
                     - `userNickname`: 사용자 닉네임
                     - `profileImage`: 프로필 이미지 URL
@@ -94,6 +96,8 @@ public class AuthController {
                 .accessToken(res.getAccessToken())
                 .expiresIn(res.getExpiresIn())
                 .uuid(res.getUuid())
+                .adminId(res.getAdminId())
+                .customId(res.getCustomId())
                 .userRealname(res.getUserRealname())
                 .userNickname(res.getUserNickname())
                 .profileImage(res.getProfileImage())

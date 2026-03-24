@@ -12,6 +12,8 @@ public class AuthTokenResponse {
     private long expiresIn;
 
     private String uuid;
+    private String adminId;
+    private String customId;
     private String userRealname;
     private String userNickname;
     private String profileImage;

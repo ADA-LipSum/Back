@@ -1,13 +1,13 @@
 package com.ada.proj.repository;
 
 import com.ada.proj.entity.GuestbookEntry;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
 
 public interface GuestbookRepository extends JpaRepository<GuestbookEntry, Long> {
 
-    Page<GuestbookEntry> findByTargetUuidOrderByCreatedAtDesc(String targetUuid, Pageable pageable);
+    List<GuestbookEntry> findByTargetUuidOrderByCreatedAtDesc(String targetUuid);
 
     boolean existsByTargetUuidAndWriterUuid(String targetUuid, String writerUuid);
 
