@@ -12,6 +12,8 @@ import java.time.Instant;
 public class StudyGroupMemberResponse {
     @Schema(description = "사용자 UUID")
     private String userUuid;
+    @Schema(description = "사용자 커스텀 ID")
+    private String customId;
     @Schema(description = "역할")
     private StudyMemberRole role;
     @Schema(description = "가입일")

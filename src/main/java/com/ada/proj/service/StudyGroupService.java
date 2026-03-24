@@ -18,6 +18,7 @@ import com.ada.proj.enums.JoinRequestStatus;
 import com.ada.proj.repository.StudyGroupMemberRepository;
 import com.ada.proj.repository.StudyGroupRepository;
 import com.ada.proj.repository.StudyGroupJoinRequestRepository;
+import com.ada.proj.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -41,6 +42,7 @@ public class StudyGroupService {
     private final StudyGroupRepository studyGroupRepository;
     private final StudyGroupMemberRepository memberRepository;
     private final StudyGroupJoinRequestRepository joinRequestRepository;
+    private final UserRepository userRepository;
 
     private boolean hasAdminRole(Authentication auth) {
         if (auth == null) {
@@ -107,6 +109,13 @@ public class StudyGroupService {
             }
         }
 
+        String ownerCustomId = null;
+        if (g.getOwnerUuid() != null) {
+            ownerCustomId = userRepository.findByUuid(g.getOwnerUuid())
+                    .map(u -> u.getCustomId())
+                    .orElse(null);
+        }
+
         return StudyGroupResponse.builder()
                 .groupUuid(g.getGroupUuid())
                 .name(g.getName())
@@ -116,6 +125,7 @@ public class StudyGroupService {
                 .status(g.getStatus())
                 .capacity(g.getCapacity())
                 .ownerUuid(g.getOwnerUuid())
+                .ownerCustomId(ownerCustomId)
                 .memberCount(memberCount)
                 .createdAt(g.getCreatedAt())
                 .updatedAt(g.getUpdatedAt())
@@ -363,11 +373,17 @@ public class StudyGroupService {
         }
 
         return memberRepository.findAllByGroup_GroupUuid(groupUuid).stream()
-                .map(m -> StudyGroupMemberResponse.builder()
-                .userUuid(m.getUserUuid())
-                .role(m.getRole())
-                .joinedAt(m.getJoinedAt())
-                .build())
+                .map(m -> {
+                    String customId = userRepository.findByUuid(m.getUserUuid())
+                            .map(u -> u.getCustomId())
+                            .orElse(null);
+                    return StudyGroupMemberResponse.builder()
+                            .userUuid(m.getUserUuid())
+                            .customId(customId)
+                            .role(m.getRole())
+                            .joinedAt(m.getJoinedAt())
+                            .build();
+                })
                 .toList();
     }
 

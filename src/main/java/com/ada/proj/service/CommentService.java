@@ -250,6 +250,7 @@ public class CommentService {
         return CommentResponse.builder()
                 .commentId(comment.getId())
                 .writerUuid(author.getUuid())
+                .writerCustomId(author.getCustomId())
                 .writer(displayName)
                 .writerProfileImage(author.getProfileImage())
                 .content(comment.getContent())
@@ -270,13 +271,13 @@ public class CommentService {
         return CommentResponse.builder()
                 .commentId(comment.getId())
                 .writerUuid(author.getUuid())
+                .writerCustomId(author.getCustomId())
                 .writer(displayName)
                 .writerProfileImage(author.getProfileImage())
                 .content(comment.getContent())
                 .createdAt(comment.getCreatedAt())
                 .children(childResponses)
- 
-               .build();
+                .build();
     }
 
     private void updatePostCommentsCount(Post post) {

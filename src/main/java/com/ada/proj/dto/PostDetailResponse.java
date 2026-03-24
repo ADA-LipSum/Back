@@ -13,6 +13,7 @@ public class PostDetailResponse {
     private Long seq;
 
     private String writerUuid;
+    private String writerCustomId;
     private String writer;
     private String writerProfileImage;   // 추가됨
 

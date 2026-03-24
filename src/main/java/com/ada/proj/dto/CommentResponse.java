@@ -19,6 +19,7 @@ public class CommentResponse {
     private Long commentId;
 
     private String writerUuid;
+    private String writerCustomId;
     private String writer;
     private String writerProfileImage;
 

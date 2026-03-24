@@ -3,6 +3,8 @@ package com.ada.proj.service;
 import com.ada.proj.dto.CreateUserRequest;
 import com.ada.proj.entity.User;
 import com.ada.proj.enums.Role;
+import com.ada.proj.repository.CommentRepository;
+import com.ada.proj.repository.PostRepository;
 import com.ada.proj.repository.UserDataRepository;
 import com.ada.proj.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +28,8 @@ class UserServiceTest {
     void createUserByAdmin_savesNickname_whenProvided() {
         UserRepository userRepository = mock(UserRepository.class);
         UserDataRepository userDataRepository = mock(UserDataRepository.class);
+        PostRepository postRepository = mock(PostRepository.class);
+        CommentRepository commentRepository = mock(CommentRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -34,7 +38,7 @@ class UserServiceTest {
         when(passwordEncoder.encode("1234567890")).thenReturn("encoded");
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        UserService userService = new UserService(userRepository, userDataRepository, passwordEncoder, objectMapper);
+        UserService userService = new UserService(userRepository, userDataRepository, postRepository, commentRepository, passwordEncoder, objectMapper);
 
         CreateUserRequest req = new CreateUserRequest();
         req.setAdminId("st12345");
@@ -64,12 +68,14 @@ class UserServiceTest {
     void createUserByAdmin_throwsBadRequest_whenNicknameMissing() {
         UserRepository userRepository = mock(UserRepository.class);
         UserDataRepository userDataRepository = mock(UserDataRepository.class);
+        PostRepository postRepository = mock(PostRepository.class);
+        CommentRepository commentRepository = mock(CommentRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         ObjectMapper objectMapper = new ObjectMapper();
 
         when(userRepository.findByAdminId("st12345")).thenReturn(Optional.empty());
 
-        UserService userService = new UserService(userRepository, userDataRepository, passwordEncoder, objectMapper);
+        UserService userService = new UserService(userRepository, userDataRepository, postRepository, commentRepository, passwordEncoder, objectMapper);
 
         CreateUserRequest req = new CreateUserRequest();
         req.setAdminId("st12345");

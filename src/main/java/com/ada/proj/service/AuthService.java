@@ -63,6 +63,7 @@ public class AuthService {
         user.setLoginCount(user.getLoginCount() + 1);
         user.setLastLoginAt(Instant.now());
         setDefaultAvatarIfFirstLogin(user, isFirstLogin);
+        initCustomIdIfFirstLogin(user, isFirstLogin);
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
@@ -107,6 +108,7 @@ public class AuthService {
         user.setLoginCount(user.getLoginCount() + 1);
         user.setLastLoginAt(Instant.now());
         setDefaultAvatarIfFirstLogin(user, isFirstLogin);
+        initCustomIdIfFirstLogin(user, isFirstLogin);
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
@@ -150,6 +152,7 @@ public class AuthService {
         user.setLoginCount(user.getLoginCount() + 1);
         user.setLastLoginAt(Instant.now());
         setDefaultAvatarIfFirstLogin(user, isFirstLogin);
+        initCustomIdIfFirstLogin(user, isFirstLogin);
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
@@ -278,6 +281,7 @@ public class AuthService {
                 .uuid(java.util.UUID.randomUUID().toString())
                 .adminId(req.getTeacherId())
                 .customId(req.getCustomId())
+                .useCustomId(req.getCustomId() != null && !req.getCustomId().equals(req.getTeacherId()))
                 .password(passwordEncoder.encode(req.getPassword()))
                 .userRealname(req.getUserRealname())
                 .userNickname(req.getUserNickname())
@@ -319,6 +323,15 @@ public class AuthService {
 
         if (!matched) {
             throw new InvalidCredentialsException("Invalid id or password");
+        }
+    }
+
+    private void initCustomIdIfFirstLogin(User user, boolean isFirstLogin) {
+        if (!isFirstLogin) {
+            return;
+        }
+        if (user.getCustomId() == null) {
+            user.setCustomId(user.getAdminId());
         }
     }
 

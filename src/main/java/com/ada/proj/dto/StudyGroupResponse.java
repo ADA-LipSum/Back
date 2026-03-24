@@ -28,6 +28,8 @@ public class StudyGroupResponse {
     private Integer capacity;
     @Schema(description = "방장 UUID")
     private String ownerUuid;
+    @Schema(description = "방장 커스텀 ID")
+    private String ownerCustomId;
     @Schema(description = "현재 인원수")
     private Long memberCount;
     @Schema(description = "생성일")

@@ -202,13 +202,14 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         // 자신 또는 관리자만 허용
         ensureSelfOrAdmin(auth, uuid);
-        if (user.getCustomId() != null) {
+        if (user.isUseCustomId()) {
             throw new IllegalStateException("Custom ID already set");
         }
         if (userRepository.existsByCustomId(req.getCustomId())) {
             throw new IllegalArgumentException("Custom ID already exists");
         }
         user.setCustomId(req.getCustomId());
+        user.setUseCustomId(!req.getCustomId().equals(user.getAdminId()));
         user.setPassword(passwordEncoder.encode(req.getPassword()));
     }
 
@@ -236,6 +237,7 @@ public class UserService {
                 .uuid(java.util.UUID.randomUUID().toString())
                 .adminId(req.getAdminId())
                 .customId(req.getCustomId())
+                .useCustomId(req.getCustomId() != null && !req.getCustomId().equals(req.getAdminId()))
                 .password(req.getPassword() == null ? null : passwordEncoder.encode(req.getPassword()))
                 .userRealname(req.getUserRealname())
                 .userNickname(req.getUserNickname())
@@ -285,6 +287,7 @@ public class UserService {
                 .uuid(java.util.UUID.randomUUID().toString())
                 .adminId(req.getAdminId())
                 .customId(req.getCustomId())
+                .useCustomId(req.getCustomId() != null && !req.getCustomId().equals(req.getAdminId()))
                 .password(req.getPassword() == null ? null : passwordEncoder.encode(req.getPassword()))
                 .userRealname(req.getUserRealname())
                 .userNickname(req.getUserNickname())

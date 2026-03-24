@@ -87,6 +87,11 @@ public class User {
     @Builder.Default
     private boolean useNickname = false;
 
+    // adminId와 다른 customId로 변경한 경우 true
+    @Column(name = "use_custom_id", nullable = false)
+    @Builder.Default
+    private boolean useCustomId = false;
+
     // 로그인 추적: 첫 로그인 여부 판단을 위해 사용
     @Column(name = "login_count", nullable = false)
     @Builder.Default

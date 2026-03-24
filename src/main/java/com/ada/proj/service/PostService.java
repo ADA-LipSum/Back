@@ -155,6 +155,7 @@ public class PostService {
                 .postUuid(p.getPostUuid())
                 .seq(p.getSeq())
                 .writerUuid(p.getWriterUuid())
+                .writerCustomId(u != null ? u.getCustomId() : null)
                 .writer(p.getWriter())
                 .writerProfileImage(u != null ? u.getProfileImage() : null)
                 .title(p.getTitle())
