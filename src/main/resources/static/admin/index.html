@@ -815,30 +815,45 @@
   function confirmCrop() {
     if (!cropperInst) return;
 
+    // cropTarget을 클로저에 캡처 (toBlob 콜백이 비동기로 실행되는 동안 변경 방지)
+    const target = cropTarget;
+    const key    = s3CropKey;
+
+    const canvas = cropperInst.getCroppedCanvas(
+      target === 's3' ? { imageSmoothingQuality: 'high' }
+                      : { width: target === 'profile' ? 400 : 1200,
+                          height: 400, imageSmoothingQuality: 'high' }
+    );
+    if (!canvas) {
+      alert('크롭 캔버스를 생성할 수 없습니다. 이미지를 다시 선택해 주세요.');
+      return;
+    }
+
     // S3 덮어쓰기 모드
-    if (cropTarget === 's3') {
-      cropperInst.getCroppedCanvas({ imageSmoothingQuality: 'high' }).toBlob(async blob => {
+    if (target === 's3') {
+      canvas.toBlob(async blob => {
         closeCropModal();
-        await s3OverwriteWithCrop(s3CropKey, blob);
+        await s3OverwriteWithCrop(key, blob);
       }, 'image/jpeg', 0.92);
       return;
     }
 
-    const isProfile = cropTarget === 'profile';
-    const w = isProfile ? 400 : 1200;
-    const h = isProfile ? 400 : 400;
+    const w = target === 'profile' ? 400 : 1200;
+    const h = 400;
 
-    cropperInst.getCroppedCanvas({ width: w, height: h, imageSmoothingQuality: 'high' }).toBlob(blob => {
-      croppedBlobs[cropTarget] = blob;
+    canvas.toBlob(blob => {
+      if (!blob) {
+        alert('이미지 인코딩에 실패했습니다. 다시 시도해 주세요.');
+        closeCropModal();
+        return;
+      }
+      croppedBlobs[target] = blob;
 
       const url = URL.createObjectURL(blob);
-      const previewImg = document.getElementById(cropTarget + 'PreviewImg');
-      const previewBox = document.getElementById(cropTarget + 'PreviewBox');
-      const previewLabel = document.getElementById(cropTarget + 'PreviewLabel');
-
-      previewImg.src = url;
-      previewBox.style.display = 'block';
-      previewLabel.textContent = `${(blob.size / 1024).toFixed(0)} KB · ${w}×${h}`;
+      document.getElementById(target + 'PreviewImg').src = url;
+      document.getElementById(target + 'PreviewBox').style.display = 'block';
+      document.getElementById(target + 'PreviewLabel').textContent =
+        `${(blob.size / 1024).toFixed(0)} KB · ${w}×${h}`;
 
       closeCropModal();
     }, 'image/jpeg', 0.92);

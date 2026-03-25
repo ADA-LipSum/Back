@@ -8,14 +8,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Caching;
-import org.springframework.cache.annotation.Cacheable;
 
 import com.ada.proj.dto.ActivitySummary;
 import com.ada.proj.dto.CreateCustomLoginRequest;
@@ -48,19 +49,22 @@ public class UserService {
     private final CommentRepository commentRepository;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
+    private final CacheManager cacheManager;
 
     public UserService(UserRepository userRepository,
             UserDataRepository userDataRepository,
             PostRepository postRepository,
             CommentRepository commentRepository,
             PasswordEncoder passwordEncoder,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            CacheManager cacheManager) {
         this.userRepository = userRepository;
         this.userDataRepository = userDataRepository;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
         this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
+        this.cacheManager = cacheManager;
     }
 
     public List<User> listUsers(Role role, String query) {
@@ -139,6 +143,7 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         user.setUseNickname(!user.isUseNickname());
         userRepository.save(user);
+        evictUsernameCaches(user.getCustomId());
     }
 
     @Caching(evict = {
@@ -191,6 +196,18 @@ public class UserService {
 
         // 캐시에서 꺼낸 엔티티는 detached 상태일 수 있으므로 명시적으로 저장
         userRepository.save(user);
+
+        // by-username 조회 캐시도 무효화 (annotation evict는 uuid 기반만 처리)
+        evictUsernameCaches(user.getCustomId());
+    }
+
+    private void evictUsernameCaches(String customId) {
+        if (customId == null) return;
+        var cache = cacheManager.getCache("users");
+        if (cache != null) {
+            cache.evict("profile:username:" + customId);
+            cache.evict("custom:" + customId);
+        }
     }
 
     @Caching(evict = {
