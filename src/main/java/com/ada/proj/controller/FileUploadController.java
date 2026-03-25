@@ -8,6 +8,9 @@ import com.ada.proj.dto.UpdateProfileRequest;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.http.MediaType;
@@ -51,12 +54,21 @@ public class FileUploadController {
                     - `uuid` (필수): 대상 사용자 UUID
 
                     **Request Body (multipart/form-data):**
-                    - `file` (필수): 업로드할 이미지 파일 (jpeg/png/gif/webp, 최대 5MB)
+                    - `file` (필수): 업로드할 이미지 파일 (jpeg/png/gif/webp, 최대 15MB)
 
                     **Response:**
                     - `data`: 업로드된 이미지의 S3 URL (String)
                     """
     )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "업로드 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "파일 형식 오류 또는 파일 없음",
+                    content = @Content(examples = @ExampleObject(value = """
+                            {"success":false,"code":"BAD_REQUEST","message":"허용되지 않는 파일 형식입니다. (jpeg, png, gif, webp만 허용)"}"""))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "413", description = "파일 크기 초과 (최대 15MB)",
+                    content = @Content(examples = @ExampleObject(value = """
+                            {"success":false,"code":"BAD_REQUEST","message":"15MB까지만 업로드 가능합니다."}""")))
+    })
     public ResponseEntity<ApiResponse<String>> uploadProfileImage(
             @Parameter(description = "대상 사용자 UUID") @PathVariable String uuid,
             @Parameter(description = "업로드할 이미지 파일") @RequestPart("file") MultipartFile file,
@@ -82,12 +94,21 @@ public class FileUploadController {
                     - `uuid` (필수): 대상 사용자 UUID
 
                     **Request Body (multipart/form-data):**
-                    - `file` (필수): 업로드할 배너 이미지 파일 (jpeg/png/gif/webp, 최대 10MB)
+                    - `file` (필수): 업로드할 배너 이미지 파일 (jpeg/png/gif/webp, 최대 20MB)
 
                     **Response:**
                     - `data`: 업로드된 배너의 S3 URL (String)
                     """
     )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "업로드 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "파일 형식 오류 또는 파일 없음",
+                    content = @Content(examples = @ExampleObject(value = """
+                            {"success":false,"code":"BAD_REQUEST","message":"허용되지 않는 파일 형식입니다. (jpeg, png, gif, webp만 허용)"}"""))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "413", description = "파일 크기 초과 (최대 20MB)",
+                    content = @Content(examples = @ExampleObject(value = """
+                            {"success":false,"code":"BAD_REQUEST","message":"20MB까지만 업로드 가능합니다."}""")))
+    })
     public ResponseEntity<ApiResponse<String>> uploadBanner(
             @Parameter(description = "대상 사용자 UUID") @PathVariable String uuid,
             @Parameter(description = "업로드할 배너 파일") @RequestPart("file") MultipartFile file,
@@ -117,8 +138,8 @@ public class FileUploadController {
                     - `uuid` (필수): 대상 사용자 UUID
 
                     **Request Body (multipart/form-data, 모두 선택):**
-                    - `profileImage`: 프로필 이미지 파일 (jpeg/png/gif/webp, 최대 5MB)
-                    - `banner`: 배너 이미지 파일 (jpeg/png/gif/webp, 최대 10MB)
+                    - `profileImage`: 프로필 이미지 파일 (jpeg/png/gif/webp, 최대 15MB)
+                    - `banner`: 배너 이미지 파일 (jpeg/png/gif/webp, 최대 20MB)
 
                     **Response:**
                     - `profileImageUrl`: 업로드된 프로필 이미지 S3 URL (파일 포함 시)
@@ -127,6 +148,15 @@ public class FileUploadController {
                     두 파일 모두 포함하지 않으면 DB 업데이트 없이 빈 결과를 반환합니다.
                     """
     )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "업로드 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "파일 형식 오류 또는 파일 없음",
+                    content = @Content(examples = @ExampleObject(value = """
+                            {"success":false,"code":"BAD_REQUEST","message":"허용되지 않는 파일 형식입니다. (jpeg, png, gif, webp만 허용)"}"""))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "413", description = "파일 크기 초과 (프로필 최대 15MB, 배너 최대 20MB)",
+                    content = @Content(examples = @ExampleObject(value = """
+                            {"success":false,"code":"BAD_REQUEST","message":"15MB까지만 업로드 가능합니다."}""")))
+    })
     public ResponseEntity<ApiResponse<Map<String, String>>> updateProfileImages(
             @Parameter(description = "대상 사용자 UUID") @PathVariable String uuid,
             @Parameter(description = "프로필 이미지 (선택)") @RequestPart(value = "profileImage", required = false) MultipartFile profileImage,
