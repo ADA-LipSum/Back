@@ -11,9 +11,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.ada.proj.config.AwsS3Properties;
 
+import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -107,6 +110,20 @@ public class S3Service {
             items.add(new S3Item(obj.key(), name, false, obj.size(), buildUrl(obj.key())));
         }
         return items;
+    }
+
+    public record S3ObjectData(byte[] bytes, String contentType) {}
+
+    public S3ObjectData getObject(String key) {
+        ResponseBytes<GetObjectResponse> resp = s3Client.getObjectAsBytes(
+                GetObjectRequest.builder().bucket(props.getBucket()).key(key).build());
+        String ct = resp.response().contentType();
+        return new S3ObjectData(resp.asByteArray(), ct != null ? ct : "application/octet-stream");
+    }
+
+    public String overwriteByKey(MultipartFile file, String key) {
+        validateImage(file, props.getMaxBannerSizeMb());
+        return upload(file, key);
     }
 
     public void deleteByKey(String key) {

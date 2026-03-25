@@ -3,6 +3,7 @@ package com.ada.proj.controller;
 import com.ada.proj.dto.ApiResponse;
 import com.ada.proj.service.S3Service;
 import com.ada.proj.service.S3Service.S3Item;
+import com.ada.proj.service.S3Service.S3ObjectData;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -46,5 +47,23 @@ public class S3BrowserController {
             @RequestPart("file") MultipartFile file) {
         String url = s3Service.uploadToPrefix(file, prefix);
         return ResponseEntity.ok(ApiResponse.ok(url));
+    }
+
+    @PutMapping(value = "/overwrite", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "S3 파일 덮어쓰기", description = "key에 해당하는 S3 객체를 업로드한 파일로 덮어씁니다.")
+    public ResponseEntity<ApiResponse<String>> overwrite(
+            @RequestParam String key,
+            @RequestPart("file") MultipartFile file) {
+        String url = s3Service.overwriteByKey(file, key);
+        return ResponseEntity.ok(ApiResponse.ok(url));
+    }
+
+    @GetMapping("/proxy")
+    @Operation(summary = "S3 파일 프록시", description = "CORS 우회용 — S3 파일 내용을 그대로 반환합니다.")
+    public ResponseEntity<byte[]> proxy(@RequestParam String key) {
+        S3ObjectData data = s3Service.getObject(key);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(data.contentType()))
+                .body(data.bytes());
     }
 }
