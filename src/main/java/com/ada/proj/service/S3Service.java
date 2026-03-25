@@ -101,7 +101,7 @@ public class S3Service {
         }
         long maxBytes = (long) maxSizeMb * 1024 * 1024;
         if (file.getSize() > maxBytes) {
-            throw new IllegalArgumentException("파일 크기가 제한(" + maxSizeMb + "MB)을 초과했습니다.");
+            throw new IllegalArgumentException(maxSizeMb + "MB까지만 업로드 가능합니다.");
         }
     }
 
