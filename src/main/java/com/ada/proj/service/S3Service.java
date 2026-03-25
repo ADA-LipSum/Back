@@ -1,6 +1,8 @@
 package com.ada.proj.service;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -12,6 +14,8 @@ import com.ada.proj.config.AwsS3Properties;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Service
@@ -73,6 +77,52 @@ public class S3Service {
                 .build());
     }
 
+    // ── S3 브라우저 ──────────────────────────────────────────────────
+
+    public record S3Item(String key, String name, boolean folder, long size, String url) {}
+
+    public List<S3Item> listObjects(String prefix) {
+        if (!prefix.isEmpty() && !prefix.endsWith("/")) prefix += "/";
+
+        ListObjectsV2Request req = ListObjectsV2Request.builder()
+                .bucket(props.getBucket())
+                .prefix(prefix)
+                .delimiter("/")
+                .build();
+
+        ListObjectsV2Response res = s3Client.listObjectsV2(req);
+        List<S3Item> items = new ArrayList<>();
+
+        final String finalPrefix = prefix;
+        for (var cp : res.commonPrefixes()) {
+            String key = cp.prefix();
+            String name = key.substring(finalPrefix.length());
+            if (name.endsWith("/")) name = name.substring(0, name.length() - 1);
+            items.add(new S3Item(key, name, true, 0, null));
+        }
+        for (var obj : res.contents()) {
+            if (obj.key().equals(finalPrefix)) continue;
+            String name = obj.key().substring(finalPrefix.length());
+            if (name.isEmpty()) continue;
+            items.add(new S3Item(obj.key(), name, false, obj.size(), buildUrl(obj.key())));
+        }
+        return items;
+    }
+
+    public void deleteByKey(String key) {
+        s3Client.deleteObject(DeleteObjectRequest.builder()
+                .bucket(props.getBucket())
+                .key(key)
+                .build());
+    }
+
+    public String uploadToPrefix(MultipartFile file, String prefix) {
+        if (!prefix.isEmpty() && !prefix.endsWith("/")) prefix += "/";
+        validateImage(file, props.getMaxBannerSizeMb());
+        String key = prefix + UUID.randomUUID() + getExtension(file);
+        return upload(file, key);
+    }
+
     // ── private helpers ──────────────────────────────────────────────
     private String upload(MultipartFile file, String key) {
         try {
@@ -88,6 +138,10 @@ public class S3Service {
             throw new IllegalStateException("파일 업로드 중 오류가 발생했습니다.", e);
         }
 
+        return buildUrl(key);
+    }
+
+    private String buildUrl(String key) {
         return "https://" + props.getBucket() + ".s3." + props.getRegion() + ".amazonaws.com/" + key;
     }
 

@@ -116,6 +116,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/users/*/guestbook").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/roles", "/api/roles/*").permitAll()
                 .requestMatchers("/api/users/*/role").hasRole("ADMIN")
+                .requestMatchers("/api/admin/s3/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/upload/**").authenticated()
                 .anyRequest().authenticated()
                 )
