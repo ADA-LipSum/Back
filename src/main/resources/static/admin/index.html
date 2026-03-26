@@ -255,6 +255,11 @@
     .crop-modal-close:hover { color: #e2e8f0; }
     .crop-modal-body { flex: 1; overflow: hidden; background: #0f1117; min-height: 300px; max-height: 55vh; position: relative; }
     .crop-modal-body img { display: block; max-width: 100%; }
+    /* 프로필 원형 크롭 박스 */
+    .crop-modal.profile-mode .cropper-view-box,
+    .crop-modal.profile-mode .cropper-face { border-radius: 50%; }
+    .crop-modal.profile-mode .cropper-view-box { outline-color: rgba(88,166,255,0.75); }
+    .crop-modal.profile-mode .cropper-dashed { display: none; }
     .crop-modal-footer {
       padding: 12px 20px; border-top: 1px solid #2d3748; flex-shrink: 0;
       display: flex; flex-direction: column; gap: 10px;
@@ -765,6 +770,8 @@
     document.getElementById('cropModalTitle').textContent = titleMap[target] || '이미지 편집';
     document.getElementById('cropAspectRow').classList.toggle('hidden', isProfile);
     document.getElementById('cropZoomSlider').value = 0;
+    // 프로필 모드일 때 원형 크롭 박스 CSS 클래스 토글
+    document.querySelector('.crop-modal').classList.toggle('profile-mode', isProfile);
 
     // 기존 cropper 제거
     if (cropperInst) { cropperInst.destroy(); cropperInst = null; }
@@ -815,33 +822,66 @@
   function confirmCrop() {
     if (!cropperInst) return;
 
+    // cropTarget을 클로저에 캡처 (toBlob 콜백이 비동기로 실행되는 동안 변경 방지)
+    const target = cropTarget;
+    const key    = s3CropKey;
+
+    const canvas = cropperInst.getCroppedCanvas(
+      target === 's3' ? { imageSmoothingQuality: 'high' }
+                      : { width: target === 'profile' ? 400 : 1200,
+                          height: 400, imageSmoothingQuality: 'high' }
+    );
+    if (!canvas) {
+      alert('크롭 캔버스를 생성할 수 없습니다. 이미지를 다시 선택해 주세요.');
+      return;
+    }
+
     // S3 덮어쓰기 모드
-    if (cropTarget === 's3') {
-      cropperInst.getCroppedCanvas({ imageSmoothingQuality: 'high' }).toBlob(async blob => {
+    if (target === 's3') {
+      canvas.toBlob(async blob => {
         closeCropModal();
-        await s3OverwriteWithCrop(s3CropKey, blob);
+        await s3OverwriteWithCrop(key, blob);
       }, 'image/jpeg', 0.92);
       return;
     }
 
-    const isProfile = cropTarget === 'profile';
-    const w = isProfile ? 400 : 1200;
-    const h = isProfile ? 400 : 400;
+    const w = target === 'profile' ? 400 : 1200;
+    const h = 400;
 
-    cropperInst.getCroppedCanvas({ width: w, height: h, imageSmoothingQuality: 'high' }).toBlob(blob => {
-      croppedBlobs[cropTarget] = blob;
+    // 프로필은 원형 clip 적용 후 PNG로 저장
+    function finishCrop(finalCanvas, mime, quality) {
+      finalCanvas.toBlob(blob => {
+        if (!blob) {
+          alert('이미지 인코딩에 실패했습니다. 다시 시도해 주세요.');
+          closeCropModal();
+          return;
+        }
+        croppedBlobs[target] = blob;
 
-      const url = URL.createObjectURL(blob);
-      const previewImg = document.getElementById(cropTarget + 'PreviewImg');
-      const previewBox = document.getElementById(cropTarget + 'PreviewBox');
-      const previewLabel = document.getElementById(cropTarget + 'PreviewLabel');
+        const url = URL.createObjectURL(blob);
+        document.getElementById(target + 'PreviewImg').src = url;
+        document.getElementById(target + 'PreviewBox').style.display = 'block';
+        document.getElementById(target + 'PreviewLabel').textContent =
+          `${(blob.size / 1024).toFixed(0)} KB · ${w}×${h}`;
 
-      previewImg.src = url;
-      previewBox.style.display = 'block';
-      previewLabel.textContent = `${(blob.size / 1024).toFixed(0)} KB · ${w}×${h}`;
+        closeCropModal();
+      }, mime, quality);
+    }
 
-      closeCropModal();
-    }, 'image/jpeg', 0.92);
+    if (target === 'profile') {
+      // 원형 clip 캔버스 생성 (투명 배경 PNG)
+      const circleCanvas = document.createElement('canvas');
+      circleCanvas.width  = w;
+      circleCanvas.height = h;
+      const ctx = circleCanvas.getContext('2d');
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2, w / 2, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(canvas, 0, 0, w, h);
+      finishCrop(circleCanvas, 'image/png', 1.0);
+    } else {
+      finishCrop(canvas, 'image/jpeg', 0.92);
+    }
   }
 
   // ── 크롭 컨트롤 ──────────────────────────────────────────────
@@ -876,7 +916,7 @@
     btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 업로드 중…';
 
     const form = new FormData();
-    if (pb) form.append('profileImage', pb, 'profile.jpg');
+    if (pb) form.append('profileImage', pb, pb.type === 'image/png' ? 'profile.png' : 'profile.jpg');
     if (bb) form.append('banner', bb, 'banner.jpg');
 
     try {
