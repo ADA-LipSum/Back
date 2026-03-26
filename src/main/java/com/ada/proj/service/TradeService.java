@@ -83,7 +83,7 @@ public class TradeService {
             throw new IllegalStateException("재고 충전은 관리자 및 선생님만 가능합니다.");
         }
 
-        TradeItem item = tradeItemRepository.findByItemUuid(itemUuid)
+        TradeItem item = tradeItemRepository.findByItemUuidForUpdate(itemUuid)
                 .orElseThrow(() -> new IllegalArgumentException("해당 아이템을 찾을 수 없습니다: " + itemUuid));
 
         // 재고 증가
@@ -125,6 +125,7 @@ public class TradeService {
                         "카테고리가 맞지 않습니다. " + category.name() + "의 하위 카테고리가 아닙니다: " + subCategory.name()
                 );
             }
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("subCategory"), subCategory));
         }
         if (minPrice != null) {
             spec = spec.and((root, q, cb) -> cb.ge(root.get("price"), minPrice));
@@ -183,6 +184,11 @@ public class TradeService {
 
         int qty = req.getQuantity();
 
+        // 재고 확인
+        if (item.getStock() < qty) {
+            throw new IllegalStateException("재고가 부족합니다. 현재 재고: " + item.getStock());
+        }
+
         int unitPrice = item.getPrice();
         int total = Math.multiplyExact(unitPrice, qty);
 
@@ -201,6 +207,10 @@ public class TradeService {
                     "물품 구매(포인트): " + item.getName()
             );
         }
+
+        // 재고 차감
+        item.setStock(item.getStock() - qty);
+        tradeItemRepository.save(item);
 
         // 거래 로그 저장
         TradeLog log = TradeLog.builder()

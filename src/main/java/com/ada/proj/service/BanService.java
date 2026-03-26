@@ -93,6 +93,10 @@ public class BanService {
         UserBan ban = banRepo.findById(Objects.requireNonNull(banId, "banId is required"))
                 .orElseThrow(() -> new RuntimeException("제재 내역 없음"));
 
+        if (!Boolean.TRUE.equals(ban.getActive())) {
+            throw new IllegalStateException("이미 해제된 제재입니다.");
+        }
+
         ban.setActive(false);
         banRepo.save(ban);
     }

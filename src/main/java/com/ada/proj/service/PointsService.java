@@ -2,6 +2,7 @@ package com.ada.proj.service;
 
 import java.util.UUID;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
@@ -94,7 +95,7 @@ public class PointsService {
     }
 
     @Transactional
-    protected UserPoints applyChange(String userUuid, PointChangeType type, int points, String description, Long refRuleId, String refEventUuid) {
+    public UserPoints applyChange(String userUuid, PointChangeType type, int points, String description, Long refRuleId, String refEventUuid) {
         if (userUuid == null || userUuid.isBlank()) {
             throw new IllegalArgumentException("userUuid는 필수입니다.");
         }
@@ -103,13 +104,20 @@ public class PointsService {
         }
 
         // Lock balance row for update
+        // 레코드가 없는 경우 INSERT 시도 → 동시 요청 충돌 시 catch 후 재조회
         UserPointsBalance balance = balanceRepository.findByUserUuidForUpdate(userUuid)
                 .orElseGet(() -> {
-                    UserPointsBalance b = UserPointsBalance.builder()
-                            .userUuid(userUuid)
-                            .totalPoints(0)
-                            .build();
-                    return balanceRepository.save(b);
+                    try {
+                        UserPointsBalance b = UserPointsBalance.builder()
+                                .userUuid(userUuid)
+                                .totalPoints(0)
+                                .build();
+                        return balanceRepository.saveAndFlush(b);
+                    } catch (DataIntegrityViolationException e) {
+                        // 다른 트랜잭션이 먼저 INSERT한 경우 재조회
+                        return balanceRepository.findByUserUuidForUpdate(userUuid)
+                                .orElseThrow(() -> new IllegalStateException("잔액 초기화 중 오류가 발생했습니다."));
+                    }
                 });
 
         int delta = switch (type) {
