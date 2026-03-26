@@ -104,7 +104,8 @@ public class CommentService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
-        List<Comment> allComments = commentRepository.findByPostOrderByCreatedAtAsc(post);
+        List<Comment> allComments = commentRepository.findByPostOrderByCreatedAtAsc(post,
+                org.springframework.data.domain.PageRequest.of(0, 500));
 
         // build parentId -> children list map
         var childrenMap = new java.util.HashMap<Long, java.util.List<Comment>>();
@@ -177,12 +178,12 @@ public class CommentService {
                 .user(currentUser)
                 .build();
         commentLikeRepository.save(Objects.requireNonNull(like));
-        comment.setLikes(comment.getLikes() + 1);
-        commentRepository.save(comment);
+        // @PreUpdate 발동 없이 likes 컬럼만 직접 업데이트 (edited=true 오염 방지)
+        commentRepository.incrementLikes(commentId);
 
         Map<String, Object> result = new HashMap<>();
         result.put("liked", true);
-        result.put("likes", comment.getLikes());
+        result.put("likes", comment.getLikes() + 1);
         return result;
     }
 
@@ -196,12 +197,12 @@ public class CommentService {
                 .orElseThrow(() -> new IllegalStateException("좋아요하지 않은 댓글입니다."));
 
         commentLikeRepository.delete(existing);
-        comment.setLikes(comment.getLikes() - 1);
-        commentRepository.save(comment);
+        // @PreUpdate 발동 없이 likes 컬럼만 직접 업데이트 (0 미만 방지 + edited=true 오염 방지)
+        commentRepository.decrementLikes(commentId);
 
         Map<String, Object> result = new HashMap<>();
         result.put("liked", false);
-        result.put("likes", comment.getLikes());
+        result.put("likes", Math.max(comment.getLikes() - 1, 0));
         return result;
     }
 
@@ -216,6 +217,8 @@ public class CommentService {
         if (comment.isFixed()) {
             throw new IllegalStateException("이미 고정된 댓글입니다.");
         }
+        // 기존 핀 댓글 해제 후 새 핀 설정 (게시글당 핀은 1개)
+        commentRepository.unpinAllByPost(comment.getPost());
         comment.setFixed(true);
         commentRepository.save(comment);
         Map<String, Object> result = new HashMap<>();
