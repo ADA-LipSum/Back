@@ -16,8 +16,10 @@ import com.ada.proj.entity.User;
 import com.ada.proj.entity.UserCoins;
 import com.ada.proj.entity.UserPoints;
 
+import com.ada.proj.entity.UserInventory;
 import com.ada.proj.repository.TradeItemRepository;
 import com.ada.proj.repository.TradeLogRepository;
+import com.ada.proj.repository.UserInventoryRepository;
 import com.ada.proj.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,7 @@ public class TradeService {
 
     private final TradeItemRepository tradeItemRepository;
     private final TradeLogRepository tradeLogRepository;
+    private final UserInventoryRepository userInventoryRepository;
     private final PointsService pointsService;
     private final CoinsService coinsService;
     private final UserRepository userRepository;
@@ -218,6 +221,16 @@ public class TradeService {
                 .build();
 
         tradeLogRepository.save(log);
+
+        // ETC 카테고리 아이템(BANNER, STICKER 등) 구매 시 인벤토리에 저장
+        if (topCategory == TradeCategory.ETC) {
+            UserInventory inventory = UserInventory.builder()
+                    .inventoryUuid(UUID.randomUUID().toString())
+                    .userUuid(userUuid)
+                    .itemUuid(item.getItemUuid())
+                    .build();
+            userInventoryRepository.save(inventory);
+        }
 
         return new TradeResult(item, log, currency, pointsTx, coinsTx);
     }
