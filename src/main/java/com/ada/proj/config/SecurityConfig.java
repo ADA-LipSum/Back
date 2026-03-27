@@ -82,6 +82,7 @@ public class SecurityConfig {
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html",
+                        "/swagger-uuid-autofill.js",
                         "/tools/**",
                         "/api/posts",
                         "/api/posts/view",
