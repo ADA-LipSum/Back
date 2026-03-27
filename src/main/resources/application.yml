@@ -137,6 +137,11 @@ app:
   cors:
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*,https://ada-back.com,https://www.ada-back.com}
 
+# IDE에서 Unknown property 경고가 표시되지만 SpringDoc 전용 속성으로 런타임에는 정상 동작합니다.
+springdoc:
+  swagger-ui:
+    custom-js: /swagger-uuid-autofill.js
+
 aws:
   s3:
     # 로컬 개발 시 .env에 AWS_ACCESS_KEY / AWS_SECRET_KEY 설정
