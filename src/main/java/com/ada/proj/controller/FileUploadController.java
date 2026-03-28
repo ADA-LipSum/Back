@@ -1,10 +1,10 @@
 package com.ada.proj.controller;
 
 import com.ada.proj.dto.ApiResponse;
+import com.ada.proj.dto.UpdateProfileRequest;
 import com.ada.proj.exception.ForbiddenException;
 import com.ada.proj.service.S3Service;
 import com.ada.proj.service.UserService;
-import com.ada.proj.dto.UpdateProfileRequest;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,12 +19,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/upload")
-@Tag(name = "파일 업로드", description = "S3를 이용한 프로필 이미지 / 배너 업로드 API")
+@Tag(name = "파일 업로드", description = "S3를 이용한 프로필 이미지 업로드 API (배너는 거래소 구매 후 인벤토리에서 적용)")
 public class FileUploadController {
 
     private final S3Service s3Service;
@@ -84,105 +81,4 @@ public class FileUploadController {
         return ResponseEntity.ok(ApiResponse.ok(url));
     }
 
-    @PostMapping(value = "/banner/{uuid}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(
-            summary = "배너 이미지 업로드",
-            description = """
-                    배너 이미지를 S3에 업로드하고 DB에 저장합니다. 본인 또는 ADMIN만 가능합니다.
-
-                    **Path Variable:**
-                    - `uuid` (필수): 대상 사용자 UUID
-
-                    **Request Body (multipart/form-data):**
-                    - `file` (필수): 업로드할 배너 이미지 파일 (jpeg/png/gif/webp, 최대 20MB)
-
-                    **Response:**
-                    - `data`: 업로드된 배너의 S3 URL (String)
-                    """
-    )
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "업로드 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "파일 형식 오류 또는 파일 없음",
-                    content = @Content(examples = @ExampleObject(value = """
-                            {"success":false,"code":"BAD_REQUEST","message":"허용되지 않는 파일 형식입니다. (jpeg, png, gif, webp만 허용)"}"""))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "413", description = "파일 크기 초과 (최대 20MB)",
-                    content = @Content(examples = @ExampleObject(value = """
-                            {"success":false,"code":"BAD_REQUEST","message":"20MB까지만 업로드 가능합니다."}""")))
-    })
-    public ResponseEntity<ApiResponse<String>> uploadBanner(
-            @Parameter(description = "대상 사용자 UUID") @PathVariable String uuid,
-            @Parameter(description = "업로드할 배너 파일") @RequestPart("file") MultipartFile file,
-            Authentication auth) {
-
-        ensureSelfOrAdmin(auth, uuid);
-        String url = s3Service.uploadBanner(file, uuid);
-
-        UpdateProfileRequest req = new UpdateProfileRequest();
-        req.setProfileBanner(url);
-        userService.updateProfile(uuid, req);
-
-        return ResponseEntity.ok(ApiResponse.ok(url));
-    }
-
-    /**
-     * 프로필 이미지 + 배너를 한 번에 S3 업로드하고 DB에 저장합니다. profileImage, banner 파일은 각각 선택적으로
-     * 포함할 수 있습니다.
-     */
-    @PostMapping(value = "/profile/{uuid}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(
-            summary = "프로필 통합 수정",
-            description = """
-                    프로필 이미지와 배너를 한 번에 S3에 업로드하고 DB에 저장합니다. 본인 또는 ADMIN만 가능합니다.
-
-                    **Path Variable:**
-                    - `uuid` (필수): 대상 사용자 UUID
-
-                    **Request Body (multipart/form-data, 모두 선택):**
-                    - `profileImage`: 프로필 이미지 파일 (jpeg/png/gif/webp, 최대 15MB)
-                    - `banner`: 배너 이미지 파일 (jpeg/png/gif/webp, 최대 20MB)
-
-                    **Response:**
-                    - `profileImageUrl`: 업로드된 프로필 이미지 S3 URL (파일 포함 시)
-                    - `bannerUrl`: 업로드된 배너 S3 URL (파일 포함 시)
-
-                    두 파일 모두 포함하지 않으면 DB 업데이트 없이 빈 결과를 반환합니다.
-                    """
-    )
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "업로드 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "파일 형식 오류 또는 파일 없음",
-                    content = @Content(examples = @ExampleObject(value = """
-                            {"success":false,"code":"BAD_REQUEST","message":"허용되지 않는 파일 형식입니다. (jpeg, png, gif, webp만 허용)"}"""))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "413", description = "파일 크기 초과 (프로필 최대 15MB, 배너 최대 20MB)",
-                    content = @Content(examples = @ExampleObject(value = """
-                            {"success":false,"code":"BAD_REQUEST","message":"15MB까지만 업로드 가능합니다."}""")))
-    })
-    public ResponseEntity<ApiResponse<Map<String, String>>> updateProfileImages(
-            @Parameter(description = "대상 사용자 UUID") @PathVariable String uuid,
-            @Parameter(description = "프로필 이미지 (선택)") @RequestPart(value = "profileImage", required = false) MultipartFile profileImage,
-            @Parameter(description = "배너 이미지 (선택)") @RequestPart(value = "banner", required = false) MultipartFile banner,
-            Authentication auth) {
-
-        ensureSelfOrAdmin(auth, uuid);
-
-        UpdateProfileRequest req = new UpdateProfileRequest();
-        Map<String, String> result = new LinkedHashMap<>();
-
-        if (profileImage != null && !profileImage.isEmpty()) {
-            String url = s3Service.uploadProfileImage(profileImage, uuid);
-            req.setProfileImage(url);
-            result.put("profileImageUrl", url);
-        }
-        if (banner != null && !banner.isEmpty()) {
-            String url = s3Service.uploadBanner(banner, uuid);
-            req.setProfileBanner(url);
-            result.put("bannerUrl", url);
-        }
-
-        if (!result.isEmpty()) {
-            userService.updateProfile(uuid, req);
-        }
-
-        return ResponseEntity.ok(ApiResponse.ok(result));
-    }
 }
