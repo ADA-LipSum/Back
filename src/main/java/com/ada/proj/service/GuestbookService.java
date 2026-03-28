@@ -101,7 +101,7 @@ public class GuestbookService {
         String writerName = null;
         String writerProfileImage = null;
         if (writer != null) {
-            writerName = writer.isUseNickname() ? writer.getUserNickname() : writer.getUserRealname();
+            writerName = writer.isUseNickname() ? writer.getUserNickname() : writer.getCustomId();
             writerProfileImage = writer.getProfileImage();
         }
         return GuestbookResponse.builder()
