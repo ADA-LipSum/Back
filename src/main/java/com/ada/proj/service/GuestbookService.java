@@ -99,15 +99,18 @@ public class GuestbookService {
 
     private GuestbookResponse buildResponse(GuestbookEntry entry, User writer) {
         String writerName = null;
+        String writerId = null;
         String writerProfileImage = null;
         if (writer != null) {
-            writerName = writer.isUseNickname() ? writer.getUserNickname() : writer.getCustomId();
+            writerName = writer.getUserNickname();
+            writerId = writer.getCustomId();
             writerProfileImage = writer.getProfileImage();
         }
         return GuestbookResponse.builder()
                 .id(entry.getId())
                 .writerUuid(entry.getWriterUuid())
                 .writerName(writerName)
+                .writerId(writerId)
                 .writerProfileImage(writerProfileImage)
                 .content(entry.getContent())
                 .createdAt(entry.getCreatedAt())

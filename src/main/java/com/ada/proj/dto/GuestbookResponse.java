@@ -17,8 +17,11 @@ public class GuestbookResponse {
     @Schema(description = "작성자 UUID")
     private String writerUuid;
 
-    @Schema(description = "작성자 표시명")
+    @Schema(description = "작성자 닉네임")
     private String writerName;
+
+    @Schema(description = "작성자 Custom ID")
+    private String writerId;
 
     @Schema(description = "작성자 프로필 이미지 URL")
     private String writerProfileImage;
