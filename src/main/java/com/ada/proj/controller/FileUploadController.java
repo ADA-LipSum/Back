@@ -41,7 +41,7 @@ public class FileUploadController {
         }
     }
 
-    @PostMapping(value = "/profile-image/{uuid}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = {"/profile-image/{uuid}", "/profile/{uuid}"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "프로필 이미지 업로드",
             description = """
