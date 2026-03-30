@@ -130,8 +130,8 @@ app:
 
   cookie:
     http-only: true
-    secure: ${COOKIE_SECURE:false}
-    same-site: Lax
+    secure: ${COOKIE_SECURE:true}
+    same-site: None
     max-age: 604800
 
   cors:

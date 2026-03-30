@@ -9,6 +9,7 @@ public class AuthTokenResponse {
 
     private String tokenType;
     private String accessToken;
+    private String refreshToken;
     private long expiresIn;
 
     private String uuid;

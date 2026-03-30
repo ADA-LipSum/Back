@@ -94,6 +94,7 @@ public class AuthController {
         AuthTokenResponse body = AuthTokenResponse.builder()
                 .tokenType(res.getTokenType())
                 .accessToken(res.getAccessToken())
+                .refreshToken(res.getRefreshToken())
                 .expiresIn(res.getExpiresIn())
                 .uuid(res.getUuid())
                 .adminId(res.getAdminId())
@@ -166,6 +167,7 @@ public class AuthController {
         AuthTokenResponse body = AuthTokenResponse.builder()
                 .tokenType(res.getTokenType())
                 .accessToken(res.getAccessToken())
+                .refreshToken(res.getRefreshToken())
                 .expiresIn(res.getExpiresIn())
                 .build();
 
