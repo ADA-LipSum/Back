@@ -321,6 +321,7 @@
   <button class="tab-btn" disabled id="tab-btn-github"  onclick="switchTab('github',  this)">🐙 GitHub</button>
   <button class="tab-btn" disabled id="tab-btn-upload"  onclick="switchTab('upload',  this)">📦 업로드</button>
   <button class="tab-btn" disabled id="tab-btn-profile" onclick="switchTab('profile', this)">👤 프로필 조회</button>
+  <button class="tab-btn" disabled id="tab-btn-banner"  onclick="switchTab('banner',  this)">🏞️ 배너 변경</button>
   <button class="tab-btn" disabled id="tab-btn-s3"      onclick="switchTab('s3',      this)">🗂️ S3 브라우저</button>
 </div>
 
@@ -445,6 +446,28 @@
           <div class="profile-detail" id="profileDetail"></div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 배너 변경 탭 ══════════════════════════════════════════════ -->
+<div id="tab-banner" class="tab-content">
+  <div class="grid">
+    <div class="card">
+      <h3>profileBanner 변경</h3>
+      <div class="form-group">
+        <label>UUID</label>
+        <input id="bannerUuid" type="text" placeholder="대상 사용자 UUID" />
+      </div>
+      <div class="form-group">
+        <label>배너 이미지 URL</label>
+        <input id="bannerUrlInput" type="text" placeholder="https://example.com/banner.png" oninput="previewBannerInput()" />
+      </div>
+      <div class="profile-banner-area" id="bannerInputPreview" style="margin-top:4px;">
+        <!-- 미리보기 -->
+      </div>
+      <button class="btn btn-primary btn-full" id="bannerSaveBtn" onclick="doBannerUpdate()">배너 저장</button>
+      <div id="bannerUpdateStatus" class="info-box hidden"></div>
     </div>
   </div>
 </div>
@@ -581,7 +604,7 @@
     const p = parseJwt(accessToken);
     if (!p) { clearSession(); return; }
 
-    ['github','upload','profile'].forEach(t =>
+    ['github','upload','profile','banner'].forEach(t =>
       document.getElementById('tab-btn-' + t).removeAttribute('disabled'));
     if (p.role === 'ADMIN') {
       document.getElementById('tab-btn-s3').removeAttribute('disabled');
@@ -604,8 +627,9 @@
     document.getElementById('sessionInfo').textContent =
       `UUID: ${p.sub}\n역할: ${p.role || 'USER'}\n만료: ${formatExp(p.exp)}`;
 
-    document.getElementById('uploadUuid').value = p.sub || '';
-    document.getElementById('viewUuid').value   = p.sub || '';
+    document.getElementById('uploadUuid').value  = p.sub || '';
+    document.getElementById('viewUuid').value    = p.sub || '';
+    document.getElementById('bannerUuid').value  = p.sub || '';
 
     // 프로필 조회로 이름/아바타
     try {
@@ -627,7 +651,7 @@
 
   function clearSession() {
     sessionStorage.removeItem('accessToken'); accessToken = null;
-    ['github','upload','profile','s3'].forEach(t =>
+    ['github','upload','profile','banner','s3'].forEach(t =>
       document.getElementById('tab-btn-' + t).setAttribute('disabled',''));
     document.getElementById('loginCard').classList.remove('hidden');
     document.getElementById('sessionCard').classList.add('hidden');
@@ -987,6 +1011,40 @@
   let s3CurrentPrefix = '';
   let s3ModalKey = '';
   let s3CropKey = '';
+
+  // ── 배너 변경 ──────────────────────────────────────────────
+  function previewBannerInput() {
+    const url = document.getElementById('bannerUrlInput').value.trim();
+    const area = document.getElementById('bannerInputPreview');
+    area.innerHTML = '';
+    if (url) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = 'banner preview';
+      img.onerror = () => { area.innerHTML = ''; };
+      area.appendChild(img);
+    }
+  }
+
+  async function doBannerUpdate() {
+    const uuid = document.getElementById('bannerUuid').value.trim();
+    const url  = document.getElementById('bannerUrlInput').value.trim();
+    if (!uuid) { setMsg('bannerUpdateStatus', 'warn', 'UUID를 입력하세요.'); return; }
+    if (!url)  { setMsg('bannerUpdateStatus', 'warn', '배너 URL을 입력하세요.'); return; }
+
+    const btn = document.getElementById('bannerSaveBtn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 저장 중…';
+
+    try {
+      const r = await apiFetch('PATCH', `/api/users/${uuid}/profile`, { profileBanner: url }, true);
+      if (!r.ok) { setMsg('bannerUpdateStatus', 'error', `저장 실패 (${r.status}): ${r.json?.message}`); return; }
+      setMsg('bannerUpdateStatus', 'success', '배너가 저장되었습니다.');
+    } catch (e) {
+      setMsg('bannerUpdateStatus', 'error', '네트워크 오류: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '배너 저장';
+    }
+  }
 
   function switchTab(name, btn) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
