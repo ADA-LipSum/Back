@@ -897,7 +897,7 @@
     btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 업로드 중…';
 
     const form = new FormData();
-    form.append('profileImage', pb, pb.type === 'image/png' ? 'profile.png' : 'profile.jpg');
+    form.append('file', pb, pb.type === 'image/png' ? 'profile.png' : 'profile.jpg');
 
     try {
       const r = await apiFetch('POST', `/api/upload/profile/${uuid}`, form, true);
