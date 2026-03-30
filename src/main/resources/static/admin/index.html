@@ -409,23 +409,6 @@
         </div>
       </div>
 
-      <!-- 배너 이미지 -->
-      <div class="form-group">
-        <label>배너 이미지 <span style="color:#475569;font-weight:400">(최대 10MB)</span></label>
-        <div class="file-drop" id="bannerDrop">
-          <input type="file" id="bannerFileInput" accept="image/*" />
-          <div class="file-drop-inner">
-            <div class="file-drop-icon">🏞️</div>
-            <div class="file-drop-text">클릭하거나 드래그 · <span>이미지 선택</span></div>
-          </div>
-        </div>
-        <div class="crop-preview-box" id="bannerPreviewBox">
-          <img id="bannerPreviewImg" src="" alt="크롭 미리보기" style="height:100px;object-fit:cover;" />
-          <button class="crop-edit-btn" onclick="reOpenCrop('banner')">✏️ 다시 편집</button>
-          <div class="crop-preview-label" id="bannerPreviewLabel"></div>
-        </div>
-      </div>
-
       <button class="btn btn-primary btn-full" id="uploadBtn" onclick="doUpload()">업로드</button>
       <div id="uploadStatus" class="info-box hidden"></div>
     </div>
@@ -562,9 +545,9 @@
   let accessToken = sessionStorage.getItem('accessToken') || null;
 
   // 크롭된 결과 블롭 저장
-  const croppedBlobs = { profile: null, banner: null };
+  const croppedBlobs = { profile: null };
   // 원본 파일 URL (재편집용)
-  const originalUrls = { profile: null, banner: null };
+  const originalUrls = { profile: null };
   // 현재 크롭 대상
   let cropTarget = null;
   let cropperInst = null;
@@ -747,7 +730,6 @@
     });
   }
   setupFileDrop('profileFileInput', 'profileDrop', 'profile');
-  setupFileDrop('bannerFileInput',  'bannerDrop',  'banner');
 
   function reOpenCrop(target) {
     if (!originalUrls[target]) return;
@@ -908,16 +890,14 @@
   async function doUpload() {
     const uuid = document.getElementById('uploadUuid').value.trim();
     const pb = croppedBlobs.profile;
-    const bb = croppedBlobs.banner;
     if (!uuid) { setMsg('uploadStatus','warn','UUID를 입력하세요.'); return; }
-    if (!pb && !bb) { setMsg('uploadStatus','warn','이미지를 선택하고 크롭을 완료해주세요.'); return; }
+    if (!pb) { setMsg('uploadStatus','warn','이미지를 선택하고 크롭을 완료해주세요.'); return; }
 
     const btn = document.getElementById('uploadBtn');
     btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 업로드 중…';
 
     const form = new FormData();
-    if (pb) form.append('profileImage', pb, pb.type === 'image/png' ? 'profile.png' : 'profile.jpg');
-    if (bb) form.append('banner', bb, 'banner.jpg');
+    form.append('profileImage', pb, pb.type === 'image/png' ? 'profile.png' : 'profile.jpg');
 
     try {
       const r = await apiFetch('POST', `/api/upload/profile/${uuid}`, form, true);
@@ -925,7 +905,6 @@
       const d = r.json.data;
       const lines = ['✓ 업로드 성공'];
       if (d?.profileImageUrl) lines.push(`🖼️ 프로필: <a href="${d.profileImageUrl}" target="_blank">${d.profileImageUrl}</a>`);
-      if (d?.bannerUrl)       lines.push(`🏞️ 배너: <a href="${d.bannerUrl}" target="_blank">${d.bannerUrl}</a>`);
       const el = document.getElementById('uploadStatus');
       el.className = 'info-box success'; el.classList.remove('hidden');
       el.innerHTML = lines.join('\n');
@@ -934,12 +913,9 @@
         const av = document.getElementById('userAvatar');
         av.src = d.profileImageUrl; av.style.display = '';
       }
-      // 미리보기/블롭 초기화
-      ['profile','banner'].forEach(t => {
-        croppedBlobs[t] = null;
-        document.getElementById(t + 'PreviewBox').style.display = 'none';
-        document.getElementById(t + 'FileInput').value = '';
-      });
+      croppedBlobs.profile = null;
+      document.getElementById('profilePreviewBox').style.display = 'none';
+      document.getElementById('profileFileInput').value = '';
     } catch (e) {
       setMsg('uploadStatus','error','네트워크 오류: ' + e.message);
     } finally {
