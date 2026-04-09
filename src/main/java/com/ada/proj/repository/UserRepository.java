@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,13 +13,10 @@ import com.ada.proj.enums.Role;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    @Cacheable(cacheNames = "users", key = "#uuid", unless = "#result == null || #result.isEmpty()")
     Optional<User> findByUuid(String uuid);
 
-    @Cacheable(cacheNames = "users", key = "'admin:' + #adminId", unless = "#result == null || #result.isEmpty()")
     Optional<User> findByAdminId(String adminId);
 
-    @Cacheable(cacheNames = "users", key = "'custom:' + #customId", unless = "#result == null || #result.isEmpty()")
     Optional<User> findByCustomId(String customId);
 
     boolean existsByCustomId(String customId);

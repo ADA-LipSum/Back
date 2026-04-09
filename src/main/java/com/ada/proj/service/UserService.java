@@ -71,14 +71,12 @@ public class UserService {
         return userRepository.search(role, query);
     }
 
-    @Cacheable(cacheNames = "users", key = "'profile:' + #uuid")
     public UserProfileResponse getUserProfile(String uuid) {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         return buildUserProfileResponse(user);
     }
 
-    @Cacheable(cacheNames = "users", key = "'profile:username:' + #username")
     public UserProfileResponse getUserProfileByUsername(String username) {
         User user = userRepository.findByCustomId(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
