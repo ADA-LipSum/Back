@@ -1,17 +1,21 @@
 package com.ada.proj.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-@Schema(name = "ActivitySummary", description = "활동 내역 요약")
+@NoArgsConstructor
+@AllArgsConstructor
+@Schema(name = "ActivitySummary", description = "User activity summary")
 public class ActivitySummary {
 
-    @Schema(description = "작성한 게시글 수")
+    @Schema(description = "Number of posts written")
     private long postCount;
 
-    @Schema(description = "작성한 댓글 수")
+    @Schema(description = "Number of comments written")
     private long commentCount;
 }

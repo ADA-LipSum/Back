@@ -1,23 +1,27 @@
 package com.ada.proj.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-@Schema(name = "SocialLinks", description = "소셜 링크 정보")
+@NoArgsConstructor
+@AllArgsConstructor
+@Schema(name = "SocialLinks", description = "Social profile links")
 public class SocialLinks {
 
-    @Schema(description = "GitHub 프로필 URL", example = "https://github.com/username")
+    @Schema(description = "GitHub profile URL", example = "https://github.com/username")
     private String githubUrl;
 
-    @Schema(description = "Notion 페이지 URL", example = "https://notion.so/username")
+    @Schema(description = "Notion page URL", example = "https://notion.so/username")
     private String notionUrl;
 
-    @Schema(description = "LinkedIn 프로필 URL", example = "https://linkedin.com/in/username")
+    @Schema(description = "LinkedIn profile URL", example = "https://linkedin.com/in/username")
     private String linkedinUrl;
 
-    @Schema(description = "개인 웹사이트 URL", example = "https://mysite.dev")
+    @Schema(description = "Personal website URL", example = "https://mysite.dev")
     private String personalWebsiteUrl;
 }
