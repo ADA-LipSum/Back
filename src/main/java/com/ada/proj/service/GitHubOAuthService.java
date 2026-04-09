@@ -208,15 +208,11 @@ public class GitHubOAuthService {
         String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
 
-        refreshTokenRepository.findByUuid(user.getUuid())
-                .ifPresent(rt -> refreshTokenRepository.deleteByUuid(user.getUuid()));
-
-        RefreshToken entity = RefreshToken.builder()
+        refreshTokenRepository.save(RefreshToken.builder()
                 .uuid(user.getUuid())
                 .token(refreshToken)
-                .expiresAt(Instant.now().plusMillis(jwtProperties.getRefreshExpirationMs()))
-                .build();
-        refreshTokenRepository.save(entity);
+                .ttl(jwtProperties.getRefreshExpirationMs() / 1000)
+                .build());
 
         return accessToken;
     }

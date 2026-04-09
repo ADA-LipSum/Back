@@ -1,37 +1,30 @@
 package com.ada.proj.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import java.util.concurrent.TimeUnit;
 
-import java.time.Instant;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.redis.core.RedisHash;
+import org.springframework.data.redis.core.TimeToLive;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "refresh_token",
-        indexes = {
-                @Index(name = "idx_refresh_uuid", columnList = "uuid"),
-                @Index(name = "idx_refresh_token", columnList = "token")
-        })
+@RedisHash("rt")
 public class RefreshToken {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
-    @Column(length = 36, nullable = false)
+    @Id
     private String uuid;
 
-    @Column(name = "token", length = 500, nullable = false)
     private String token;
 
-    @Column(name = "expires_at", nullable = false)
-    private Instant expiresAt;
-
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false, nullable = false)
-    private Instant createdAt;
+    @TimeToLive(unit = TimeUnit.SECONDS)
+    private long ttl;
 }

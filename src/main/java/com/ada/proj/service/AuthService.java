@@ -68,17 +68,11 @@ public class AuthService {
         String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
 
-        // refresh token DB 저장
-        refreshTokenRepository.findByUuid(user.getUuid())
-                .ifPresent(rt -> refreshTokenRepository.deleteByUuid(user.getUuid()));
-
-        RefreshToken entity = RefreshToken.builder()
+        refreshTokenRepository.save(RefreshToken.builder()
                 .uuid(user.getUuid())
                 .token(refreshToken)
-                .expiresAt(Instant.now().plusMillis(jwtProperties.getRefreshExpirationMs()))
-                .build();
-
-        refreshTokenRepository.save(entity);
+                .ttl(jwtProperties.getRefreshExpirationMs() / 1000)
+                .build());
 
         return LoginResponse.builder()
                 .tokenType("Bearer")
@@ -115,16 +109,11 @@ public class AuthService {
         String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
 
-        refreshTokenRepository.findByUuid(user.getUuid())
-                .ifPresent(rt -> refreshTokenRepository.deleteByUuid(user.getUuid()));
-
-        refreshTokenRepository.save(
-                RefreshToken.builder()
-                        .uuid(user.getUuid())
-                        .token(refreshToken)
-                        .expiresAt(Instant.now().plusMillis(jwtProperties.getRefreshExpirationMs()))
-                        .build()
-        );
+        refreshTokenRepository.save(RefreshToken.builder()
+                .uuid(user.getUuid())
+                .token(refreshToken)
+                .ttl(jwtProperties.getRefreshExpirationMs() / 1000)
+                .build());
 
         return LoginResponse.builder()
                 .tokenType("Bearer")
@@ -161,16 +150,11 @@ public class AuthService {
         String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
 
-        refreshTokenRepository.findByUuid(user.getUuid())
-                .ifPresent(rt -> refreshTokenRepository.deleteByUuid(user.getUuid()));
-
-        refreshTokenRepository.save(
-                RefreshToken.builder()
-                        .uuid(user.getUuid())
-                        .token(refreshToken)
-                        .expiresAt(Instant.now().plusMillis(jwtProperties.getRefreshExpirationMs()))
-                        .build()
-        );
+        refreshTokenRepository.save(RefreshToken.builder()
+                .uuid(user.getUuid())
+                .token(refreshToken)
+                .ttl(jwtProperties.getRefreshExpirationMs() / 1000)
+                .build());
 
         return LoginResponse.builder()
                 .tokenType("Bearer")
@@ -207,12 +191,8 @@ public class AuthService {
             throw new TokenInvalidException("Invalid refresh token");
         }
 
-        RefreshToken stored = refreshTokenRepository.findByUuid(uuid)
+        RefreshToken stored = refreshTokenRepository.findById(uuid)
                 .orElseThrow(() -> new TokenInvalidException("Invalid refresh token"));
-
-        if (stored.getExpiresAt().isBefore(Instant.now())) {
-            throw new TokenExpiredException("Refresh token expired");
-        }
 
         if (stored.getToken() == null || !stored.getToken().equals(refreshToken)) {
             throw new TokenInvalidException("Invalid refresh token");
@@ -222,7 +202,7 @@ public class AuthService {
         String newRefresh = jwtTokenProvider.generateRefreshToken(uuid, role);
 
         stored.setToken(newRefresh);
-        stored.setExpiresAt(Instant.now().plusMillis(jwtProperties.getRefreshExpirationMs()));
+        stored.setTtl(jwtProperties.getRefreshExpirationMs() / 1000);
         refreshTokenRepository.save(stored);
 
         User user = userRepository.findByUuid(uuid).orElse(null);
@@ -248,7 +228,7 @@ public class AuthService {
     }
 
     public void logout(String uuid) {
-        refreshTokenRepository.deleteByUuid(uuid);
+        refreshTokenRepository.deleteById(uuid);
     }
 
 
