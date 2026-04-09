@@ -9,6 +9,7 @@ import com.ada.proj.enums.PointChangeType;
 import com.ada.proj.enums.TradeCategory;
 import com.ada.proj.repository.TradeItemRepository;
 import com.ada.proj.repository.TradeLogRepository;
+import com.ada.proj.repository.UserInventoryRepository;
 import com.ada.proj.repository.UserRepository;
 
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ class TradeServiceTest {
     void purchase_food_usesCoins() {
         TradeItemRepository tradeItemRepository = mock(TradeItemRepository.class);
         TradeLogRepository tradeLogRepository = mock(TradeLogRepository.class);
+        UserInventoryRepository userInventoryRepository = mock(UserInventoryRepository.class);
         PointsService pointsService = mock(PointsService.class);
         CoinsService coinsService = mock(CoinsService.class);
         UserRepository userRepository = mock(UserRepository.class);
@@ -35,7 +37,7 @@ class TradeServiceTest {
                 .price(10)
                 .active(true)
                 .category(TradeCategory.FOOD)
-                .stock(0)
+                .stock(10)
                 .build();
 
         when(tradeItemRepository.findByItemUuidForUpdate("item-1")).thenReturn(Optional.of(item));
@@ -50,7 +52,7 @@ class TradeServiceTest {
                 .build();
         when(coinsService.useCoins(eq("u1"), eq(20), anyString())).thenReturn(coinTx);
 
-        TradeService tradeService = new TradeService(tradeItemRepository, tradeLogRepository, pointsService, coinsService, userRepository);
+        TradeService tradeService = new TradeService(tradeItemRepository, tradeLogRepository, userInventoryRepository, pointsService, coinsService, userRepository);
 
         TradePurchaseRequest req = new TradePurchaseRequest();
         req.setItemUuid("item-1");
@@ -70,6 +72,7 @@ class TradeServiceTest {
     void purchase_etc_usesPoints() {
         TradeItemRepository tradeItemRepository = mock(TradeItemRepository.class);
         TradeLogRepository tradeLogRepository = mock(TradeLogRepository.class);
+        UserInventoryRepository userInventoryRepository = mock(UserInventoryRepository.class);
         PointsService pointsService = mock(PointsService.class);
         CoinsService coinsService = mock(CoinsService.class);
         UserRepository userRepository = mock(UserRepository.class);
@@ -80,7 +83,7 @@ class TradeServiceTest {
                 .price(50)
                 .active(true)
                 .category(TradeCategory.ETC)
-                .stock(0)
+                .stock(5)
                 .build();
 
         when(tradeItemRepository.findByItemUuidForUpdate("item-2")).thenReturn(Optional.of(item));
@@ -96,7 +99,7 @@ class TradeServiceTest {
                 .build();
         when(pointsService.usePoints(eq("u1"), eq(50), eq("trade"), isNull(), anyString())).thenReturn(pointsTx);
 
-        TradeService tradeService = new TradeService(tradeItemRepository, tradeLogRepository, pointsService, coinsService, userRepository);
+        TradeService tradeService = new TradeService(tradeItemRepository, tradeLogRepository, userInventoryRepository, pointsService, coinsService, userRepository);
 
         TradePurchaseRequest req = new TradePurchaseRequest();
         req.setItemUuid("item-2");

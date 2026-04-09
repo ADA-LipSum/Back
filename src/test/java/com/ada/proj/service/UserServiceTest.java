@@ -10,6 +10,7 @@ import com.ada.proj.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.cache.CacheManager;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,6 +32,7 @@ class UserServiceTest {
         PostRepository postRepository = mock(PostRepository.class);
         CommentRepository commentRepository = mock(CommentRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        CacheManager cacheManager = mock(CacheManager.class);
         ObjectMapper objectMapper = new ObjectMapper();
 
         when(userRepository.findByAdminId("st12345")).thenReturn(Optional.empty());
@@ -38,7 +40,7 @@ class UserServiceTest {
         when(passwordEncoder.encode("1234567890")).thenReturn("encoded");
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        UserService userService = new UserService(userRepository, userDataRepository, postRepository, commentRepository, passwordEncoder, objectMapper);
+        UserService userService = new UserService(userRepository, userDataRepository, postRepository, commentRepository, passwordEncoder, objectMapper, cacheManager);
 
         CreateUserRequest req = new CreateUserRequest();
         req.setAdminId("st12345");
@@ -71,11 +73,12 @@ class UserServiceTest {
         PostRepository postRepository = mock(PostRepository.class);
         CommentRepository commentRepository = mock(CommentRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        CacheManager cacheManager = mock(CacheManager.class);
         ObjectMapper objectMapper = new ObjectMapper();
 
         when(userRepository.findByAdminId("st12345")).thenReturn(Optional.empty());
 
-        UserService userService = new UserService(userRepository, userDataRepository, postRepository, commentRepository, passwordEncoder, objectMapper);
+        UserService userService = new UserService(userRepository, userDataRepository, postRepository, commentRepository, passwordEncoder, objectMapper, cacheManager);
 
         CreateUserRequest req = new CreateUserRequest();
         req.setAdminId("st12345");
