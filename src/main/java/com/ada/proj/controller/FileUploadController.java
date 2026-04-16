@@ -1,7 +1,6 @@
 package com.ada.proj.controller;
 
 import com.ada.proj.dto.ApiResponse;
-import com.ada.proj.dto.UpdateProfileRequest;
 import com.ada.proj.exception.ForbiddenException;
 import com.ada.proj.service.S3Service;
 import com.ada.proj.service.UserService;
@@ -74,9 +73,7 @@ public class FileUploadController {
         ensureSelfOrAdmin(auth, uuid);
         String url = s3Service.uploadProfileImage(file, uuid);
 
-        UpdateProfileRequest req = new UpdateProfileRequest();
-        req.setProfileImage(url);
-        userService.updateProfile(uuid, req);
+        userService.updateProfileImage(uuid, url);
 
         return ResponseEntity.ok(ApiResponse.ok(url));
     }

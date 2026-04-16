@@ -154,12 +154,6 @@ public class UserService {
         if (req.getNickname() != null) {
             user.setUserNickname(req.getNickname());
         }
-        if (req.getProfileImage() != null) {
-            user.setProfileImage(req.getProfileImage());
-        }
-        if (req.getProfileBanner() != null) {
-            user.setProfileBanner(req.getProfileBanner());
-        }
 
         // upsert user_data
         UserData ud = userDataRepository.findByUuid(uuid).orElseGet(() -> {
@@ -196,6 +190,30 @@ public class UserService {
         userRepository.save(user);
 
         // by-username 조회 캐시도 무효화 (annotation evict는 uuid 기반만 처리)
+        evictUsernameCaches(user.getCustomId());
+    }
+
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "users", key = "'profile:' + #uuid"),
+        @CacheEvict(cacheNames = "users", key = "#uuid")
+    })
+    public void updateProfileImage(String uuid, String url) {
+        User user = userRepository.findByUuid(uuid)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        user.setProfileImage(url);
+        userRepository.save(user);
+        evictUsernameCaches(user.getCustomId());
+    }
+
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "users", key = "'profile:' + #uuid"),
+        @CacheEvict(cacheNames = "users", key = "#uuid")
+    })
+    public void updateProfileBanner(String uuid, String url) {
+        User user = userRepository.findByUuid(uuid)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        user.setProfileBanner(url);
+        userRepository.save(user);
         evictUsernameCaches(user.getCustomId());
     }
 

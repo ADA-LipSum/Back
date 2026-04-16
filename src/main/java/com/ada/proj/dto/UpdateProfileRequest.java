@@ -14,12 +14,6 @@ public class UpdateProfileRequest {
     @Schema(description = "닉네임(최대 10자)", example = "길동쌤")
     private String nickname;
 
-    @Schema(description = "프로필 이미지 URL", example = "https://example.com/profile.png")
-    private String profileImage;
-
-    @Schema(description = "프로필 배너 URL", example = "https://example.com/banner.png")
-    private String profileBanner;
-
     @Size(max = 255)
     @Schema(description = "자기소개", example = "안녕하세요, 백엔드 개발자입니다.")
     private String intro;

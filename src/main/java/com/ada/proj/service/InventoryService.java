@@ -5,7 +5,6 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.ada.proj.dto.UpdateProfileRequest;
 import com.ada.proj.dto.UserInventoryResponse;
 import com.ada.proj.entity.TradeItem;
 import com.ada.proj.entity.UserInventory;
@@ -65,8 +64,6 @@ public class InventoryService {
             throw new IllegalStateException("해당 배너 아이템에 이미지가 등록되어 있지 않습니다.");
         }
 
-        UpdateProfileRequest req = new UpdateProfileRequest();
-        req.setProfileBanner(item.getImageUrl());
-        userService.updateProfile(userUuid, req);
+        userService.updateProfileBanner(userUuid, item.getImageUrl());
     }
 }

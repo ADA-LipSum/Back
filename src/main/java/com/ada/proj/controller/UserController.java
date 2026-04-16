@@ -102,8 +102,6 @@ public class UserController {
 
                     **Request Body (모두 선택):**
                     - `nickname`: 닉네임 (최대 10자)
-                    - `profileImage`: 프로필 이미지 URL
-                    - `profileBanner`: 배너 이미지 URL
                     - `intro`: 자기소개 (최대 255자)
                     - `techStack`: 기술 스택 목록 (문자열 배열, 예: `["Java", "Spring"]`)
 
