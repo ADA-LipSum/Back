@@ -150,6 +150,6 @@ aws:
     access-key: ${AWS_ACCESS_KEY:}
     secret-key: ${AWS_SECRET_KEY:}
     region: ap-northeast-2
-    bucket: gbsw-s3
+    bucket: 2026project-s3-ada
     max-profile-size-mb: 15
     max-banner-size-mb: 20
