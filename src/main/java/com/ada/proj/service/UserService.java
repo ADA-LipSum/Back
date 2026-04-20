@@ -156,11 +156,8 @@ public class UserService {
         }
 
         // upsert user_data
-        UserData ud = userDataRepository.findByUuid(uuid).orElseGet(() -> {
-            UserData created = new UserData();
-            created.setUuid(uuid);
-            return created;
-        });
+        UserData ud = userDataRepository.findByUuid(uuid).orElseGet(() ->
+                UserData.builder().uuid(uuid).build());
 
         if (req.getIntro() != null) {
             ud.setIntro(req.getIntro());
@@ -181,10 +178,7 @@ public class UserService {
             ud.setPersonalWebsiteUrl(req.getPersonalWebsiteUrl());
         }
 
-        // persist if new or changed
-        if (ud.getSeq() == null) {
-            userDataRepository.save(ud);
-        }
+        userDataRepository.save(ud);
 
         // 캐시에서 꺼낸 엔티티는 detached 상태일 수 있으므로 명시적으로 저장
         userRepository.save(user);

@@ -104,10 +104,15 @@ public class UserController {
                     - `nickname`: 닉네임 (최대 10자)
                     - `intro`: 자기소개 (최대 255자)
                     - `techStack`: 기술 스택 목록 (문자열 배열, 예: `["Java", "Spring"]`)
+                    - `githubUrl`: GitHub 프로필 URL
+                    - `notionUrl`: Notion 페이지 URL
+                    - `linkedinUrl`: LinkedIn 프로필 URL
+                    - `personalWebsiteUrl`: 개인 웹사이트 URL
+
+                    모든 필드는 선택 사항이며, 포함된 필드만 업데이트됩니다.
+                    프로필 이미지/배너 변경은 `POST /api/upload/profile/{uuid}` API를 사용하세요.
 
                     **Response:** 성공 메시지 반환
-
-                    이미지 파일 업로드는 `POST /api/upload/profile/{uuid}` API를 사용하세요.
                     """
     )
     public ResponseEntity<ApiResponse<Void>> updateProfile(
