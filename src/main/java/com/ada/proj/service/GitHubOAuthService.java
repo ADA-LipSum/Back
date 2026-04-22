@@ -143,7 +143,8 @@ public class GitHubOAuthService {
                 + "?client_id=" + encode(gitHubProperties.getClientId())
                 + "&redirect_uri=" + encode(gitHubProperties.getCallbackUrl())
                 + "&scope=read:user%20repo%20read:org"
-                + "&state=" + encode(state);
+                + "&state=" + encode(state)
+                + "&prompt=consent";
     }
 
     // ──────────────────────────────────────────────────────────────────────────
