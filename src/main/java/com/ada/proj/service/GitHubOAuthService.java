@@ -309,6 +309,12 @@ public class GitHubOAuthService {
     }
 
     @SuppressWarnings("unchecked")
+    public Map<String, Object> getContributionsByGithubLogin(String githubLogin, Integer year) {
+        User user = userRepository.findByGithubLogin(githubLogin)
+                .orElseThrow(() -> new UserNotFoundException("해당 GitHub 계정이 연동된 사용자를 찾을 수 없습니다."));
+        return getContributions(user.getUuid(), year);
+    }
+
     public Map<String, Object> getContributions(String uuid, Integer year) {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));

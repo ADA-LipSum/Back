@@ -1,4 +1,4 @@
-package com.ada.proj.controller;
+﻿package com.ada.proj.controller;
 
 import java.io.IOException;
 import java.util.Map;
@@ -160,6 +160,28 @@ public class GitHubAuthController {
         String uuid = authentication.getName();
         boolean linked = gitHubOAuthService.isLinked(uuid);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("githubLinked", linked)));
+    }
+
+    @GetMapping("/contributions/{githubLogin}")
+    @Operation(
+            summary = "특정 사용자 GitHub 잔디 조회",
+            description = """
+                    GitHub 아이디로 해당 사용자의 contribution 데이터를 조회합니다.
+
+                    **Path Variable:**
+                    - `githubLogin`: 조회할 GitHub 사용자 아이디 (e.g. octocat)
+
+                    **Query Parameters:**
+                    - `year` (선택): 조회할 연도 (기본값: 현재 연도)
+
+                    해당 GitHub 계정이 연동된 사용자가 없으면 404를 반환합니다.
+                    """
+    )
+    public ResponseEntity<ApiResponse<Map<String, Object>>> contributionsByGithubLogin(
+            @PathVariable String githubLogin,
+            @RequestParam(required = false) Integer year) {
+        Map<String, Object> data = gitHubOAuthService.getContributionsByGithubLogin(githubLogin, year);
+        return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
     @GetMapping("/contributions")
