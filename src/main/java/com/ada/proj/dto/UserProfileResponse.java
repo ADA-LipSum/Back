@@ -22,6 +22,7 @@ public class UserProfileResponse {
     private String profileImage;
     private String profileBanner;
     private Role role;
+    private String githubAccount;
 
     // user_data
     private String intro;

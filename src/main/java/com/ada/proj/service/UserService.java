@@ -115,6 +115,7 @@ public class UserService {
                 .profileImage(user.getProfileImage())
                 .profileBanner(user.getProfileBanner())
                 .role(user.getRole())
+                .githubAccount(user.getGithubLogin())
                 .intro(ud == null ? null : ud.getIntro())
                 .techStack(techList)
                 .badge(ud == null ? null : ud.getBadge())
