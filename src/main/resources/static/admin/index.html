@@ -483,6 +483,8 @@
         ⬆ 업로드
         <input type="file" id="s3UploadInput" accept="image/*,video/*,application/pdf" hidden onchange="s3Upload(this)">
       </label>
+      <button class="btn btn-secondary" onclick="s3Mkdir()">📁 폴더 만들기</button>
+      <button class="btn btn-secondary" onclick="s3CreateFile()">📄 파일 만들기</button>
       <button class="btn btn-secondary" onclick="s3Refresh()">↻ 새로고침</button>
     </div>
   </div>
@@ -1111,7 +1113,7 @@
           <img class="s3-item-thumb" src="${item.url}" alt="${item.name}" loading="lazy" onerror="this.style.display='none'">
           <div class="s3-item-name">${item.name}</div>
           <div class="s3-item-size">${s3FmtSize(item.size)}</div>`;
-        card.onclick = () => s3OpenCrop(item);
+        card.onclick = () => s3OpenModal(item);
       } else {
         card.innerHTML = `
           <div class="s3-item-icon">📄</div>
@@ -1132,6 +1134,31 @@
       card.appendChild(delBtn);
     }
     return card;
+  }
+
+  async function s3Mkdir() {
+    const name = prompt('생성할 폴더 이름을 입력하세요:');
+    if (!name || !name.trim()) return;
+    try {
+      const r = await apiFetch('POST', `/api/admin/s3/mkdir?prefix=${encodeURIComponent(s3CurrentPrefix)}&name=${encodeURIComponent(name.trim())}`, null, true);
+      if (!r.ok) { alert(`폴더 생성 실패: ${r.json?.message}`); return; }
+      s3Refresh();
+    } catch (e) { alert('네트워크 오류: ' + e.message); }
+  }
+
+  async function s3CreateFile() {
+    const name = prompt('생성할 파일 이름을 입력하세요 (예: readme.txt):');
+    if (!name || !name.trim()) return;
+    const content = prompt('파일 내용을 입력하세요 (빈 파일이면 그냥 확인):') ?? '';
+    const blob = new Blob([content], { type: 'text/plain' });
+    const file = new File([blob], name.trim(), { type: 'text/plain' });
+    const form = new FormData();
+    form.append('file', file);
+    try {
+      const r = await apiFetch('POST', `/api/admin/s3/upload-admin?prefix=${encodeURIComponent(s3CurrentPrefix)}`, form, true);
+      if (!r.ok) { alert(`파일 생성 실패: ${r.json?.message}`); return; }
+      s3Refresh();
+    } catch (e) { alert('네트워크 오류: ' + e.message); }
   }
 
   function s3OpenCrop(item) {

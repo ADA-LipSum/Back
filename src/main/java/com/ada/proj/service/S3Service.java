@@ -133,10 +133,30 @@ public class S3Service {
                 .build());
     }
 
+    public void createFolder(String prefix, String name) {
+        if (!prefix.isEmpty() && !prefix.endsWith("/")) prefix += "/";
+        String key = prefix + name.replaceAll("[^a-zA-Z0-9._\\-가-힣]", "_") + "/";
+        PutObjectRequest req = PutObjectRequest.builder()
+                .bucket(props.getBucket())
+                .key(key)
+                .contentType("application/x-directory")
+                .contentLength(0L)
+                .build();
+        s3Client.putObject(req, RequestBody.empty());
+    }
+
     public String uploadToPrefix(MultipartFile file, String prefix) {
         if (!prefix.isEmpty() && !prefix.endsWith("/")) prefix += "/";
         validateImage(file, props.getMaxBannerSizeMb());
         String key = prefix + UUID.randomUUID() + getExtension(file);
+        return upload(file, key);
+    }
+
+    public String uploadToPrefixAdmin(MultipartFile file, String prefix) {
+        if (file == null || file.isEmpty()) throw new IllegalArgumentException("파일이 비어 있습니다.");
+        if (!prefix.isEmpty() && !prefix.endsWith("/")) prefix += "/";
+        String original = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
+        String key = prefix + original;
         return upload(file, key);
     }
 

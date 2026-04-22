@@ -49,6 +49,15 @@ public class S3BrowserController {
         return ResponseEntity.ok(ApiResponse.ok(url));
     }
 
+    @PostMapping(value = "/upload-admin", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "S3 어드민 파일 업로드", description = "파일 타입 제한 없이 지정한 prefix 경로에 파일을 업로드합니다.")
+    public ResponseEntity<ApiResponse<String>> uploadAdmin(
+            @RequestParam(defaultValue = "") String prefix,
+            @RequestPart("file") MultipartFile file) {
+        String url = s3Service.uploadToPrefixAdmin(file, prefix);
+        return ResponseEntity.ok(ApiResponse.ok(url));
+    }
+
     @PutMapping(value = "/overwrite", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "S3 파일 덮어쓰기", description = "key에 해당하는 S3 객체를 업로드한 파일로 덮어씁니다.")
     public ResponseEntity<ApiResponse<String>> overwrite(
@@ -56,6 +65,15 @@ public class S3BrowserController {
             @RequestPart("file") MultipartFile file) {
         String url = s3Service.overwriteByKey(file, key);
         return ResponseEntity.ok(ApiResponse.ok(url));
+    }
+
+    @PostMapping("/mkdir")
+    @Operation(summary = "S3 폴더 생성", description = "지정한 prefix 경로에 폴더를 생성합니다.")
+    public ResponseEntity<ApiResponse<Void>> mkdir(
+            @RequestParam(defaultValue = "") String prefix,
+            @RequestParam String name) {
+        s3Service.createFolder(prefix, name);
+        return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
     @GetMapping("/proxy")
