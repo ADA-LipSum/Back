@@ -94,6 +94,13 @@ public class SecurityConfig {
                         "/api/auth/github/login",
                         "/api/auth/github/callback"
                 ).permitAll()
+                .requestMatchers(HttpMethod.GET,
+                        "/api/posts/**",
+                        "/api/community/posts/**",
+                        "/api/blog/posts/**",
+                        "/api/notices/**",
+                        "/api/polls/posts/**"
+                ).permitAll()
                 .requestMatchers(HttpMethod.POST,
                         "/api/auth/login",
                         "/api/auth/reissue",
