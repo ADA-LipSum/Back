@@ -26,23 +26,69 @@ import com.ada.proj.enums.PostBoardType;
 import com.ada.proj.enums.TechSubTag;
 import com.ada.proj.service.PostService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/community/posts")
+@Tag(name = "커뮤니티", description = "커뮤니티 게시글 목록/검색/작성/수정/삭제 API")
 public class CommunityController {
 
     private final PostService postService;
 
     @GetMapping
+    @Operation(
+            summary = "커뮤니티 게시글 목록 조회 및 검색",
+            description = """
+                    커뮤니티 게시글을 최신순으로 조회합니다. 상위 태그, 기술 하위 태그, 세부 기술 태그, 검색어를 조합해 필터링할 수 있습니다.
+
+                    **상위 태그(category):**
+                    - `ALL` 또는 `전체`: 전체 조회
+                    - `CHAT`: 잡담
+                    - `TECH`: 기술
+                    - `MEME`: 밈
+                    - `PROJECT_SHOWCASE`: 프로젝트 자랑
+
+                    **기술 하위 태그(techSubTag):**
+                    - `QUESTION`: 질문
+                    - `CHAT`: 잡담
+                    - `TIP`: 팁
+                    - `POLL`: 투표
+
+                    **Query Parameters:**
+                    - `page` (선택): 페이지 번호, 0부터 시작
+                    - `size` (선택): 페이지 크기
+                    - `category` (선택): 상위 태그 필터
+                    - `techSubTag` (선택): 기술 하위 태그 필터
+                    - `techTag` (선택): React, MySQL 같은 세부 기술 태그
+                    - `query` (선택): 제목/본문 검색어
+
+                    **Response:**
+                    - `data.content`: 게시글 요약 목록
+                    - `boardType`: 항상 `COMMUNITY`
+                    - `communityCategory`: 커뮤니티 상위 태그
+                    - `techSubTag`: 기술 게시글의 하위 태그
+                    - `techTags`: 세부 기술 태그 목록
+                    """
+    )
     public ResponseEntity<ApiResponse<PageResponse<PostSummaryResponse>>> list(
+            @Parameter(description = "페이지 번호, 0부터 시작", example = "0")
             @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기", example = "20")
             @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "상위 태그 필터", schema = @Schema(allowableValues = {"ALL", "CHAT", "TECH", "MEME", "PROJECT_SHOWCASE"}))
             @RequestParam(required = false) String category,
+            @Parameter(description = "기술 하위 태그 필터", schema = @Schema(allowableValues = {"QUESTION", "CHAT", "TIP", "POLL"}))
             @RequestParam(required = false) String techSubTag,
+            @Parameter(description = "세부 기술 태그 필터", example = "React")
             @RequestParam(required = false) String techTag,
+            @Parameter(description = "제목/본문 검색어", example = "상태 관리")
             @RequestParam(required = false) String query
     ) {
         return ResponseEntity.ok(ApiResponse.success(postService.search(
@@ -57,6 +103,28 @@ public class CommunityController {
     }
 
     @PostMapping
+    @Operation(
+            summary = "커뮤니티 게시글 작성",
+            description = """
+                    커뮤니티 게시글을 작성합니다. 로그인이 필요합니다.
+
+                    **Request Body:**
+                    - `title` (필수): 제목, 최대 20자
+                    - `content` (선택): 본문
+                    - `communityCategory` (필수 권장): `CHAT`, `TECH`, `MEME`, `PROJECT_SHOWCASE`
+                    - `techSubTag` (조건부 필수): `communityCategory`가 `TECH`일 때 반드시 1개 선택
+                    - `techTags` (선택): React, MySQL 등 세부 기술 태그 목록
+                    - `poll` (조건부): `techSubTag`가 `POLL`일 때 투표 생성 정보
+
+                    **기술 게시글 규칙:**
+                    - `communityCategory=TECH`이면 `techSubTag`를 반드시 전달해야 합니다.
+                    - `techSubTag=POLL`이면 투표 선택지와 종료 시각을 포함한 `poll` 정보를 함께 전달합니다.
+
+                    **Response:**
+                    - `data`: 생성된 게시글 UUID
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     public ResponseEntity<ApiResponse<String>> create(
             @Valid @RequestBody PostCreateRequest request,
             Authentication authentication
@@ -70,16 +138,51 @@ public class CommunityController {
     }
 
     @GetMapping("/{uuid}")
+    @Operation(
+            summary = "커뮤니티 게시글 상세 조회",
+            description = """
+                    커뮤니티 게시글 상세 정보를 조회합니다. 조회 시 조회수가 1 증가합니다.
+
+                    **Path Variable:**
+                    - `uuid` (필수): 게시글 UUID
+
+                    **Response:**
+                    - 제목, 본문, 작성자 정보
+                    - 좋아요 수, 조회 수, 댓글 수
+                    - 커뮤니티 상위 태그, 기술 하위 태그, 세부 기술 태그
+                    - 투표 게시글인 경우 `poll` 정보
+                    """
+    )
     public ResponseEntity<ApiResponse<PostDetailResponse>> detail(
-            @PathVariable String uuid,
+            @Parameter(description = "게시글 UUID") @PathVariable String uuid,
             Authentication authentication
     ) {
         return ResponseEntity.ok(ApiResponse.success(postService.detail(uuid, authentication)));
     }
 
     @PutMapping("/{uuid}")
+    @Operation(
+            summary = "커뮤니티 게시글 수정",
+            description = """
+                    커뮤니티 게시글을 수정합니다. 작성자 본인 또는 관리자만 가능합니다.
+
+                    **Path Variable:**
+                    - `uuid` (필수): 수정할 게시글 UUID
+
+                    **Request Body:**
+                    - `title`: 제목
+                    - `content`: 본문
+                    - `communityCategory`: 상위 태그
+                    - `techSubTag`: 기술 하위 태그
+                    - `techTags`: 세부 기술 태그 목록
+                    - `poll`: 투표 정보. 투표 게시글에서만 사용 가능
+
+                    **Response:** 성공 응답
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     public ResponseEntity<ApiResponse<Void>> update(
-            @PathVariable String uuid,
+            @Parameter(description = "게시글 UUID") @PathVariable String uuid,
             @Valid @RequestBody PostUpdateRequest request,
             Authentication authentication
     ) {
@@ -88,8 +191,20 @@ public class CommunityController {
     }
 
     @DeleteMapping("/{uuid}")
+    @Operation(
+            summary = "커뮤니티 게시글 삭제",
+            description = """
+                    커뮤니티 게시글을 삭제합니다. 작성자 본인 또는 관리자만 가능합니다.
+
+                    **Path Variable:**
+                    - `uuid` (필수): 삭제할 게시글 UUID
+
+                    연결된 투표가 있다면 함께 삭제됩니다.
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     public ResponseEntity<ApiResponse<Void>> delete(
-            @PathVariable String uuid,
+            @Parameter(description = "게시글 UUID") @PathVariable String uuid,
             Authentication authentication
     ) {
         postService.delete(uuid, authentication);
