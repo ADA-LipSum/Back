@@ -1,11 +1,16 @@
-// src/main/java/com/ada/proj/entity/Post.java
 package com.ada.proj.entity;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.ada.proj.enums.CommunityCategory;
+import com.ada.proj.enums.PostBoardType;
+import com.ada.proj.enums.TechSubTag;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.PrePersist;
@@ -19,62 +24,75 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "posts")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Post {
-    // 자동 일련번호
+
     @Column(name = "seq", insertable = false, updatable = false)
     private Long seq;
 
-    // PK
     @Id
     @Column(name = "post_uuid", length = 36, unique = true, nullable = false)
     private String postUuid;
 
-    // 작성자 UUID
     @Column(name = "writer_uuid", length = 36, nullable = false)
     private String writerUuid;
 
     @Column(name = "title", length = 20, nullable = false)
     private String title;
 
-    // 원문(마크다운/HTML)
     @Lob
     @Column(name = "content_md", columnDefinition = "LONGTEXT")
     private String content;
 
     @Column(name = "images", length = 255)
-    private String images;   // 이미지 URL
+    private String images;
 
     @Column(name = "videos", length = 255)
-    private String videos;   // 영상 URL
+    private String videos;
 
     @Column(name = "writer", length = 20)
-    private String writer;   // 작성자
+    private String writer;
 
     @Column(name = "writed_at")
-    private LocalDateTime writedAt;   // 작성일
+    private LocalDateTime writedAt;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;  // 수정일
+    private LocalDateTime updatedAt;
 
     @Column(name = "likes")
-    private Integer likes;   // 좋아요
+    private Integer likes;
 
     @Column(name = "views")
-    private Integer views;   // 조회수
+    private Integer views;
 
     @Column(name = "comments")
-    private Integer comments; // 댓글 수
+    private Integer comments;
 
-    // 개발글 여부/언어
+    @Enumerated(EnumType.STRING)
+    @Column(name = "board_type", length = 20)
+    private PostBoardType boardType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "community_category", length = 30)
+    private CommunityCategory communityCategory;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tech_sub_tag", length = 20)
+    private TechSubTag techSubTag;
+
+    @Column(name = "thumbnail_image", length = 455)
+    private String thumbnailImage;
+
     @Column(name = "is_dev")
-    private Boolean isDev;   // 개발글 여부
+    private Boolean isDev;
 
     @Column(name = "dev_tags", length = 255)
-    private String devTags;  // 언어 CSV (예: Python,C)
+    private String devTags;
 
-    // 기본값
     @PrePersist
     public void onCreate() {
         if (this.postUuid == null) this.postUuid = UUID.randomUUID().toString();
@@ -84,6 +102,7 @@ public class Post {
         if (this.views == null) this.views = 0;
         if (this.comments == null) this.comments = 0;
         if (this.isDev == null) this.isDev = false;
+        if (this.boardType == null) this.boardType = PostBoardType.COMMUNITY;
     }
 
     @PreUpdate

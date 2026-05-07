@@ -1,12 +1,23 @@
-// src/main/java/com/ada/proj/dto/PostDetailResponse.java
 package com.ada.proj.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
-import lombok.*;
+import com.ada.proj.enums.CommunityCategory;
+import com.ada.proj.enums.PostBoardType;
+import com.ada.proj.enums.TechSubTag;
 
-@Getter @Setter @Builder
-@AllArgsConstructor @NoArgsConstructor
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class PostDetailResponse {
 
     private String postUuid;
@@ -15,12 +26,13 @@ public class PostDetailResponse {
     private String writerUuid;
     private String writerCustomId;
     private String writer;
-    private String writerProfileImage;   // 추가됨
+    private String writerProfileImage;
 
     private String title;
     private String content;
     private String images;
     private String videos;
+    private String thumbnailImage;
 
     private LocalDateTime writedAt;
     private LocalDateTime updatedAt;
@@ -31,4 +43,10 @@ public class PostDetailResponse {
 
     private Boolean isDev;
     private String devTags;
+    private List<String> techTags;
+
+    private PostBoardType boardType;
+    private CommunityCategory communityCategory;
+    private TechSubTag techSubTag;
+    private PollResponse poll;
 }
