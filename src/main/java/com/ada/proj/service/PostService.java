@@ -57,6 +57,16 @@ public class PostService {
                 .orElseThrow(() -> new EntityNotFoundException("Post not found: " + uuid));
     }
 
+    private Post getPostBySeqOrThrow(@NonNull Long seq) {
+        return postRepository.findBySeq(seq)
+                .orElseThrow(() -> new EntityNotFoundException("Post not found: " + seq));
+    }
+
+    @Transactional(readOnly = true)
+    public String findUuidBySeq(@NonNull Long seq) {
+        return getPostBySeqOrThrow(seq).getPostUuid();
+    }
+
     private boolean hasAdminRole(Authentication auth) {
         if (auth == null || auth.getAuthorities() == null) {
             return false;
@@ -82,26 +92,26 @@ public class PostService {
     }
 
     @Transactional
-    public String create(@NonNull PostCreateRequest req) {
+    public Long create(@NonNull PostCreateRequest req) {
         return createInternal(req, false, null);
     }
 
     @Transactional
-    public String createCommunity(@NonNull PostCreateRequest req) {
+    public Long createCommunity(@NonNull PostCreateRequest req) {
         return createInternal(req, true, PostBoardType.COMMUNITY);
     }
 
     @Transactional
-    public String createBlog(@NonNull PostCreateRequest req) {
+    public Long createBlog(@NonNull PostCreateRequest req) {
         return createInternal(req, true, PostBoardType.BLOG);
     }
 
     @Transactional
-    public String createNotice(@NonNull PostCreateRequest req) {
+    public Long createNotice(@NonNull PostCreateRequest req) {
         return createInternal(req, true, PostBoardType.NOTICE);
     }
 
-    private String createInternal(PostCreateRequest req, boolean strict, PostBoardType forcedBoardType) {
+    private Long createInternal(PostCreateRequest req, boolean strict, PostBoardType forcedBoardType) {
         String writerUuid = resolveWriterUuid(req.getWriterUuid());
         User writerUser = null;
         String writerName = null;
@@ -135,7 +145,7 @@ public class PostService {
             pollService.createPoll(saved, req.getPoll());
         }
 
-        return saved.getPostUuid();
+        return postRepository.findSeqByUuid(saved.getPostUuid());
     }
 
     @Transactional(readOnly = true)
@@ -184,16 +194,18 @@ public class PostService {
     }
 
     @Transactional
-    public PostDetailResponse detail(@NonNull String uuid) {
-        return detail(uuid, null);
+    public PostDetailResponse detail(@NonNull Long seq) {
+        return detail(seq, (String) null);
     }
 
     @Transactional
-    public PostDetailResponse detail(@NonNull String uuid, Authentication auth) {
-        postRepository.increaseViews(uuid);
+    public PostDetailResponse detail(@NonNull Long seq, String requesterUuid) {
+        Post post = getPostBySeqOrThrow(seq);
+        postRepository.increaseViews(post.getPostUuid());
 
-        Post post = getPostByUuidOrThrow(uuid);
         User user = userRepository.findByUuid(post.getWriterUuid()).orElse(null);
+        boolean isLiked = requesterUuid != null
+                && postLikeRepository.existsByUserUuidAndPostUuid(requesterUuid, post.getPostUuid());
 
         return PostDetailResponse.builder()
                 .postUuid(post.getPostUuid())
@@ -219,37 +231,38 @@ public class PostService {
                 .communityCategory(post.getCommunityCategory())
                 .techSubTag(post.getTechSubTag())
                 .poll(pollService.findResponseByPostUuid(post.getPostUuid()))
+                .isLiked(isLiked)
                 .build();
     }
 
     @Transactional
-    public void update(@NonNull String uuid, @NonNull PostUpdateRequest req, Authentication auth) {
-        updateInternal(uuid, req, auth, false, null);
+    public void update(@NonNull Long seq, @NonNull PostUpdateRequest req, Authentication auth) {
+        updateInternal(seq, req, auth, false, null);
     }
 
     @Transactional
-    public void updateCommunity(@NonNull String uuid, @NonNull PostUpdateRequest req, Authentication auth) {
-        updateInternal(uuid, req, auth, true, PostBoardType.COMMUNITY);
+    public void updateCommunity(@NonNull Long seq, @NonNull PostUpdateRequest req, Authentication auth) {
+        updateInternal(seq, req, auth, true, PostBoardType.COMMUNITY);
     }
 
     @Transactional
-    public void updateBlog(@NonNull String uuid, @NonNull PostUpdateRequest req, Authentication auth) {
-        updateInternal(uuid, req, auth, true, PostBoardType.BLOG);
+    public void updateBlog(@NonNull Long seq, @NonNull PostUpdateRequest req, Authentication auth) {
+        updateInternal(seq, req, auth, true, PostBoardType.BLOG);
     }
 
     @Transactional
-    public void updateNotice(@NonNull String uuid, @NonNull PostUpdateRequest req, Authentication auth) {
-        updateInternal(uuid, req, auth, true, PostBoardType.NOTICE);
+    public void updateNotice(@NonNull Long seq, @NonNull PostUpdateRequest req, Authentication auth) {
+        updateInternal(seq, req, auth, true, PostBoardType.NOTICE);
     }
 
     private void updateInternal(
-            String uuid,
+            Long seq,
             PostUpdateRequest req,
             Authentication auth,
             boolean strict,
             PostBoardType forcedBoardType
     ) {
-        Post post = getPostByUuidOrThrow(uuid);
+        Post post = getPostBySeqOrThrow(seq);
         ensureWriterOrAdmin(post, auth);
 
         if (req.getTitle() != null) {
@@ -291,18 +304,17 @@ public class PostService {
     }
 
     @Transactional
-    public void delete(@NonNull String uuid, Authentication auth) {
-        Post post = getPostByUuidOrThrow(uuid);
+    public void delete(@NonNull Long seq, Authentication auth) {
+        Post post = getPostBySeqOrThrow(seq);
         ensureWriterOrAdmin(post, auth);
         pollService.deleteByPost(post);
-        postRepository.deleteById(uuid);
+        postRepository.deleteById(post.getPostUuid());
     }
 
     @Transactional
-    public boolean toggleLike(@NonNull String userUuid, @NonNull String postUuid) {
-        if (!postRepository.existsById(postUuid)) {
-            throw new EntityNotFoundException("Post not found: " + postUuid);
-        }
+    public boolean toggleLike(@NonNull String userUuid, @NonNull Long seq) {
+        Post post = getPostBySeqOrThrow(seq);
+        String postUuid = post.getPostUuid();
 
         boolean alreadyLiked = postLikeRepository.existsByUserUuidAndPostUuid(userUuid, postUuid);
 

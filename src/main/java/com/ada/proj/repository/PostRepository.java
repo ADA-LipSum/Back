@@ -90,5 +90,8 @@ public interface PostRepository extends JpaRepository<Post, String> {
 
     java.util.Optional<Post> findBySeq(Long seq);
 
+    @Query("select p.seq from Post p where p.postUuid = :uuid")
+    Long findSeqByUuid(@Param("uuid") String uuid);
+
     long countByWriterUuid(String writerUuid);
 }

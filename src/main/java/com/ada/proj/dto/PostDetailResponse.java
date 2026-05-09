@@ -49,4 +49,6 @@ public class PostDetailResponse {
     private CommunityCategory communityCategory;
     private TechSubTag techSubTag;
     private PollResponse poll;
+
+    private Boolean isLiked;
 }

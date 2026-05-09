@@ -4,7 +4,6 @@ import java.util.Objects;
 
 import com.ada.proj.dto.*;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,28 +31,30 @@ import lombok.RequiredArgsConstructor;
 public class PostController {
 
     private final PostService postService;
-    private final com.ada.proj.service.CommentService commentService; // 댓글 조회 REST 경로 제공
+    private final com.ada.proj.service.CommentService commentService;
 
     @PostMapping
     @Operation(
-            summary = "게시물 생성",
+            summary = "게시글 작성",
             description = """
-                    새 게시물을 작성합니다. 로그인이 필요합니다.
+                    새 게시글을 작성합니다. **JWT 인증 필요.**
 
                     **Request Body:**
                     - `title` (필수): 게시글 제목 (최대 20자)
-                    - `content`: 게시글 본문 (Markdown 형식, `contentMd` 별칭도 허용)
-                    - `isDev`: 개발 관련 게시글 여부 (boolean)
-                    - `devTags`: 개발 태그 (문자열, 쉼표 구분 등 자유 포맷)
+                    - `content` (선택): 게시글 본문 (Markdown 형식)
+                    - `images` (선택): 이미지 URL 문자열
+                    - `videos` (선택): 영상 URL 문자열
+                    - `isDev` (선택): 개발 관련 게시글 여부 (boolean)
+                    - `devTags` (선택): 개발 태그 (쉼표 구분 문자열)
 
                     **Response:**
-                    - `data`: 생성된 게시글 UUID (String)
+                    - `data`: 생성된 게시글 순번 (Long)
 
                     성공 시 HTTP 201을 반환합니다.
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<ApiResponse<String>> create(
+    public ResponseEntity<ApiResponse<Long>> create(
             @Valid @RequestBody PostCreateRequest data,
             Authentication authentication
     ) {
@@ -62,25 +63,27 @@ public class PostController {
             payload.setWriterUuid(authentication.getName());
         }
 
-        String uuid = postService.create(payload);
+        Long seq = postService.create(payload);
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
-                .body(ApiResponse.success(uuid));
+                .body(ApiResponse.success(seq));
     }
 
-    @PutMapping("/{uuid}")
+    @PutMapping("/{id}")
     @Operation(
             summary = "게시글 수정",
             description = """
-                    기존 게시글을 수정합니다. 작성자 본인 또는 ADMIN만 가능합니다.
+                    기존 게시글을 수정합니다. **JWT 인증 필요.** 작성자 본인 또는 ADMIN만 가능합니다.
 
                     **Path Variable:**
-                    - `uuid` (필수): 수정할 게시글 UUID
+                    - `id` (필수): 수정할 게시글 순번
 
-                    **Request Body (모두 선택 — 포함된 필드만 업데이트):**
-                    - `title`: 게시글 제목 (최대 20자)
-                    - `content`: 본문 내용 (`contentMd` 별칭도 허용)
-                    - `isDev`: 개발 관련 게시글 여부 (boolean)
-                    - `devTags`: 개발 태그 문자열
+                    **Request Body (포함된 필드만 업데이트):**
+                    - `title` (선택): 게시글 제목 (최대 20자)
+                    - `content` (선택): 본문 내용 (Markdown 형식)
+                    - `images` (선택): 이미지 URL 문자열
+                    - `videos` (선택): 영상 URL 문자열
+                    - `isDev` (선택): 개발 관련 게시글 여부 (boolean)
+                    - `devTags` (선택): 개발 태그 문자열
 
                     **Response:** 성공 응답 (data: null)
 
@@ -89,24 +92,22 @@ public class PostController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Void>> update(
-            @Parameter(description = "게시글 UUID", example = "post-uuid-...")
-            @PathVariable String uuid,
+            @Parameter(description = "게시글 순번", example = "1")
+            @PathVariable Long id,
             @RequestBody PostUpdateRequest req,
             Authentication authentication) {
-        postService.update(requireUuid(uuid), requireUpdateRequest(req), authentication);
+        postService.update(id, Objects.requireNonNull(req, "request"), authentication);
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    @DeleteMapping("/{uuid}")
+    @DeleteMapping("/{id}")
     @Operation(
             summary = "게시글 삭제",
             description = """
-                    게시글을 삭제합니다. 작성자 본인 또는 ADMIN만 가능합니다.
+                    게시글을 삭제합니다. **JWT 인증 필요.** 작성자 본인 또는 ADMIN만 가능합니다.
 
                     **Path Variable:**
-                    - `uuid` (필수): 삭제할 게시글 UUID
-
-                    **Request Body:** 없음
+                    - `id` (필수): 삭제할 게시글 순번
 
                     **Response:** 성공 응답 (data: null)
 
@@ -115,45 +116,56 @@ public class PostController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Void>> delete(
-            @Parameter(description = "게시글 UUID", example = "post-uuid-...")
-            @PathVariable String uuid,
+            @Parameter(description = "게시글 순번", example = "1")
+            @PathVariable Long id,
             Authentication authentication) {
-        postService.delete(requireUuid(uuid), authentication);
+        postService.delete(id, authentication);
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    @GetMapping("/{uuid}")
+    @GetMapping("/{id}")
     @Operation(
             summary = "게시글 상세 조회",
             description = """
-                    게시글 상세 정보를 조회합니다. 조회 시 조회수가 1 증가합니다.
+                    게시글 상세 정보를 조회합니다. 조회 시 조회수가 1 증가합니다. 인증 불필요.
 
                     **Path Variable:**
-                    - `uuid` (필수): 조회할 게시글 UUID
+                    - `id` (필수): 조회할 게시글 순번
 
                     **Response:**
-                    - `uuid`: 게시글 UUID
-                    - `title`: 제목
-                    - `content`: 본문 (Markdown)
+                    - `postUuid`: 게시글 UUID
+                    - `seq`: 게시글 순번
                     - `writerUuid`: 작성자 UUID
-                    - `isDev`: 개발 관련 여부
-                    - `devTags`: 개발 태그
+                    - `writerCustomId`: 작성자 Custom ID
+                    - `writer`: 작성자 이름
+                    - `writerProfileImage`: 작성자 프로필 이미지 URL
+                    - `title`: 게시글 제목
+                    - `content`: 본문 (Markdown)
+                    - `images`: 이미지 URL 문자열
+                    - `videos`: 영상 URL 문자열
                     - `likes`: 좋아요 수
                     - `views`: 조회수
-                    - `createdAt`: 작성 시각
+                    - `comments`: 댓글 수
+                    - `isDev`: 개발 관련 여부
+                    - `devTags`: 개발 태그
+                    - `writedAt`: 작성 시각 (ISO 8601)
+                    - `updatedAt`: 수정 시각 (ISO 8601)
+                    - `isLiked`: 현재 로그인 사용자의 좋아요 여부 (비로그인 시 false)
                     """
     )
     public ResponseEntity<ApiResponse<PostDetailResponse>> detail(
-            @Parameter(description = "게시글 UUID", example = "post-uuid-...")
-            @PathVariable String uuid) {
-        return ResponseEntity.ok(ApiResponse.success(postService.detail(requireUuid(uuid))));
+            @Parameter(description = "게시글 순번", example = "1")
+            @PathVariable Long id,
+            Authentication auth) {
+        String requesterUuid = (auth != null) ? auth.getName() : null;
+        return ResponseEntity.ok(ApiResponse.success(postService.detail(id, requesterUuid)));
     }
 
     @GetMapping
     @Operation(
             summary = "게시글 목록 조회",
             description = """
-                    게시글 목록을 페이징하여 조회합니다.
+                    게시글 목록을 페이징하여 최신순으로 조회합니다. 인증 불필요.
 
                     **Query Parameters:**
                     - `page` (선택): 페이지 번호, 0부터 시작 (기본값: 0)
@@ -164,7 +176,19 @@ public class PostController {
                     - `size`: 페이지 크기
                     - `totalElements`: 전체 게시글 수
                     - `totalPages`: 전체 페이지 수
-                    - `content`: 게시글 요약 목록 (uuid, title, writerUuid, likes, views, createdAt 등)
+                    - `content`: 게시글 요약 목록
+                      - `postUuid`: 게시글 UUID
+                      - `seq`: 게시글 순번
+                      - `title`: 게시글 제목
+                      - `writer`: 작성자 이름
+                      - `writerProfileImage`: 작성자 프로필 이미지 URL
+                      - `likes`: 좋아요 수
+                      - `views`: 조회수
+                      - `comments`: 댓글 수
+                      - `isDev`: 개발 관련 여부
+                      - `devTags`: 개발 태그
+                      - `tag`: 분류 태그 (예: "개발(Java)", "일반")
+                      - `writedAt`: 작성 시각 (ISO 8601)
                     """
     )
     public ResponseEntity<ApiResponse<PageResponse<PostSummaryResponse>>> list(
@@ -176,45 +200,43 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success(postService.list(page, size)));
     }
 
-    @PostMapping("/{uuid}/like")
+    @PostMapping("/{id}/like")
     @Operation(
             summary = "게시글 좋아요 토글",
             description = """
-                    게시글 좋아요를 토글합니다. 로그인이 필요합니다.
+                    게시글 좋아요를 토글합니다. **JWT 인증 필요.**
 
                     **Path Variable:**
-                    - `uuid` (필수): 대상 게시글 UUID
-
-                    **Request Body:** 없음
+                    - `id` (필수): 대상 게시글 순번
 
                     **Response:**
-                    - `data`: 현재 좋아요 상태 (true: 좋아요 추가됨, false: 좋아요 취소됨)
+                    - `data`: 변경 후 좋아요 상태 (true: 좋아요 추가됨, false: 좋아요 취소됨)
 
                     인증되지 않은 요청은 403을 반환합니다.
-                    """
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Boolean>> toggleLike(
-            @PathVariable String uuid,
+            @Parameter(description = "게시글 순번", example = "1")
+            @PathVariable Long id,
             Authentication auth
     ) {
         if (auth == null) {
             throw new SecurityException("로그인이 필요합니다.");
         }
         String principal = Objects.requireNonNull(auth.getName(), "principal");
-        boolean liked = postService.toggleLike(principal, requireUuid(uuid));
+        boolean liked = postService.toggleLike(principal, id);
         return ResponseEntity.ok(ApiResponse.success(liked));
     }
 
-    @DeleteMapping("/likes/{id}")
+    @DeleteMapping("/likes/{likeId}")
     @Operation(
-            summary = "좋아요 삭제 (id)",
+            summary = "좋아요 취소 (ID 기반)",
             description = """
-                    좋아요 고유 ID로 좋아요를 삭제합니다. 본인이 누른 좋아요만 삭제 가능합니다.
+                    좋아요 고유 ID로 좋아요를 취소합니다. **JWT 인증 필요.** 본인이 누른 좋아요만 취소 가능합니다.
 
                     **Path Variable:**
-                    - `id` (필수): 삭제할 좋아요의 숫자 ID
-
-                    **Request Body:** 없음
+                    - `likeId` (필수): 취소할 좋아요의 숫자 ID
 
                     **Response:** 성공 응답 (data: null)
 
@@ -224,25 +246,25 @@ public class PostController {
     )
     public ResponseEntity<ApiResponse<Void>> deleteLikeById(
             @Parameter(description = "좋아요 id", example = "1")
-            @PathVariable Long id,
+            @PathVariable Long likeId,
             Authentication auth
     ) {
         if (auth == null) {
             throw new SecurityException("로그인이 필요합니다.");
         }
         String principal = Objects.requireNonNull(auth.getName(), "principal");
-        postService.deleteLikeById(requireLikeId(id), principal);
+        postService.deleteLikeById(Objects.requireNonNull(likeId, "likeId"), principal);
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    @GetMapping("/{uuid}/comments")
+    @GetMapping("/{id}/comments")
     @Operation(
             summary = "게시글 댓글 조회",
             description = """
-                    게시글에 달린 댓글 및 대댓글 전체를 조회합니다.
+                    게시글에 달린 댓글 및 대댓글 전체를 조회합니다. 인증 불필요.
 
                     **Path Variable:**
-                    - `uuid` (필수): 게시글 UUID
+                    - `id` (필수): 게시글 순번
 
                     **Response:** 댓글 목록 배열
                     - `id`: 댓글 ID
@@ -252,26 +274,12 @@ public class PostController {
                     - `writerUuid`: 작성자 UUID
                     - `likes`: 좋아요 수
                     - `pinned`: 고정 여부
-                    - `createdAt`: 작성 시각
+                    - `createdAt`: 작성 시각 (ISO 8601)
                     """
     )
     public ResponseEntity<ApiResponse<java.util.List<CommentResponse>>> comments(
-            @Parameter(description = "게시글 UUID") @PathVariable String uuid) {
-        return ResponseEntity.ok(ApiResponse.success(commentService.getCommentsByPost(requireUuid(uuid))));
-    }
-
-    private @NonNull
-    String requireUuid(String uuid) {
-        return Objects.requireNonNull(uuid, "uuid");
-    }
-
-    private @NonNull
-    Long requireLikeId(Long id) {
-        return Objects.requireNonNull(id, "id");
-    }
-
-    private @NonNull
-    PostUpdateRequest requireUpdateRequest(PostUpdateRequest req) {
-        return Objects.requireNonNull(req, "request");
+            @Parameter(description = "게시글 순번") @PathVariable Long id) {
+        String postUuid = postService.findUuidBySeq(id);
+        return ResponseEntity.ok(ApiResponse.success(commentService.getCommentsByPost(postUuid)));
     }
 }
