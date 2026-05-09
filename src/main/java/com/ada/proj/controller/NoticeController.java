@@ -66,14 +66,14 @@ public class NoticeController {
         return ResponseEntity.ok(ApiResponse.success(postService.listNotices(page, size)));
     }
 
-    @GetMapping("/{uuid}")
+    @GetMapping("/{id}")
     @Operation(
             summary = "공지사항 상세 조회",
             description = """
                     공지사항 상세 정보를 조회합니다. 조회 시 조회수가 1 증가합니다.
 
                     **Path Variable:**
-                    - `uuid` (필수): 공지사항 게시글 UUID
+                    - `id` (필수): 공지사항 게시글 순번
 
                     **Response:**
                     - 제목, 본문, 작성자 정보
@@ -81,9 +81,9 @@ public class NoticeController {
                     """
     )
     public ResponseEntity<ApiResponse<PostDetailResponse>> detail(
-            @Parameter(description = "공지사항 게시글 UUID") @PathVariable String uuid
+            @Parameter(description = "공지사항 게시글 순번", example = "1") @PathVariable Long id
     ) {
-        return ResponseEntity.ok(ApiResponse.success(postService.detail(uuid)));
+        return ResponseEntity.ok(ApiResponse.success(postService.detail(id)));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -100,11 +100,11 @@ public class NoticeController {
                     요청의 `boardType` 값과 무관하게 `NOTICE` 게시글로 저장됩니다.
 
                     **Response:**
-                    - `data`: 생성된 공지사항 게시글 UUID
+                    - `data`: 생성된 공지사항 게시글 순번 (Long)
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<ApiResponse<String>> create(
+    public ResponseEntity<ApiResponse<Long>> create(
             @Valid @RequestBody PostCreateRequest request,
             Authentication authentication
     ) {
@@ -117,14 +117,14 @@ public class NoticeController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/{uuid}")
+    @PutMapping("/{id}")
     @Operation(
             summary = "공지사항 수정",
             description = """
                     공지사항을 수정합니다. 관리자 권한이 필요합니다.
 
                     **Path Variable:**
-                    - `uuid` (필수): 수정할 공지사항 게시글 UUID
+                    - `id` (필수): 수정할 공지사항 게시글 순번
 
                     **Request Body:**
                     - `title`: 제목
@@ -135,31 +135,31 @@ public class NoticeController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Void>> update(
-            @Parameter(description = "공지사항 게시글 UUID") @PathVariable String uuid,
+            @Parameter(description = "공지사항 게시글 순번", example = "1") @PathVariable Long id,
             @Valid @RequestBody PostUpdateRequest request,
             Authentication authentication
     ) {
-        postService.updateNotice(uuid, request, authentication);
+        postService.updateNotice(id, request, authentication);
         return ResponseEntity.ok(ApiResponse.success());
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @DeleteMapping("/{uuid}")
+    @DeleteMapping("/{id}")
     @Operation(
             summary = "공지사항 삭제",
             description = """
                     공지사항을 삭제합니다. 관리자 권한이 필요합니다.
 
                     **Path Variable:**
-                    - `uuid` (필수): 삭제할 공지사항 게시글 UUID
+                    - `id` (필수): 삭제할 공지사항 게시글 순번
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Void>> delete(
-            @Parameter(description = "공지사항 게시글 UUID") @PathVariable String uuid,
+            @Parameter(description = "공지사항 게시글 순번", example = "1") @PathVariable Long id,
             Authentication authentication
     ) {
-        postService.delete(uuid, authentication);
+        postService.delete(id, authentication);
         return ResponseEntity.ok(ApiResponse.success());
     }
 }

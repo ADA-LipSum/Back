@@ -121,11 +121,11 @@ public class CommunityController {
                     - `techSubTag=POLL`이면 투표 선택지와 종료 시각을 포함한 `poll` 정보를 함께 전달합니다.
 
                     **Response:**
-                    - `data`: 생성된 게시글 UUID
+                    - `data`: 생성된 게시글 순번 (Long)
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<ApiResponse<String>> create(
+    public ResponseEntity<ApiResponse<Long>> create(
             @Valid @RequestBody PostCreateRequest request,
             Authentication authentication
     ) {
@@ -137,37 +137,39 @@ public class CommunityController {
                 .body(ApiResponse.success(postService.createCommunity(payload)));
     }
 
-    @GetMapping("/{uuid}")
+    @GetMapping("/{id}")
     @Operation(
             summary = "커뮤니티 게시글 상세 조회",
             description = """
                     커뮤니티 게시글 상세 정보를 조회합니다. 조회 시 조회수가 1 증가합니다.
 
                     **Path Variable:**
-                    - `uuid` (필수): 게시글 UUID
+                    - `id` (필수): 게시글 순번
 
                     **Response:**
                     - 제목, 본문, 작성자 정보
                     - 좋아요 수, 조회 수, 댓글 수
+                    - `isLiked`: 현재 로그인 사용자의 좋아요 여부 (비로그인 시 false)
                     - 커뮤니티 상위 태그, 기술 하위 태그, 세부 기술 태그
                     - 투표 게시글인 경우 `poll` 정보
                     """
     )
     public ResponseEntity<ApiResponse<PostDetailResponse>> detail(
-            @Parameter(description = "게시글 UUID") @PathVariable String uuid,
+            @Parameter(description = "게시글 순번", example = "1") @PathVariable Long id,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(ApiResponse.success(postService.detail(uuid, authentication)));
+        String requesterUuid = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(ApiResponse.success(postService.detail(id, requesterUuid)));
     }
 
-    @PutMapping("/{uuid}")
+    @PutMapping("/{id}")
     @Operation(
             summary = "커뮤니티 게시글 수정",
             description = """
                     커뮤니티 게시글을 수정합니다. 작성자 본인 또는 관리자만 가능합니다.
 
                     **Path Variable:**
-                    - `uuid` (필수): 수정할 게시글 UUID
+                    - `id` (필수): 수정할 게시글 순번
 
                     **Request Body:**
                     - `title`: 제목
@@ -182,32 +184,32 @@ public class CommunityController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Void>> update(
-            @Parameter(description = "게시글 UUID") @PathVariable String uuid,
+            @Parameter(description = "게시글 순번", example = "1") @PathVariable Long id,
             @Valid @RequestBody PostUpdateRequest request,
             Authentication authentication
     ) {
-        postService.updateCommunity(uuid, request, authentication);
+        postService.updateCommunity(id, request, authentication);
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    @DeleteMapping("/{uuid}")
+    @DeleteMapping("/{id}")
     @Operation(
             summary = "커뮤니티 게시글 삭제",
             description = """
                     커뮤니티 게시글을 삭제합니다. 작성자 본인 또는 관리자만 가능합니다.
 
                     **Path Variable:**
-                    - `uuid` (필수): 삭제할 게시글 UUID
+                    - `id` (필수): 삭제할 게시글 순번
 
                     연결된 투표가 있다면 함께 삭제됩니다.
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Void>> delete(
-            @Parameter(description = "게시글 UUID") @PathVariable String uuid,
+            @Parameter(description = "게시글 순번", example = "1") @PathVariable Long id,
             Authentication authentication
     ) {
-        postService.delete(uuid, authentication);
+        postService.delete(id, authentication);
         return ResponseEntity.ok(ApiResponse.success());
     }
 

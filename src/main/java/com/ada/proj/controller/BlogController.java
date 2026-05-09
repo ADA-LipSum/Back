@@ -96,11 +96,11 @@ public class BlogController {
                     - 비어 있으면 본문 내 첫 번째 Markdown 이미지 또는 HTML 이미지의 URL을 자동 추출합니다.
 
                     **Response:**
-                    - `data`: 생성된 게시글 UUID
+                    - `data`: 생성된 게시글 순번 (Long)
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<ApiResponse<String>> create(
+    public ResponseEntity<ApiResponse<Long>> create(
             @Valid @RequestBody PostCreateRequest request,
             Authentication authentication
     ) {
@@ -112,33 +112,38 @@ public class BlogController {
                 .body(ApiResponse.success(postService.createBlog(payload)));
     }
 
-    @GetMapping("/{uuid}")
+    @GetMapping("/{id}")
     @Operation(
             summary = "블로그 게시글 상세 조회",
             description = """
                     블로그 게시글 상세 정보를 조회합니다. 조회 시 방문 수가 1 증가합니다.
 
                     **Path Variable:**
-                    - `uuid` (필수): 게시글 UUID
+                    - `id` (필수): 게시글 순번
 
                     **Response:**
                     - 제목, 본문, 작성자 정보
                     - 썸네일, 기술 태그
                     - 좋아요 수, 방문 수, 댓글 수
+                    - `isLiked`: 현재 로그인 사용자의 좋아요 여부 (비로그인 시 false)
                     """
     )
     public ResponseEntity<ApiResponse<PostDetailResponse>> detail(
-            @Parameter(description = "게시글 UUID") @PathVariable String uuid,
+            @Parameter(description = "게시글 순번", example = "1") @PathVariable Long id,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(ApiResponse.success(postService.detail(uuid, authentication)));
+        String requesterUuid = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(ApiResponse.success(postService.detail(id, requesterUuid)));
     }
 
-    @PutMapping("/{uuid}")
+    @PutMapping("/{id}")
     @Operation(
             summary = "블로그 게시글 수정",
             description = """
                     블로그 게시글을 수정합니다. 작성자 본인 또는 관리자만 가능합니다.
+
+                    **Path Variable:**
+                    - `id` (필수): 수정할 게시글 순번
 
                     **Request Body:**
                     - `title`: 제목
@@ -151,30 +156,30 @@ public class BlogController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Void>> update(
-            @Parameter(description = "게시글 UUID") @PathVariable String uuid,
+            @Parameter(description = "게시글 순번", example = "1") @PathVariable Long id,
             @Valid @RequestBody PostUpdateRequest request,
             Authentication authentication
     ) {
-        postService.updateBlog(uuid, request, authentication);
+        postService.updateBlog(id, request, authentication);
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    @DeleteMapping("/{uuid}")
+    @DeleteMapping("/{id}")
     @Operation(
             summary = "블로그 게시글 삭제",
             description = """
                     블로그 게시글을 삭제합니다. 작성자 본인 또는 관리자만 가능합니다.
 
                     **Path Variable:**
-                    - `uuid` (필수): 삭제할 게시글 UUID
+                    - `id` (필수): 삭제할 게시글 순번
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Void>> delete(
-            @Parameter(description = "게시글 UUID") @PathVariable String uuid,
+            @Parameter(description = "게시글 순번", example = "1") @PathVariable Long id,
             Authentication authentication
     ) {
-        postService.delete(uuid, authentication);
+        postService.delete(id, authentication);
         return ResponseEntity.ok(ApiResponse.success());
     }
 }
