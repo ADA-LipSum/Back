@@ -483,6 +483,7 @@ public class PostService {
         dto.setBoardType(boardType);
         dto.setTechTags(splitTags(dto.getDevTags()));
         dto.setTag(readableTag(boardType, dto.getCommunityCategory(), dto.getTechSubTag(), dto.getDevTags()));
+        dto.setPostId(dto.getSeq());
         return dto;
     }
 

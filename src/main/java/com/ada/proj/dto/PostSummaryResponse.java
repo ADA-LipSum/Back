@@ -22,6 +22,7 @@ public class PostSummaryResponse {
 
     private String postUuid;
     private Long seq;
+    private Long postId;
     private String title;
 
     private String writer;
