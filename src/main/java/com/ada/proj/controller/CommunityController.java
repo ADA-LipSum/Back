@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ada.proj.dto.ApiResponse;
+import com.ada.proj.dto.CommentResponse;
 import com.ada.proj.dto.PageResponse;
 import com.ada.proj.dto.PostCreateRequest;
 import com.ada.proj.dto.PostDetailResponse;
@@ -24,7 +25,10 @@ import com.ada.proj.dto.PostUpdateRequest;
 import com.ada.proj.enums.CommunityCategory;
 import com.ada.proj.enums.PostBoardType;
 import com.ada.proj.enums.TechSubTag;
+import com.ada.proj.service.CommentService;
 import com.ada.proj.service.PostService;
+
+import java.util.List;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -37,10 +41,11 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/community/posts")
-@Tag(name = "커뮤니티", description = "커뮤니티 게시글 목록/검색/작성/수정/삭제 API")
+@Tag(name = "커뮤니티", description = "커뮤니티 게시글 CRUD, 좋아요, 댓글 조회 API")
 public class CommunityController {
 
     private final PostService postService;
+    private final CommentService commentService;
 
     @GetMapping
     @Operation(
@@ -211,6 +216,84 @@ public class CommunityController {
     ) {
         postService.delete(id, authentication);
         return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @PostMapping("/{id}/like")
+    @Operation(
+            summary = "게시글 좋아요 토글",
+            description = """
+                    게시글 좋아요를 토글합니다. 로그인이 필요합니다.
+
+                    **Path Variable:**
+                    - `id` (필수): 대상 게시글 순번
+
+                    **Response:**
+                    - `data`: 변경 후 좋아요 상태 (true: 좋아요 추가됨, false: 좋아요 취소됨)
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<Boolean>> toggleLike(
+            @Parameter(description = "게시글 순번", example = "1") @PathVariable Long id,
+            Authentication authentication
+    ) {
+        if (authentication == null) {
+            throw new SecurityException("로그인이 필요합니다.");
+        }
+        String principal = Objects.requireNonNull(authentication.getName(), "principal");
+        boolean liked = postService.toggleLike(principal, id);
+        return ResponseEntity.ok(ApiResponse.success(liked));
+    }
+
+    @DeleteMapping("/likes/{likeId}")
+    @Operation(
+            summary = "좋아요 취소 (ID 기반)",
+            description = """
+                    좋아요 고유 ID로 좋아요를 취소합니다. 로그인이 필요합니다. 본인이 누른 좋아요만 취소 가능합니다.
+
+                    **Path Variable:**
+                    - `likeId` (필수): 취소할 좋아요의 숫자 ID
+
+                    **Response:** 성공 응답 (data: null)
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<Void>> deleteLikeById(
+            @Parameter(description = "좋아요 id", example = "1") @PathVariable Long likeId,
+            Authentication authentication
+    ) {
+        if (authentication == null) {
+            throw new SecurityException("로그인이 필요합니다.");
+        }
+        String principal = Objects.requireNonNull(authentication.getName(), "principal");
+        postService.deleteLikeById(Objects.requireNonNull(likeId, "likeId"), principal);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @GetMapping("/{id}/comments")
+    @Operation(
+            summary = "게시글 댓글 조회",
+            description = """
+                    게시글에 달린 댓글 및 대댓글 전체를 조회합니다. 인증 불필요.
+
+                    **Path Variable:**
+                    - `id` (필수): 게시글 순번
+
+                    **Response:** 댓글 목록 배열
+                    - `id`: 댓글 ID
+                    - `postId`: 게시글 UUID
+                    - `parentId`: 부모 댓글 ID (대댓글인 경우)
+                    - `content`: 댓글 내용
+                    - `writerUuid`: 작성자 UUID
+                    - `likes`: 좋아요 수
+                    - `pinned`: 고정 여부
+                    - `createdAt`: 작성 시각 (ISO 8601)
+                    """
+    )
+    public ResponseEntity<ApiResponse<List<CommentResponse>>> comments(
+            @Parameter(description = "게시글 순번") @PathVariable Long id
+    ) {
+        String postUuid = postService.findUuidBySeq(id);
+        return ResponseEntity.ok(ApiResponse.success(commentService.getCommentsByPost(postUuid)));
     }
 
     private TechSubTag parseTechSubTag(String value) {
