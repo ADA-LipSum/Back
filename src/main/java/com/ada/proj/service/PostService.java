@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -19,6 +20,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.ada.proj.dto.NoticeSummaryResponse;
 import com.ada.proj.dto.PageResponse;
@@ -38,19 +41,23 @@ import com.ada.proj.repository.UserRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PostService {
 
     private static final Pattern MARKDOWN_IMAGE = Pattern.compile("!\\[[^\\]]*]\\(([^\\s)]+)(?:\\s+\"[^\"]*\")?\\)");
     private static final Pattern HTML_IMAGE = Pattern.compile("<img[^>]+src=[\"']([^\"']+)[\"']", Pattern.CASE_INSENSITIVE);
+    private static final String POST_SEQ_LOCK = "ada_posts_seq";
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final PostLikeRepository postLikeRepository;
     private final UserBanService userBanService;
     private final PollService pollService;
+    private final JdbcTemplate jdbcTemplate;
 
     private Post getPostByUuidOrThrow(@NonNull String uuid) {
         return postRepository.findById(uuid)
@@ -124,8 +131,10 @@ public class PostService {
         }
 
         ResolvedPostMeta meta = resolveCreateMeta(req, strict, forcedBoardType);
+        Long seq = allocatePostSeq();
 
         Post post = Post.builder()
+                .seq(seq)
                 .writerUuid(writerUuid)
                 .title(req.getTitle())
                 .content(req.getContent())
@@ -145,7 +154,48 @@ public class PostService {
             pollService.createPoll(saved, req.getPoll());
         }
 
-        return postRepository.findSeqByUuid(saved.getPostUuid());
+        return saved.getSeq();
+    }
+
+    private Long allocatePostSeq() {
+        Integer locked = jdbcTemplate.queryForObject("SELECT GET_LOCK(?, 10)", Integer.class, POST_SEQ_LOCK);
+        if (locked == null || locked != 1) {
+            throw new IllegalStateException("Could not acquire post seq lock");
+        }
+
+        boolean releaseRegistered = false;
+        try {
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        releasePostSeqLock();
+                    }
+                });
+                releaseRegistered = true;
+            }
+
+            Long nextSeq = jdbcTemplate.queryForObject(
+                    "SELECT COALESCE(MAX(seq), 0) + 1 FROM posts",
+                    Long.class
+            );
+            if (nextSeq == null || nextSeq <= 0) {
+                throw new IllegalStateException("Could not allocate post seq");
+            }
+            return nextSeq;
+        } finally {
+            if (!releaseRegistered) {
+                releasePostSeqLock();
+            }
+        }
+    }
+
+    private void releasePostSeqLock() {
+        try {
+            jdbcTemplate.queryForObject("SELECT RELEASE_LOCK(?)", Integer.class, POST_SEQ_LOCK);
+        } catch (RuntimeException ex) {
+            log.warn("Failed to release post seq lock: {}", ex.getMessage());
+        }
     }
 
     @Transactional(readOnly = true)

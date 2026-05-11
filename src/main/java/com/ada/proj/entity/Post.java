@@ -31,7 +31,7 @@ import lombok.Setter;
 @Builder
 public class Post {
 
-    @Column(name = "seq", insertable = false, updatable = false)
+    @Column(name = "seq", updatable = false)
     private Long seq;
 
     @Id

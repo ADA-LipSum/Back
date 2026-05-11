@@ -20,6 +20,8 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class AutoIncrementMaintenanceService {
 
+    private static final String POST_SEQ_LOCK = "ada_posts_seq";
+
     private final JdbcTemplate jdbcTemplate;
     private final boolean enabled;
     private final List<String> tables;
@@ -93,6 +95,10 @@ public class AutoIncrementMaintenanceService {
     }
 
     private void maintainTable(String table) {
+        if ("posts".equals(table)) {
+            backfillPostSeqs();
+        }
+
         String aiColumn = getAutoIncrementColumn(table);
         if (aiColumn == null) {
             log.debug("[AI-MAINTAIN] 테이블={} 자동증가 컬럼 없음 – 건너뜀", table);
@@ -122,6 +128,52 @@ public class AutoIncrementMaintenanceService {
             } catch (Exception e) {
                 log.warn("[AI-RESEQUENCE-PK] 테이블={} 실패: {}", table, e.getMessage());
             }
+        }
+    }
+
+    private void backfillPostSeqs() {
+        if (!columnExists("posts", "post_uuid") || !columnExists("posts", "seq")) {
+            return;
+        }
+
+        Integer missingCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM `posts` WHERE `seq` IS NULL",
+                Integer.class
+        );
+        if (missingCount == null || missingCount == 0) {
+            return;
+        }
+
+        Integer locked = jdbcTemplate.queryForObject("SELECT GET_LOCK(?, 10)", Integer.class, POST_SEQ_LOCK);
+        if (locked == null || locked != 1) {
+            throw new IllegalStateException("Could not acquire post seq lock");
+        }
+
+        try {
+            Long nextSeq = jdbcTemplate.queryForObject(
+                    "SELECT COALESCE(MAX(`seq`), 0) + 1 FROM `posts`",
+                    Long.class
+            );
+            if (nextSeq == null || nextSeq <= 0) {
+                nextSeq = 1L;
+            }
+
+            List<String> postUuids = jdbcTemplate.queryForList(
+                    "SELECT `post_uuid` FROM `posts` WHERE `seq` IS NULL ORDER BY `writed_at`, `post_uuid`",
+                    String.class
+            );
+            long seq = nextSeq;
+            int updated = 0;
+            for (String postUuid : postUuids) {
+                updated += jdbcTemplate.update(
+                        "UPDATE `posts` SET `seq` = ? WHERE `post_uuid` = ? AND `seq` IS NULL",
+                        seq++,
+                        postUuid
+                );
+            }
+            log.info("[POST-SEQ] seq missing posts backfilled: {}", updated);
+        } finally {
+            jdbcTemplate.queryForObject("SELECT RELEASE_LOCK(?)", Integer.class, POST_SEQ_LOCK);
         }
     }
 
