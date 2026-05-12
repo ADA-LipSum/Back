@@ -111,6 +111,10 @@ jwt:
   access-expiration-ms: 600000
   refresh-expiration-ms: 604800000
 
+swagger:
+  user: ${SWAGGER_USER:swagger}
+  password: ${SWAGGER_PASSWORD:swagger}
+
 github:
   oauth:
     client-id: ${GITHUB_CLIENT_ID}
