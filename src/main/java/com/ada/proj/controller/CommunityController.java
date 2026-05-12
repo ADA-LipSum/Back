@@ -275,25 +275,13 @@ public class CommunityController {
             description = """
                     게시글에 달린 댓글 및 대댓글 전체를 조회합니다. 인증 불필요.
 
-                    **Path Variable:**
-                    - `id` (필수): 게시글 순번
-
-                    **Response:** 댓글 목록 배열
-                    - `id`: 댓글 ID
-                    - `postId`: 게시글 UUID
-                    - `parentId`: 부모 댓글 ID (대댓글인 경우)
-                    - `content`: 댓글 내용
-                    - `writerUuid`: 작성자 UUID
-                    - `likes`: 좋아요 수
-                    - `pinned`: 고정 여부
-                    - `createdAt`: 작성 시각 (ISO 8601)
+                    댓글은 `children` 필드로 대댓글을 포함하는 재귀 구조로 반환됩니다.
                     """
     )
     public ResponseEntity<ApiResponse<List<CommentResponse>>> comments(
-            @Parameter(description = "게시글 순번") @PathVariable Long id
+            @Parameter(description = "게시글 순번", example = "1") @PathVariable Long id
     ) {
-        String postUuid = postService.findUuidBySeq(id);
-        return ResponseEntity.ok(ApiResponse.success(commentService.getCommentsByPost(postUuid)));
+        return ResponseEntity.ok(ApiResponse.success(commentService.getCommentsByPost(id)));
     }
 
     private TechSubTag parseTechSubTag(String value) {
