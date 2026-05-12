@@ -83,6 +83,7 @@ public class SecurityConfig {
                         "/api/posts",
                         "/api/posts/view",
                         "/admin/**",
+                        "/error",
                         "/favicon.ico"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/auth/status").permitAll()

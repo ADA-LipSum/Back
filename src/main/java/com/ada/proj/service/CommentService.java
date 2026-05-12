@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,11 +21,13 @@ import com.ada.proj.entity.Comment;
 import com.ada.proj.entity.CommentLike;
 import com.ada.proj.entity.Post;
 import com.ada.proj.entity.User;
+import com.ada.proj.exception.UserNotFoundException;
 import com.ada.proj.repository.CommentLikeRepository;
 import com.ada.proj.repository.CommentRepository;
 import com.ada.proj.repository.PostRepository;
 import com.ada.proj.repository.UserRepository;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 
@@ -52,7 +53,7 @@ public class CommentService {
 
         String uuid = authentication.getName();
         return userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new RuntimeException("User not found: " + uuid));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
     }
 
     @Transactional
@@ -64,7 +65,7 @@ public class CommentService {
 
         Long postSeq = Objects.requireNonNull(request.getPostSeq(), "postSeq is required");
         Post post = postRepository.findBySeq(postSeq)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Post not found"));
 
         Comment comment = new Comment();
         comment.setContent(request.getContent());
@@ -82,7 +83,10 @@ public class CommentService {
         Long parentId = request.getParentId();
         if (parentId != null) {
             Comment parent = commentRepository.findById(parentId)
-                    .orElseThrow(() -> new RuntimeException("Parent comment not found"));
+                    .orElseThrow(() -> new EntityNotFoundException("Parent comment not found"));
+            if (parent.getPost() == null || !post.getSeq().equals(parent.getPost().getSeq())) {
+                throw new IllegalArgumentException("Parent comment does not belong to this post");
+            }
             comment.setParent(parent);
         }
 
@@ -102,7 +106,7 @@ public class CommentService {
     public List<CommentResponse> getCommentsByPost(@NonNull Long postSeq) {
 
         Post post = postRepository.findBySeq(postSeq)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Post not found"));
 
         List<Comment> allComments = commentRepository.findByPostOrderByCreatedAtAsc(post,
                 org.springframework.data.domain.PageRequest.of(0, 500));
