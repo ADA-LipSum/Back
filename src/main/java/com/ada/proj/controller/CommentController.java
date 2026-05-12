@@ -38,7 +38,17 @@ public class CommentController {
             description = """
                     게시글에 댓글을 작성합니다. 로그인이 필요합니다.
 
-                    - 대댓글인 경우 `parentId`에 부모 댓글 ID를 전달합니다.
+                    **일반 댓글:** `content`만 전달
+                    ```json
+                    { "content": "댓글 내용" }
+                    ```
+
+                    **대댓글:** `parentId`에 부모 댓글 ID 추가
+                    ```json
+                    { "content": "대댓글 내용", "parentId": 1 }
+                    ```
+
+                    > `parentId`는 반드시 같은 게시글의 댓글 ID여야 합니다.
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
