@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -24,6 +25,12 @@ public class SwaggerSecurityConfig {
 
     @Value("${swagger.password:swagger}")
     private String swaggerPassword;
+
+    private final PasswordEncoder passwordEncoder;
+
+    public SwaggerSecurityConfig(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Bean
     @Order(1)
@@ -49,7 +56,7 @@ public class SwaggerSecurityConfig {
 
     private InMemoryUserDetailsManager swaggerUserDetailsService() {
         UserDetails user = User.withUsername(swaggerUser)
-                .password("{noop}" + swaggerPassword)
+                .password(passwordEncoder.encode(swaggerPassword))
                 .roles("SWAGGER")
                 .build();
         return new InMemoryUserDetailsManager(user);
