@@ -97,6 +97,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET,
                         "/api/posts/**",
                         "/api/community/posts/**",
+                        "/api/community/banners",
                         "/api/blog/posts/**",
                         "/api/notices/**",
                         "/api/polls/posts/**"

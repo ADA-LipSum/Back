@@ -62,8 +62,8 @@ public class CommentService {
 
         userBanService.checkUserBanned(user);
 
-        String postId = Objects.requireNonNull(request.getPostId(), "postId is required");
-        Post post = postRepository.findById(postId)
+        Long postSeq = Objects.requireNonNull(request.getPostSeq(), "postSeq is required");
+        Post post = postRepository.findBySeq(postSeq)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
         Comment comment = new Comment();
@@ -99,9 +99,9 @@ public class CommentService {
     }
 
     @Transactional(readOnly = true)
-    public List<CommentResponse> getCommentsByPost(@NonNull String postId) {
+    public List<CommentResponse> getCommentsByPost(@NonNull Long postSeq) {
 
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findBySeq(postSeq)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
         List<Comment> allComments = commentRepository.findByPostOrderByCreatedAtAsc(post,
