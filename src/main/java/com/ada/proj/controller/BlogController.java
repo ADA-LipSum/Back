@@ -182,4 +182,60 @@ public class BlogController {
         postService.delete(id, authentication);
         return ResponseEntity.ok(ApiResponse.success());
     }
+
+    @PostMapping("/{id}/bookmark")
+    @Operation(
+            summary = "게시글 북마크 토글",
+            description = """
+                    블로그 게시글 북마크를 토글합니다. 로그인이 필요합니다.
+
+                    **Path Variable:**
+                    - `id` (필수): 대상 게시글 순번
+
+                    **Response:**
+                    - `data`: 변경 후 북마크 상태 (true: 북마크 추가됨, false: 북마크 취소됨)
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<Boolean>> toggleBookmark(
+            @Parameter(description = "게시글 순번", example = "1") @PathVariable Long id,
+            Authentication authentication
+    ) {
+        if (authentication == null) {
+            throw new SecurityException("로그인이 필요합니다.");
+        }
+        String principal = Objects.requireNonNull(authentication.getName(), "principal");
+        boolean bookmarked = postService.toggleBookmark(principal, id);
+        return ResponseEntity.ok(ApiResponse.success(bookmarked));
+    }
+
+    @GetMapping("/bookmarks")
+    @Operation(
+            summary = "내 블로그 북마크 목록 조회",
+            description = """
+                    현재 로그인한 사용자가 북마크한 블로그 게시글 목록을 최신순으로 반환합니다.
+
+                    **Query Parameters:**
+                    - `page` (선택): 페이지 번호, 0부터 시작
+                    - `size` (선택): 페이지 크기
+
+                    **Response:**
+                    - `data.content`: 북마크된 블로그 게시글 요약 목록
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<PageResponse<PostSummaryResponse>>> myBookmarks(
+            @Parameter(description = "페이지 번호, 0부터 시작", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기", example = "20")
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication
+    ) {
+        if (authentication == null) {
+            throw new SecurityException("로그인이 필요합니다.");
+        }
+        String principal = Objects.requireNonNull(authentication.getName(), "principal");
+        return ResponseEntity.ok(ApiResponse.success(
+                postService.getMyBookmarks(principal, PostBoardType.BLOG, page, size)));
+    }
 }

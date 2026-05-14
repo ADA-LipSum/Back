@@ -30,11 +30,13 @@ import com.ada.proj.dto.PostDetailResponse;
 import com.ada.proj.dto.PostSummaryResponse;
 import com.ada.proj.dto.PostUpdateRequest;
 import com.ada.proj.entity.Post;
+import com.ada.proj.entity.PostBookmark;
 import com.ada.proj.entity.PostLike;
 import com.ada.proj.entity.User;
 import com.ada.proj.enums.CommunityCategory;
 import com.ada.proj.enums.PostBoardType;
 import com.ada.proj.enums.TechSubTag;
+import com.ada.proj.repository.PostBookmarkRepository;
 import com.ada.proj.repository.PostLikeRepository;
 import com.ada.proj.repository.PostRepository;
 import com.ada.proj.repository.UserRepository;
@@ -55,6 +57,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final PostLikeRepository postLikeRepository;
+    private final PostBookmarkRepository postBookmarkRepository;
     private final UserBanService userBanService;
     private final PollService pollService;
     private final JdbcTemplate jdbcTemplate;
@@ -256,6 +259,8 @@ public class PostService {
         User user = userRepository.findByUuid(post.getWriterUuid()).orElse(null);
         boolean isLiked = requesterUuid != null
                 && postLikeRepository.existsByUserUuidAndPostUuid(requesterUuid, post.getPostUuid());
+        boolean isBookmarked = requesterUuid != null
+                && postBookmarkRepository.existsByUserUuidAndPostUuid(requesterUuid, post.getPostUuid());
 
         return PostDetailResponse.builder()
                 .postUuid(post.getPostUuid())
@@ -282,6 +287,7 @@ public class PostService {
                 .techSubTag(post.getTechSubTag())
                 .poll(pollService.findResponseByPostUuid(post.getPostUuid()))
                 .isLiked(isLiked)
+                .isBookmarked(isBookmarked)
                 .build();
     }
 
@@ -381,6 +387,37 @@ public class PostService {
         postLikeRepository.save(Objects.requireNonNull(like));
         postRepository.increaseLikes(postUuid);
         return true;
+    }
+
+    @Transactional
+    public boolean toggleBookmark(@NonNull String userUuid, @NonNull Long seq) {
+        Post post = getPostBySeqOrThrow(seq);
+        String postUuid = post.getPostUuid();
+
+        if (postBookmarkRepository.existsByUserUuidAndPostUuid(userUuid, postUuid)) {
+            postBookmarkRepository.deleteByUserUuidAndPostUuid(userUuid, postUuid);
+            return false;
+        }
+
+        postBookmarkRepository.save(PostBookmark.builder()
+                .userUuid(userUuid)
+                .postUuid(postUuid)
+                .build());
+        return true;
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<PostSummaryResponse> getMyBookmarks(
+            @NonNull String userUuid,
+            @NonNull PostBoardType boardType,
+            int page,
+            int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "writedAt"));
+        Page<PostSummaryResponse> result = postRepository
+                .findBookmarkedSummaries(userUuid, boardType, pageable)
+                .map(this::completeSummary);
+        return toPageResponse(result);
     }
 
     @Transactional

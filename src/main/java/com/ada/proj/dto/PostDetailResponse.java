@@ -51,4 +51,5 @@ public class PostDetailResponse {
     private PollResponse poll;
 
     private Boolean isLiked;
+    private Boolean isBookmarked;
 }

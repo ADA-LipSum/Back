@@ -94,4 +94,22 @@ public interface PostRepository extends JpaRepository<Post, String> {
     Long findSeqByUuid(@Param("uuid") String uuid);
 
     long countByWriterUuid(String writerUuid);
+
+    @Query("""
+            select new com.ada.proj.dto.PostSummaryResponse(
+                p.postUuid, p.seq, p.title, p.writer, u.profileImage,
+                p.writedAt, p.likes, p.views, p.comments,
+                p.isDev, p.devTags, null,
+                p.boardType, p.communityCategory, p.techSubTag, p.thumbnailImage
+            )
+            from Post p
+            join com.ada.proj.entity.PostBookmark pb on pb.postUuid = p.postUuid
+            left join com.ada.proj.entity.User u on u.uuid = p.writerUuid
+            where pb.userUuid = :userUuid
+              and p.boardType = :boardType
+            """)
+    Page<PostSummaryResponse> findBookmarkedSummaries(
+            @Param("userUuid") String userUuid,
+            @Param("boardType") PostBoardType boardType,
+            Pageable pageable);
 }
