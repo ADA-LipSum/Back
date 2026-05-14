@@ -1,6 +1,8 @@
 package com.ada.proj.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,6 +19,8 @@ public class CommentCreateRequest {
     )
     private Long parentId;
 
-    @Schema(description = "댓글 내용", example = "재밌는 글이네요!")
+    @NotBlank(message = "댓글 내용을 입력해주세요.")
+    @Size(max = 2500, message = "댓글은 최대 2500자까지 입력할 수 있습니다.")
+    @Schema(description = "댓글 내용 (최대 2500자)", example = "재밌는 글이네요!")
     private String content;
 }

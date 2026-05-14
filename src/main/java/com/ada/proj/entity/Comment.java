@@ -41,7 +41,7 @@ public class Comment {
     private String commentUuid;
 
     // 댓글 본문
-    @Column(nullable = false, length = 500)
+    @Column(nullable = false, length = 2500)
     private String content;
 
     // 작성자 (User FK)
