@@ -187,8 +187,8 @@ public class TradeService {
 
         int qty = req.getQuantity();
 
-        // 재고 확인
-        if (item.getStock() < qty) {
+        // 재고 확인 (ETC 카테고리는 재고 개념 없이 언제든지 구매 가능)
+        if (topCategory != TradeCategory.ETC && item.getStock() < qty) {
             throw new IllegalStateException("재고가 부족합니다. 현재 재고: " + item.getStock());
         }
 
@@ -211,9 +211,11 @@ public class TradeService {
             );
         }
 
-        // 재고 차감
-        item.setStock(item.getStock() - qty);
-        tradeItemRepository.save(item);
+        // 재고 차감 (ETC 카테고리는 재고 차감 없음)
+        if (topCategory != TradeCategory.ETC) {
+            item.setStock(item.getStock() - qty);
+            tradeItemRepository.save(item);
+        }
 
         // 거래 로그 저장
         TradeLog log = TradeLog.builder()
