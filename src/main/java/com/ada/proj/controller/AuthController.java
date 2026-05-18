@@ -8,7 +8,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 import com.ada.proj.dto.AdminCreateUserRequest;
 import com.ada.proj.dto.ApiResponse;
@@ -331,6 +335,37 @@ public class AuthController {
         );
 
         return ResponseEntity.ok(ApiResponse.ok(res));
+    }
+
+    @PostMapping("/admin/create/bulk")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @Operation(
+            summary = "사용자 일괄 생성 (CSV) (관리자/선생님)",
+            description = """
+                    CSV 파일을 업로드하여 사용자를 일괄 생성합니다. ADMIN/TEACHER 전용입니다.
+
+                    **CSV 형식:** `adminId,userRealname,userNickname[,customId,password]`
+                    - 첫 번째 줄부터 바로 데이터 (헤더 없음, `#`으로 시작하는 줄은 주석)
+                    - `adminId`, `userRealname`, `userNickname` 필수
+                    - `customId`, `password` 선택 (password 는 6자 이상)
+
+                    **Response:**
+                    - `successCount`: 성공 건수
+                    - `failedCount`: 실패 건수
+                    - `failed`: 실패 목록 (line, adminId, reason)
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth"),
+            responses = {
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "일괄 생성 완료 (일부 실패 포함 가능)"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음 (ADMIN/TEACHER만 가능)")
+            }
+    )
+    public ResponseEntity<ApiResponse<Map<String, Object>>> bulkCreateUsers(
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
+        Map<String, Object> result = userService.bulkCreateFromCsv(file, authentication);
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     @PostMapping("/admin/init")

@@ -6,12 +6,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ada.proj.dto.TradeItemCreateRequest;
+import com.ada.proj.dto.TradeItemStatsResponse;
+import com.ada.proj.dto.TradeItemUpdateRequest;
 import com.ada.proj.dto.TradeLogCreateRequest;
+import com.ada.proj.dto.TradeOrderCancelResponse;
+import com.ada.proj.dto.TradeOrderStatsResponse;
 import com.ada.proj.dto.TradePurchaseRequest;
 import com.ada.proj.entity.TradeItem;
 import com.ada.proj.entity.TradeLog;
 import com.ada.proj.enums.TradeCategory;
 import com.ada.proj.enums.TradeCurrency;
+import java.util.List;
 import com.ada.proj.entity.User;
 import com.ada.proj.entity.UserCoins;
 import com.ada.proj.entity.UserPoints;
@@ -289,6 +294,101 @@ public class TradeService {
                         -> new IllegalArgumentException("해당 아이템을 찾을 수 없습니다: " + itemUuid));
 
         item.setActive(false);
+    }
+
+    @Transactional
+    public TradeItem updateItem(String itemUuid, TradeItemUpdateRequest req) {
+        TradeItem item = tradeItemRepository.findByItemUuid(itemUuid)
+                .orElseThrow(() -> new EntityNotFoundException("해당 아이템을 찾을 수 없습니다: " + itemUuid));
+        if (req.getName() != null) item.setName(req.getName());
+        if (req.getDescription() != null) item.setDescription(req.getDescription());
+        if (req.getPrice() != null) item.setPrice(req.getPrice());
+        if (req.getActive() != null) item.setActive(req.getActive());
+        if (req.getImageUrl() != null) item.setImageUrl(req.getImageUrl());
+        return tradeItemRepository.save(item);
+    }
+
+    @Transactional
+    public TradeOrderCancelResponse cancelOrder(String logUuid, String operatorUuid) {
+        User operator = userRepository.findByUuid(operatorUuid)
+                .orElseThrow(() -> new RuntimeException("Operator not found"));
+        if (!(operator.getRole().name().equals("ADMIN") || operator.getRole().name().equals("TEACHER"))) {
+            throw new IllegalStateException("구매 취소는 관리자 및 선생님만 가능합니다.");
+        }
+
+        TradeLog log = tradeLogRepository.findByLogUuid(logUuid)
+                .orElseThrow(() -> new EntityNotFoundException("주문을 찾을 수 없습니다: " + logUuid));
+
+        if (log.isCancelled()) {
+            throw new IllegalStateException("이미 취소된 주문입니다.");
+        }
+
+        int refundAmount = log.getTotalPoints();
+        int balanceAfter = 0;
+
+        if (log.getCurrency() == TradeCurrency.COIN) {
+            com.ada.proj.entity.UserCoins refundTx = coinsService.grantCoins(
+                    log.getUserUuid(), refundAmount, "구매 취소 환불: " + log.getItemName());
+            balanceAfter = refundTx.getBalanceAfter();
+        } else {
+            com.ada.proj.entity.UserPoints refundTx = pointsService.refund(
+                    log.getUserUuid(), log.getPointsUuid(), refundAmount, "구매 취소 환불: " + log.getItemName());
+            balanceAfter = refundTx.getBalanceAfter();
+        }
+
+        TradeItem item = tradeItemRepository.findByItemUuid(log.getItemUuid()).orElse(null);
+        if (item != null) {
+            TradeCategory topCategory = item.getCategory().isSubCategory()
+                    ? item.getCategory().getParent()
+                    : item.getCategory();
+            if (topCategory != TradeCategory.ETC) {
+                item.setStock(item.getStock() + log.getQuantity());
+                tradeItemRepository.save(item);
+            } else {
+                userInventoryRepository.findByUserUuidAndItemUuid(log.getUserUuid(), log.getItemUuid())
+                        .ifPresent(userInventoryRepository::delete);
+            }
+        }
+
+        log.setCancelled(true);
+        tradeLogRepository.save(log);
+
+        return TradeOrderCancelResponse.builder()
+                .logUuid(log.getLogUuid())
+                .itemName(log.getItemName())
+                .quantity(log.getQuantity())
+                .refundAmount(refundAmount)
+                .currency(log.getCurrency())
+                .balanceAfter(balanceAfter)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public TradeOrderStatsResponse getOrderStats() {
+        long total = tradeLogRepository.count();
+        long cancelled = tradeLogRepository.countByCancelled(true);
+        long coinsSpent = tradeLogRepository.sumTotalByCurrencyAndNotCancelled(TradeCurrency.COIN);
+        long pointsSpent = tradeLogRepository.sumTotalByCurrencyAndNotCancelled(TradeCurrency.POINT);
+        return TradeOrderStatsResponse.builder()
+                .totalOrders(total)
+                .cancelledOrders(cancelled)
+                .activeOrders(total - cancelled)
+                .totalCoinsSpent(coinsSpent)
+                .totalPointsSpent(pointsSpent)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TradeItemStatsResponse> getItemStats() {
+        List<Object[]> results = tradeLogRepository.findItemSalesStats();
+        return results.stream()
+                .map(r -> new TradeItemStatsResponse(
+                        (String) r[0],
+                        (String) r[1],
+                        ((Number) r[2]).longValue(),
+                        ((Number) r[3]).longValue(),
+                        ((Number) r[4]).longValue()))
+                .collect(java.util.stream.Collectors.toList());
     }
 
     @lombok.Value

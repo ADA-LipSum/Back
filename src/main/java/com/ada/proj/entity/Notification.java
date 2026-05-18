@@ -48,6 +48,9 @@ public class Notification {
     @Column(name = "post_uuid", length = 36)
     private String postUuid;
 
+    @Column(name = "sender_uuid", length = 36)
+    private String senderUuid;
+
     @Column(name = "read_at")
     private LocalDateTime readAt;
 

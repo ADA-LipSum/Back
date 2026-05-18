@@ -10,6 +10,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 import com.ada.proj.enums.TradeCategory;
 import com.ada.proj.entity.TradeItem;
 import com.ada.proj.entity.TradeLog;
@@ -318,6 +320,125 @@ public class TradeController {
     public ApiResponse<CartCheckoutResponse> checkout(Authentication auth) {
         if (auth == null) throw new SecurityException("Unauthenticated");
         return ApiResponse.success(cartService.checkout(auth.getName()));
+    }
+
+    @PatchMapping("/items/{itemId}")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @Operation(
+            summary = "거래 아이템 수정 (관리자/선생님)",
+            description = """
+                    아이템 정보를 수정합니다. ADMIN/TEACHER만 가능합니다.
+                    포함된 필드만 업데이트됩니다.
+
+                    **Path Variable:**
+                    - `itemId` (필수): 수정할 아이템 UUID
+
+                    **Request Body (모두 선택):**
+                    - `name`: 아이템 이름
+                    - `description`: 아이템 설명
+                    - `price`: 가격
+                    - `active`: 판매 활성화 여부
+                    - `imageUrl`: 이미지 URL
+
+                    **Response:** 수정된 아이템 정보
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth"),
+            responses = {
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수정 성공"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음 (ADMIN/TEACHER만 가능)"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "아이템을 찾을 수 없음")
+            }
+    )
+    public ApiResponse<TradeItemResponse> updateItem(
+            @Parameter(description = "수정할 아이템 UUID") @PathVariable("itemId") String itemId,
+            @RequestBody TradeItemUpdateRequest req
+    ) {
+        TradeItem item = tradeService.updateItem(itemId, req);
+        return ApiResponse.success(TradeItemResponse.from(item));
+    }
+
+    @PostMapping("/orders/{orderId}/cancel")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @Operation(
+            summary = "구매 취소/환불 (관리자/선생님)",
+            description = """
+                    특정 구매 주문을 취소하고 결제 수단(코인/포인트)을 환불합니다.
+                    ADMIN/TEACHER만 가능합니다.
+
+                    **Path Variable:**
+                    - `orderId` (필수): 취소할 주문의 log_uuid
+
+                    **Response:**
+                    - `logUuid`: 취소된 주문 UUID
+                    - `itemName`: 아이템 이름
+                    - `quantity`: 취소 수량
+                    - `refundAmount`: 환불 금액 (코인 또는 포인트)
+                    - `currency`: 결제 수단 (COIN/POINT)
+                    - `balanceAfter`: 환불 후 잔액
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth"),
+            responses = {
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "취소/환불 성공"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "이미 취소된 주문"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음 (ADMIN/TEACHER만 가능)"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "주문을 찾을 수 없음")
+            }
+    )
+    public ApiResponse<TradeOrderCancelResponse> cancelOrder(
+            @Parameter(description = "취소할 주문 UUID (log_uuid)") @PathVariable("orderId") String orderId,
+            Authentication auth
+    ) {
+        if (auth == null) throw new SecurityException("Unauthenticated");
+        TradeOrderCancelResponse result = tradeService.cancelOrder(orderId, auth.getName());
+        return ApiResponse.success(result);
+    }
+
+    @GetMapping("/orders/stats")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @Operation(
+            summary = "구매 내역 통계 (관리자/선생님)",
+            description = """
+                    전체 구매 주문 통계를 반환합니다. ADMIN/TEACHER만 가능합니다.
+
+                    **Response:**
+                    - `totalOrders`: 전체 주문 수
+                    - `cancelledOrders`: 취소된 주문 수
+                    - `activeOrders`: 유효 주문 수
+                    - `totalCoinsSpent`: 코인 결제 총액
+                    - `totalPointsSpent`: 포인트 결제 총액
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth"),
+            responses = {
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "통계 조회 성공"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음 (ADMIN/TEACHER만 가능)")
+            }
+    )
+    public ApiResponse<TradeOrderStatsResponse> getOrderStats() {
+        return ApiResponse.success(tradeService.getOrderStats());
+    }
+
+    @GetMapping("/items/stats")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @Operation(
+            summary = "상점 판매 통계 (관리자/선생님)",
+            description = """
+                    아이템별 판매 수량·매출 통계를 반환합니다. ADMIN/TEACHER만 가능합니다.
+
+                    **Response:** 아이템별 itemUuid, itemName, totalQuantitySold, totalRevenue, orderCount 목록
+                    (매출액 내림차순 정렬)
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth"),
+            responses = {
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "통계 조회 성공"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음 (ADMIN/TEACHER만 가능)")
+            }
+    )
+    public ApiResponse<List<TradeItemStatsResponse>> getItemStats() {
+        return ApiResponse.success(tradeService.getItemStats());
     }
 
     @PostMapping("/items/{uuid}/stock")

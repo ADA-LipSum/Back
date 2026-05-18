@@ -2,6 +2,7 @@ package com.ada.proj.controller;
 
 import com.ada.proj.dto.*;
 import com.ada.proj.entity.UserCoins;
+import com.ada.proj.enums.PointChangeType;
 import com.ada.proj.service.CoinsService;
 import com.ada.proj.service.UserService;
 
@@ -131,6 +132,85 @@ public class CoinsController {
         if (!isAdmin) {
             throw new SecurityException("Forbidden");
         }
+    }
+
+    private void ensureAdminOrTeacher(Authentication auth) {
+        if (auth == null) {
+            throw new SecurityException("Unauthenticated");
+        }
+        boolean ok = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_TEACHER"));
+        if (!ok) {
+            throw new SecurityException("Forbidden");
+        }
+    }
+
+    @PostMapping("/adjustments/bulk")
+    @Operation(
+            summary = "역할별 코인 일괄 지급/차감 (관리자/선생님)",
+            description = """
+                    특정 역할(STUDENT 등)의 모든 사용자에게 코인을 일괄 지급하거나 차감합니다.
+                    ADMIN/TEACHER 전용입니다.
+
+                    **Request Body:**
+                    - `role` (필수): 대상 역할 (STUDENT | TEACHER | ADMIN)
+                    - `type` (필수): 조정 유형 (GAIN: 지급 | LOSS: 차감)
+                    - `coins` (필수): 코인 수량 (최소 1)
+                    - `description` (선택): 지급 사유
+
+                    **Response:**
+                    - `totalTargets`: 대상 인원 수
+                    - `successCount`: 처리 성공 건수
+                    """,
+            security = @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "bearerAuth"),
+            responses = {
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "일괄 처리 완료"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 type (GAIN/LOSS만 허용)"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음 (ADMIN/TEACHER만 가능)")
+            }
+    )
+    public ApiResponse<BulkGrantResultResponse> bulkAdjust(
+            @Valid @RequestBody BulkCoinAdjustRequest req,
+            Authentication auth) {
+        ensureAdminOrTeacher(auth);
+        if (req.getType() != PointChangeType.GAIN && req.getType() != PointChangeType.LOSS) {
+            throw new IllegalArgumentException("일괄 지급은 GAIN 또는 LOSS만 지원합니다.");
+        }
+        BulkGrantResultResponse result = coinsService.bulkGrantByRole(req.getRole(), req.getType(), req.getCoins(), req.getDescription());
+        return ApiResponse.success(result);
+    }
+
+    @GetMapping("/adjustments/history")
+    @Operation(
+            summary = "코인 지급 내역 조회 (관리자/선생님)",
+            description = """
+                    관리자/선생님이 지급·차감(GAIN/LOSS)한 전체 코인 조정 내역을 최신순으로 조회합니다.
+                    ADMIN/TEACHER 전용입니다.
+
+                    **Query Parameters:**
+                    - `page` (선택): 페이지 번호 (기본값: 0)
+                    - `size` (선택): 페이지 크기 (기본값: 20)
+
+                    **Response:** 페이징된 코인 트랜잭션 목록 (coinUuid, userUuid, changeType, coins, balanceAfter, description, createdAt)
+                    """,
+            security = @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "bearerAuth"),
+            responses = {
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음 (ADMIN/TEACHER만 가능)")
+            }
+    )
+    public ApiResponse<PageResponse<CoinsTransactionResponse>> getAdjustmentHistory(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Authentication auth) {
+        ensureAdminOrTeacher(auth);
+        var pageResult = coinsService.getAdjustmentHistory(page, size).map(CoinsTransactionResponse::from);
+        return ApiResponse.success(new PageResponse<>(
+                pageResult.getNumber(), pageResult.getSize(),
+                pageResult.getTotalElements(), pageResult.getTotalPages(),
+                pageResult.getContent()));
     }
 
     private void ensureCoinViewPermission(Authentication auth, String targetUuid) {

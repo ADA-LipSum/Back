@@ -9,4 +9,6 @@ import com.ada.proj.entity.Notification;
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
     Page<Notification> findByRecipientUuidOrderByCreatedAtDesc(String recipientUuid, Pageable pageable);
+
+    Page<Notification> findBySenderUuidIsNotNullOrderByCreatedAtDesc(Pageable pageable);
 }

@@ -4,6 +4,7 @@ package com.ada.proj.controller;
 import com.ada.proj.dto.BanInfoResponse;
 import com.ada.proj.dto.BanRequest;
 import com.ada.proj.dto.BanResponse;
+import com.ada.proj.dto.BanStatsResponse;
 import com.ada.proj.dto.PageResponse;
 import com.ada.proj.service.BanService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -171,5 +172,24 @@ public class BanController {
     public com.ada.proj.dto.ApiResponse<Void> releaseManual(@PathVariable Long banId) {
         banService.releaseBanManual(banId);
         return com.ada.proj.dto.ApiResponse.success();
+    }
+
+    @Operation(
+            summary = "제재 사유 통계 (관리자/선생님)",
+            description = """
+                    제재 사유별 건수 통계를 반환합니다. ADMIN/TEACHER만 가능합니다.
+
+                    **Response:** 사유(reason) + 건수(count) 목록, 건수 내림차순 정렬
+                    """,
+            security = @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "bearerAuth"),
+            responses = {
+                @ApiResponse(responseCode = "200", description = "통계 조회 성공"),
+                @ApiResponse(responseCode = "401", description = "인증 실패", content = @Content),
+                @ApiResponse(responseCode = "403", description = "권한 없음 (ADMIN/TEACHER만 가능)", content = @Content)
+            }
+    )
+    @GetMapping("/bans/stats")
+    public com.ada.proj.dto.ApiResponse<List<BanStatsResponse>> getBanStats() {
+        return com.ada.proj.dto.ApiResponse.success(banService.getBanStats());
     }
 }

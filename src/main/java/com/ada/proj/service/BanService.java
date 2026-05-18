@@ -4,6 +4,7 @@ package com.ada.proj.service;
 import com.ada.proj.dto.BanInfoResponse;
 import com.ada.proj.dto.BanRequest;
 import com.ada.proj.dto.BanResponse;
+import com.ada.proj.dto.BanStatsResponse;
 import com.ada.proj.dto.PageResponse;
 import com.ada.proj.enums.Role;
 import com.ada.proj.entity.User;
@@ -229,6 +230,15 @@ public class BanService {
 
         return userRepo.findByUuid(userUuid)
                 .orElseThrow(() -> new AccessDeniedException("사용자 정보를 찾을 수 없습니다."));
+    }
+
+    @Transactional(readOnly = true)
+    public List<BanStatsResponse> getBanStats() {
+        requireBanPrivilege();
+        List<Object[]> results = banRepo.findReasonStats();
+        return results.stream()
+                .map(r -> new BanStatsResponse((String) r[0], ((Number) r[1]).longValue()))
+                .collect(Collectors.toList());
     }
 
     private BanInfoResponse toBanInfoResponse(UserBan ban) {

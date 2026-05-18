@@ -58,6 +58,10 @@ public class TradeLog {
     @Column(name = "metadata", columnDefinition = "json")
     private String metadata;
 
+    @Column(name = "cancelled", nullable = false)
+    @Builder.Default
+    private boolean cancelled = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false)
     private Instant createdAt;

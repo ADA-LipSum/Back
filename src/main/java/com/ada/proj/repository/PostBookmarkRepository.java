@@ -11,4 +11,6 @@ public interface PostBookmarkRepository extends JpaRepository<PostBookmark, Long
     Optional<PostBookmark> findByUserUuidAndPostUuid(String userUuid, String postUuid);
     boolean existsByUserUuidAndPostUuid(String userUuid, String postUuid);
     void deleteByUserUuidAndPostUuid(String userUuid, String postUuid);
+
+    void deleteByPostUuid(String postUuid);
 }

@@ -13,4 +13,7 @@ public interface UserCoinsRepository extends JpaRepository<UserCoins, Long> {
     Optional<UserCoins> findByCoinUuid(String coinUuid);
 
     Page<UserCoins> findByUserUuidOrderByCreatedAtDescSeqDesc(String userUuid, Pageable pageable);
+
+    Page<UserCoins> findByChangeTypeInOrderByCreatedAtDescSeqDesc(
+            java.util.Collection<com.ada.proj.enums.PointChangeType> types, Pageable pageable);
 }

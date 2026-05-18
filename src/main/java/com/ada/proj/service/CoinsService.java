@@ -1,5 +1,6 @@
 package com.ada.proj.service;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -9,11 +10,15 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ada.proj.dto.BulkGrantResultResponse;
+import com.ada.proj.entity.User;
 import com.ada.proj.entity.UserCoins;
 import com.ada.proj.entity.UserCoinsBalance;
 import com.ada.proj.enums.PointChangeType;
+import com.ada.proj.enums.Role;
 import com.ada.proj.repository.UserCoinsBalanceRepository;
 import com.ada.proj.repository.UserCoinsRepository;
+import com.ada.proj.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -24,6 +29,7 @@ public class CoinsService {
 
     private final UserCoinsRepository userCoinsRepository;
     private final UserCoinsBalanceRepository balanceRepository;
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public int getBalance(String userUuid) {
@@ -51,6 +57,27 @@ public class CoinsService {
     @Transactional
     public UserCoins useCoins(String userUuid, int coins, String description) {
         return applyChange(userUuid, PointChangeType.USE, coins, description);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<UserCoins> getAdjustmentHistory(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return userCoinsRepository.findByChangeTypeInOrderByCreatedAtDescSeqDesc(
+                List.of(PointChangeType.GAIN, PointChangeType.LOSS), pageable);
+    }
+
+    @Transactional
+    public BulkGrantResultResponse bulkGrantByRole(Role role, PointChangeType type, int coins, String description) {
+        List<User> users = userRepository.findByRole(role);
+        int successCount = 0;
+        for (User user : users) {
+            try {
+                applyChange(user.getUuid(), type, coins, description);
+                successCount++;
+            } catch (Exception ignored) {
+            }
+        }
+        return new BulkGrantResultResponse(users.size(), successCount);
     }
 
     @Transactional

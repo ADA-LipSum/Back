@@ -18,4 +18,8 @@ public interface StudyGroupMemberRepository extends JpaRepository<StudyGroupMemb
     Optional<StudyGroupMember> findByGroup_GroupUuidAndUserUuid(String groupUuid, String userUuid);
 
     List<StudyGroupMember> findAllByGroup_GroupUuid(String groupUuid);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("DELETE FROM StudyGroupMember m WHERE m.group.groupUuid = :groupUuid")
+    void deleteAllByGroupGroupUuid(@org.springframework.data.repository.query.Param("groupUuid") String groupUuid);
 }

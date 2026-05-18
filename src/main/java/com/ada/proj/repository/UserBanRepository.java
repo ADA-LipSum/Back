@@ -21,4 +21,9 @@ public interface UserBanRepository extends JpaRepository<UserBan, Long> {
     List<UserBan> findByTargetUserAndActiveOrderByBannedAtDesc(User targetUser, boolean active);
 
     List<UserBan> findByExpiresAtBefore(LocalDateTime now); // 정상 작동
+
+    long countByActive(boolean active);
+
+    @org.springframework.data.jpa.repository.Query("SELECT b.reason, COUNT(b) FROM UserBan b GROUP BY b.reason ORDER BY COUNT(b) DESC")
+    List<Object[]> findReasonStats();
 }

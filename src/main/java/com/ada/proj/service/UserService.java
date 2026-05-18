@@ -1,12 +1,22 @@
 package com.ada.proj.service;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+
+import org.springframework.web.multipart.MultipartFile;
+
+import com.ada.proj.dto.UserBalanceSummary;
+import com.ada.proj.repository.UserCoinsBalanceRepository;
+import com.ada.proj.repository.UserPointsBalanceRepository;
 
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
@@ -50,6 +60,8 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
     private final CacheManager cacheManager;
+    private final UserCoinsBalanceRepository coinsBalanceRepository;
+    private final UserPointsBalanceRepository pointsBalanceRepository;
 
     public UserService(UserRepository userRepository,
             UserDataRepository userDataRepository,
@@ -57,7 +69,9 @@ public class UserService {
             CommentRepository commentRepository,
             PasswordEncoder passwordEncoder,
             ObjectMapper objectMapper,
-            CacheManager cacheManager) {
+            CacheManager cacheManager,
+            UserCoinsBalanceRepository coinsBalanceRepository,
+            UserPointsBalanceRepository pointsBalanceRepository) {
         this.userRepository = userRepository;
         this.userDataRepository = userDataRepository;
         this.postRepository = postRepository;
@@ -65,6 +79,8 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
         this.cacheManager = cacheManager;
+        this.coinsBalanceRepository = coinsBalanceRepository;
+        this.pointsBalanceRepository = pointsBalanceRepository;
     }
 
     public List<User> listUsers(Role role, String query) {
@@ -377,6 +393,17 @@ public class UserService {
         }
     }
 
+    private void ensureAdminOrTeacher(Authentication auth) {
+        if (auth == null) {
+            throw new UnauthenticatedException("Unauthenticated");
+        }
+        boolean ok = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority)
+                .anyMatch(a -> a.equals("ROLE_ADMIN") || a.equals("ROLE_TEACHER"));
+        if (!ok) {
+            throw new ForbiddenException("Forbidden");
+        }
+    }
+
     @Caching(evict = {
         @CacheEvict(cacheNames = "users", key = "'profile:' + #uuid"),
         @CacheEvict(cacheNames = "users", key = "#uuid")
@@ -440,5 +467,122 @@ public class UserService {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         return user.getRole() == Role.STUDENT;
+    }
+
+    @Transactional
+    public void updateStatus(String uuid, boolean active, Authentication auth) {
+        ensureAdminOrTeacher(auth);
+        User user = userRepository.findByUuid(uuid)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        user.setActive(active);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void deleteUser(String uuid, Authentication auth) {
+        ensureAdminOrTeacher(auth);
+        User user = userRepository.findByUuid(uuid)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        userRepository.delete(user);
+        evictUsernameCaches(user.getCustomId());
+        var cache = cacheManager.getCache("users");
+        if (cache != null) {
+            cache.evict("profile:" + uuid);
+            cache.evict(uuid);
+        }
+    }
+
+    @Transactional
+    public void resetPassword(String uuid, String newPassword, Authentication auth) {
+        ensureAdminOrTeacher(auth);
+        User user = userRepository.findByUuid(uuid)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public Map<String, Object> bulkCreateFromCsv(MultipartFile file, Authentication auth) {
+        ensureAdminOrTeacher(auth);
+        List<String> success = new ArrayList<>();
+        List<Map<String, String>> failed = new ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            int lineNum = 0;
+            while ((line = reader.readLine()) != null) {
+                lineNum++;
+                if (line.isBlank() || line.startsWith("#")) continue;
+                String[] parts = line.split(",", -1);
+                if (parts.length < 3) {
+                    Map<String, String> err = new HashMap<>();
+                    err.put("line", String.valueOf(lineNum));
+                    err.put("reason", "최소 3개 컬럼(adminId,userRealname,userNickname) 필요");
+                    failed.add(err);
+                    continue;
+                }
+                String adminId = parts[0].trim();
+                String userRealname = parts[1].trim();
+                String userNickname = parts[2].trim();
+                String customId = parts.length > 3 ? parts[3].trim() : null;
+                String password = parts.length > 4 ? parts[4].trim() : null;
+
+                if (adminId.isBlank() || userRealname.isBlank() || userNickname.isBlank()) {
+                    Map<String, String> err = new HashMap<>();
+                    err.put("line", String.valueOf(lineNum));
+                    err.put("reason", "필수 값 누락");
+                    failed.add(err);
+                    continue;
+                }
+                try {
+                    CreateUserRequest req = new CreateUserRequest();
+                    req.setAdminId(adminId);
+                    req.setUserRealname(userRealname);
+                    req.setUserNickname(userNickname);
+                    if (customId != null && !customId.isBlank()) req.setCustomId(customId);
+                    if (password != null && !password.isBlank()) req.setPassword(password);
+                    req.setRole(Role.STUDENT);
+                    createUserByAdmin(req, auth);
+                    success.add(adminId);
+                } catch (Exception e) {
+                    Map<String, String> err = new HashMap<>();
+                    err.put("line", String.valueOf(lineNum));
+                    err.put("adminId", adminId);
+                    err.put("reason", e.getMessage());
+                    failed.add(err);
+                }
+            }
+        } catch (IOException e) {
+            throw new IllegalArgumentException("CSV 파일을 읽을 수 없습니다: " + e.getMessage());
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("successCount", success.size());
+        result.put("failedCount", failed.size());
+        result.put("failed", failed);
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserBalanceSummary> getAllStudentBalances(Authentication auth) {
+        ensureAdminOrTeacher(auth);
+        List<User> students = userRepository.findByRole(Role.STUDENT);
+        List<UserBalanceSummary> result = new ArrayList<>();
+        for (User u : students) {
+            int coins = coinsBalanceRepository.findByUserUuid(u.getUuid())
+                    .map(b -> b.getTotalCoins()).orElse(0);
+            int points = pointsBalanceRepository.findByUserUuid(u.getUuid())
+                    .map(b -> b.getTotalPoints()).orElse(0);
+            result.add(UserBalanceSummary.builder()
+                    .uuid(u.getUuid())
+                    .adminId(u.getAdminId())
+                    .customId(u.getCustomId())
+                    .userRealname(u.getUserRealname())
+                    .userNickname(u.getUserNickname())
+                    .coinBalance(coins)
+                    .pointBalance(points)
+                    .build());
+        }
+        return result;
     }
 }

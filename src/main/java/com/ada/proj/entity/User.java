@@ -97,6 +97,10 @@ public class User {
     @Builder.Default
     private long loginCount = 0L;
 
+    @Column(name = "active", nullable = false)
+    @Builder.Default
+    private boolean active = true;
+
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 

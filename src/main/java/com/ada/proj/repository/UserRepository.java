@@ -31,4 +31,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> search(@Param("role") Role role, @Param("query") String query);
 
     boolean existsByRole(Role role);
+
+    List<User> findByRole(Role role);
+
+    long countByRole(Role role);
 }

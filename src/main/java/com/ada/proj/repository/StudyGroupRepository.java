@@ -10,4 +10,6 @@ import com.ada.proj.entity.StudyGroup;
 public interface StudyGroupRepository extends JpaRepository<StudyGroup, Long>, JpaSpecificationExecutor<StudyGroup> {
 
     Optional<StudyGroup> findByGroupUuid(String groupUuid);
+
+    org.springframework.data.domain.Page<StudyGroup> findByCategory(String category, org.springframework.data.domain.Pageable pageable);
 }

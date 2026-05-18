@@ -42,4 +42,10 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Modifying
     @Query("UPDATE Comment c SET c.fixed = false WHERE c.post = :post AND c.fixed = true")
     void unpinAllByPost(@Param("post") Post post);
+
+    List<Comment> findByPost(Post post);
+
+    @Modifying
+    @Query("DELETE FROM Comment c WHERE c.post.postUuid = :postUuid")
+    void deleteByPostUuid(@Param("postUuid") String postUuid);
 }

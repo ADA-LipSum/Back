@@ -70,6 +70,9 @@ public class StudyGroup {
     @Column(name = "owner_uuid", length = 36, nullable = false)
     private String ownerUuid;
 
+    @Column(name = "category", length = 50)
+    private String category;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false)
     private Instant createdAt;

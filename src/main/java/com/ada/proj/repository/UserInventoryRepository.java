@@ -11,4 +11,6 @@ public interface UserInventoryRepository extends JpaRepository<UserInventory, Lo
     List<UserInventory> findByUserUuidOrderByAcquiredAtDesc(String userUuid);
     Optional<UserInventory> findByInventoryUuid(String inventoryUuid);
     boolean existsByUserUuidAndItemUuid(String userUuid, String itemUuid);
+
+    java.util.Optional<UserInventory> findByUserUuidAndItemUuid(String userUuid, String itemUuid);
 }

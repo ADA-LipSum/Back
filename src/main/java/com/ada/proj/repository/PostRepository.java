@@ -1,5 +1,7 @@
 package com.ada.proj.repository;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -7,6 +9,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import com.ada.proj.dto.AdminPostSummaryResponse;
 
 import com.ada.proj.dto.NoticeSummaryResponse;
 import com.ada.proj.dto.PostSummaryResponse;
@@ -94,6 +98,23 @@ public interface PostRepository extends JpaRepository<Post, String> {
     Long findSeqByUuid(@Param("uuid") String uuid);
 
     long countByWriterUuid(String writerUuid);
+
+    List<Post> findByWriterUuidOrderByWritedAtDesc(String writerUuid);
+
+    @Query("""
+            select new com.ada.proj.dto.AdminPostSummaryResponse(
+                p.postUuid, p.writerUuid, p.seq, p.title, p.writer,
+                p.writedAt, p.likes, p.views, p.comments,
+                p.boardType, p.communityCategory, p.thumbnailImage
+            )
+            from Post p
+            where (:writerUuid is null or p.writerUuid = :writerUuid)
+              and (:query is null or lower(p.title) like lower(concat('%', :query, '%')))
+            """)
+    Page<AdminPostSummaryResponse> findAdminPostSummaries(
+            @Param("writerUuid") String writerUuid,
+            @Param("query") String query,
+            Pageable pageable);
 
     @Query("""
             select new com.ada.proj.dto.PostSummaryResponse(

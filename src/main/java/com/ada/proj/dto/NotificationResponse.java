@@ -39,4 +39,7 @@ public class NotificationResponse {
 
     @Schema(description = "알림 생성 시각")
     private LocalDateTime createdAt;
+
+    @Schema(description = "발신자 UUID (관리자 공지인 경우)")
+    private String senderUuid;
 }

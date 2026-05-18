@@ -1,5 +1,6 @@
 package com.ada.proj.service;
 
+import com.ada.proj.dto.AdminGroupSummaryResponse;
 import com.ada.proj.dto.PageResponse;
 import com.ada.proj.dto.StudyGroupCreateRequest;
 import com.ada.proj.dto.StudyGroupMemberResponse;
@@ -413,6 +414,60 @@ public class StudyGroupService {
 
         targetMember.setRole(StudyMemberRole.LEADER);
         g.setOwnerUuid(target);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<AdminGroupSummaryResponse> getAdminGroups(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<StudyGroup> result = studyGroupRepository.findAll(pageable);
+        return toAdminGroupPageResponse(result);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<AdminGroupSummaryResponse> getAdminGroupsByCategory(String category, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<StudyGroup> result = studyGroupRepository.findByCategory(category, pageable);
+        return toAdminGroupPageResponse(result);
+    }
+
+    @Transactional
+    public void dissolveGroup(@NonNull String groupUuid) {
+        StudyGroup g = studyGroupRepository.findByGroupUuid(groupUuid)
+                .orElseThrow(() -> new EntityNotFoundException("StudyGroup not found: " + groupUuid));
+        g.setStatus(GroupStatus.CLOSED);
+        memberRepository.deleteAllByGroupGroupUuid(groupUuid);
+    }
+
+    @Transactional
+    public void forceRemoveMember(@NonNull String groupUuid, @NonNull String targetUserUuid) {
+        studyGroupRepository.findByGroupUuid(groupUuid)
+                .orElseThrow(() -> new EntityNotFoundException("StudyGroup not found: " + groupUuid));
+        StudyGroupMember member = memberRepository.findByGroup_GroupUuidAndUserUuid(groupUuid, targetUserUuid)
+                .orElseThrow(() -> new EntityNotFoundException("멤버를 찾을 수 없습니다."));
+        if (member.getRole() == StudyMemberRole.LEADER) {
+            throw new IllegalStateException("리더는 강제 탈퇴할 수 없습니다. 먼저 리더 위임을 진행하세요.");
+        }
+        memberRepository.delete(member);
+    }
+
+    private PageResponse<AdminGroupSummaryResponse> toAdminGroupPageResponse(Page<StudyGroup> result) {
+        List<AdminGroupSummaryResponse> list = result.getContent().stream()
+                .map(g -> AdminGroupSummaryResponse.builder()
+                        .groupUuid(g.getGroupUuid())
+                        .name(g.getName())
+                        .description(g.getDescription())
+                        .techTags(g.getTechTags())
+                        .category(g.getCategory())
+                        .visibility(g.getVisibility())
+                        .status(g.getStatus())
+                        .capacity(g.getCapacity())
+                        .ownerUuid(g.getOwnerUuid())
+                        .memberCount(memberRepository.countByGroup_GroupUuid(g.getGroupUuid()))
+                        .createdAt(g.getCreatedAt())
+                        .build())
+                .toList();
+        return new PageResponse<>(result.getNumber(), result.getSize(),
+                result.getTotalElements(), result.getTotalPages(), list);
     }
 
     @Transactional
