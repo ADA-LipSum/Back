@@ -44,6 +44,10 @@ public class Comment {
     @Column(nullable = false, length = 2500)
     private String content;
 
+    // 첨부 이미지 URL 목록 (쉼표 구분, jpeg/png/gif/webp/svg 허용)
+    @Column(length = 2000)
+    private String images;
+
     // 작성자 (User FK)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

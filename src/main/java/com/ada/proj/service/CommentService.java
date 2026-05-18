@@ -1,5 +1,7 @@
 package com.ada.proj.service;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +79,7 @@ public class CommentService {
                 : user.getUserRealname();
         comment.setAuthorName(displayName);
 
+        comment.setImages(toImageCsv(request.getImages()));
         comment.setPost(post);
 
         // 대댓글
@@ -143,6 +146,9 @@ public class CommentService {
         }
 
         comment.setContent(req.getContent());
+        if (req.getImages() != null) {
+            comment.setImages(toImageCsv(req.getImages()));
+        }
 
         Comment saved = commentRepository.save(comment);
 
@@ -261,8 +267,9 @@ public class CommentService {
                 .writer(displayName)
                 .writerProfileImage(author.getProfileImage())
                 .content(comment.getContent())
+                .images(fromImageCsv(comment.getImages()))
                 .createdAt(comment.getCreatedAt())
-                .children(java.util.Collections.emptyList())
+                .children(Collections.emptyList())
                 .build();
     }
 
@@ -271,7 +278,7 @@ public class CommentService {
         User author = comment.getAuthor();
         String displayName = author.isUseNickname() ? author.getUserNickname() : author.getUserRealname();
 
-        java.util.List<CommentResponse> childResponses = childrenMap.getOrDefault(comment.getId(), java.util.Collections.emptyList()).stream()
+        java.util.List<CommentResponse> childResponses = childrenMap.getOrDefault(comment.getId(), Collections.emptyList()).stream()
                 .map(c -> buildResponseWithChildren(c, childrenMap))
                 .toList();
 
@@ -282,9 +289,20 @@ public class CommentService {
                 .writer(displayName)
                 .writerProfileImage(author.getProfileImage())
                 .content(comment.getContent())
+                .images(fromImageCsv(comment.getImages()))
                 .createdAt(comment.getCreatedAt())
                 .children(childResponses)
                 .build();
+    }
+
+    private String toImageCsv(List<String> images) {
+        if (images == null || images.isEmpty()) return null;
+        return String.join(",", images);
+    }
+
+    private List<String> fromImageCsv(String csv) {
+        if (csv == null || csv.isBlank()) return List.of();
+        return Arrays.asList(csv.split(","));
     }
 
     private void updatePostCommentsCount(Post post) {

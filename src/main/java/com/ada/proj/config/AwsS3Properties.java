@@ -22,4 +22,6 @@ public class AwsS3Properties {
     private String bucket;
     private int maxProfileSizeMb = 5;
     private int maxBannerSizeMb = 10;
+    private int maxCommunityImageSizeMb = 15;
+    private int maxCommunityVideoSizeMb = 100;
 }

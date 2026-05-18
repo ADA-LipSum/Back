@@ -35,6 +35,10 @@ public class CommentResponse {
     @Schema(description = "작성 시각")
     private LocalDateTime createdAt;
 
+    @Schema(description = "첨부 이미지 URL 목록")
+    @Builder.Default
+    private List<String> images = List.of();
+
     @Schema(description = "대댓글 목록 (재귀 구조)")
     @Builder.Default
     private List<CommentResponse> children = List.of();

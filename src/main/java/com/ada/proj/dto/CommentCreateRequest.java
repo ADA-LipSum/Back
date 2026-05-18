@@ -1,5 +1,7 @@
 package com.ada.proj.dto;
 
+import java.util.List;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -23,4 +25,11 @@ public class CommentCreateRequest {
     @Size(max = 2500, message = "댓글은 최대 2500자까지 입력할 수 있습니다.")
     @Schema(description = "댓글 내용 (최대 2500자)", example = "재밌는 글이네요!")
     private String content;
+
+    @Schema(
+        description = "/api/upload/community/comment-image 로 업로드 후 반환된 이미지 URL 목록 (mp4 불가)",
+        example = "[\"https://bucket.s3.region.amazonaws.com/community/comments/uuid/img.png\"]",
+        nullable = true
+    )
+    private List<String> images;
 }

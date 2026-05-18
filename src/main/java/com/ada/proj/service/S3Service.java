@@ -28,6 +28,14 @@ public class S3Service {
             "image/jpeg", "image/png", "image/gif", "image/webp"
     );
 
+    private static final Set<String> ALLOWED_COMMUNITY_IMAGE_TYPES = Set.of(
+            "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"
+    );
+
+    private static final Set<String> ALLOWED_POST_MEDIA_TYPES = Set.of(
+            "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml", "video/mp4"
+    );
+
     private final S3Client s3Client;
     private final AwsS3Properties props;
 
@@ -59,6 +67,29 @@ public class S3Service {
     public String uploadBanner(MultipartFile file, String uuid) {
         validateImage(file, props.getMaxBannerSizeMb());
         String key = "banners/" + uuid + "/" + UUID.randomUUID() + getExtension(file);
+        return upload(file, key);
+    }
+
+    /**
+     * 게시글 첨부 미디어(이미지·mp4)를 S3에 업로드하고 퍼블릭 URL을 반환합니다.
+     */
+    public String uploadPostMedia(MultipartFile file, String userUuid) {
+        boolean isVideo = "video/mp4".equals(file.getContentType());
+        int maxSizeMb = isVideo ? props.getMaxCommunityVideoSizeMb() : props.getMaxCommunityImageSizeMb();
+        validateMedia(file, ALLOWED_POST_MEDIA_TYPES, maxSizeMb,
+                "허용되지 않는 파일 형식입니다. (jpeg, png, gif, webp, svg, mp4만 허용)");
+        String key = "community/posts/" + userUuid + "/" + UUID.randomUUID() + getExtension(file);
+        return upload(file, key);
+    }
+
+    /**
+     * 댓글 첨부 이미지(mp4 제외)를 S3에 업로드하고 퍼블릭 URL을 반환합니다.
+     */
+    public String uploadCommentImage(MultipartFile file, String userUuid) {
+        validateMedia(file, ALLOWED_COMMUNITY_IMAGE_TYPES,
+                props.getMaxCommunityImageSizeMb(),
+                "허용되지 않는 파일 형식입니다. (jpeg, png, gif, webp, svg만 허용)");
+        String key = "community/comments/" + userUuid + "/" + UUID.randomUUID() + getExtension(file);
         return upload(file, key);
     }
 
@@ -194,6 +225,24 @@ public class S3Service {
         if (file.getSize() > maxBytes) {
             throw new IllegalArgumentException(maxSizeMb + "MB까지만 업로드 가능합니다.");
         }
+    }
+
+    private void validateMedia(MultipartFile file, Set<String> allowedTypes, int maxSizeMb, String typeErrorMsg) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("파일이 비어 있습니다.");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !allowedTypes.contains(contentType)) {
+            throw new IllegalArgumentException(typeErrorMsg);
+        }
+        long maxBytes = (long) maxSizeMb * 1024 * 1024;
+        if (file.getSize() > maxBytes) {
+            throw new IllegalArgumentException(maxSizeMb + "MB까지만 업로드 가능합니다.");
+        }
+    }
+
+    private String getContentType(MultipartFile file) {
+        return file.getContentType() != null ? file.getContentType() : "";
     }
 
     private String getExtension(MultipartFile file) {

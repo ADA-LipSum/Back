@@ -78,4 +78,54 @@ public class FileUploadController {
         return ResponseEntity.ok(ApiResponse.ok(url));
     }
 
+    @PostMapping(value = "/community/post-media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "게시글 첨부 미디어 업로드",
+            description = """
+                    게시글에 첨부할 이미지 또는 영상을 S3에 업로드하고 URL을 반환합니다. 로그인이 필요합니다.
+
+                    **허용 형식:** jpeg, png, gif, webp, svg (최대 15MB) / mp4 (최대 100MB)
+
+                    **Request Body (multipart/form-data):**
+                    - `file` (필수): 업로드할 파일
+
+                    **Response:**
+                    - `data`: 업로드된 파일의 S3 URL (String)
+                    """
+    )
+    public ResponseEntity<ApiResponse<String>> uploadPostMedia(
+            @Parameter(description = "업로드할 이미지/영상 파일") @RequestPart("file") MultipartFile file,
+            Authentication auth) {
+
+        if (auth == null || !auth.isAuthenticated()) throw new ForbiddenException("인증이 필요합니다.");
+        String userUuid = auth.getName();
+        String url = s3Service.uploadPostMedia(file, userUuid);
+        return ResponseEntity.ok(ApiResponse.ok(url));
+    }
+
+    @PostMapping(value = "/community/comment-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "댓글 첨부 이미지 업로드",
+            description = """
+                    댓글에 첨부할 이미지를 S3에 업로드하고 URL을 반환합니다. 로그인이 필요합니다.
+
+                    **허용 형식:** jpeg, png, gif, webp, svg (최대 15MB) — mp4 불가
+
+                    **Request Body (multipart/form-data):**
+                    - `file` (필수): 업로드할 이미지 파일
+
+                    **Response:**
+                    - `data`: 업로드된 파일의 S3 URL (String)
+                    """
+    )
+    public ResponseEntity<ApiResponse<String>> uploadCommentImage(
+            @Parameter(description = "업로드할 이미지 파일") @RequestPart("file") MultipartFile file,
+            Authentication auth) {
+
+        if (auth == null || !auth.isAuthenticated()) throw new ForbiddenException("인증이 필요합니다.");
+        String userUuid = auth.getName();
+        String url = s3Service.uploadCommentImage(file, userUuid);
+        return ResponseEntity.ok(ApiResponse.ok(url));
+    }
+
 }

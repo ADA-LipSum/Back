@@ -32,12 +32,10 @@ public class PostCreateRequest {
     @Schema(description = "게시글 본문. Markdown 또는 HTML 형식을 사용할 수 있습니다.", example = "zustand와 redux 중 어떤 것을 쓰면 좋을까요?")
     private String content;
 
-    @Schema(description = "서버 파일 업로드 흐름에서 연결되는 이미지 URL", accessMode = Schema.AccessMode.READ_ONLY, hidden = true)
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @Schema(description = "첨부 이미지 URL 목록 (쉼표 구분). /api/upload/community/post-media 로 업로드 후 반환된 URL을 전달합니다.", example = "https://bucket.s3.region.amazonaws.com/community/posts/uuid/img.png")
     private String images;
 
-    @Schema(description = "서버 파일 업로드 흐름에서 연결되는 영상 URL", accessMode = Schema.AccessMode.READ_ONLY, hidden = true)
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @Schema(description = "첨부 영상 URL 목록 (쉼표 구분). /api/upload/community/post-media 로 업로드 후 반환된 URL을 전달합니다.", example = "https://bucket.s3.region.amazonaws.com/community/posts/uuid/video.mp4")
     private String videos;
 
     @Schema(description = "기존 개발글 여부 호환 필드. 신규 API에서는 communityCategory/techSubTag 사용을 권장합니다.", example = "true")
