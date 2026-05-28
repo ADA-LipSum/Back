@@ -49,6 +49,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
 @Service
 @Transactional
 public class UserService {
@@ -62,6 +65,9 @@ public class UserService {
     private final CacheManager cacheManager;
     private final UserCoinsBalanceRepository coinsBalanceRepository;
     private final UserPointsBalanceRepository pointsBalanceRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public UserService(UserRepository userRepository,
             UserDataRepository userDataRepository,
@@ -483,13 +489,123 @@ public class UserService {
         ensureAdminOrTeacher(auth);
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+        deleteUserOwnedData(user);
         userRepository.delete(user);
+        userRepository.flush();
         evictUsernameCaches(user.getCustomId());
         var cache = cacheManager.getCache("users");
         if (cache != null) {
             cache.evict("profile:" + uuid);
             cache.evict(uuid);
         }
+    }
+
+    private void deleteUserOwnedData(User user) {
+        String uuid = user.getUuid();
+        Long userSeq = user.getSeq();
+
+        executeDelete("""
+                delete from comment_likes
+                where user_seq = :userSeq
+                   or comment_id in (
+                       select id from comments
+                       where user_id = :userSeq
+                          or post_id in (select post_uuid from posts where writer_uuid = :uuid)
+                   )
+                """, uuid, userSeq);
+        executeDelete("""
+                update comments
+                   set parent_id = null
+                 where parent_id in (
+                       select id from (
+                           select id from comments
+                           where user_id = :userSeq
+                              or post_id in (select post_uuid from posts where writer_uuid = :uuid)
+                       ) comments_to_delete
+                 )
+                """, uuid, userSeq);
+        executeDelete("""
+                delete from comments
+                where user_id = :userSeq
+                   or post_id in (select post_uuid from posts where writer_uuid = :uuid)
+                """, uuid, userSeq);
+
+        executeDelete("""
+                delete from poll_votes
+                where voter_uuid = :uuid
+                   or poll_id in (
+                       select id from polls
+                       where post_uuid in (select post_uuid from posts where writer_uuid = :uuid)
+                   )
+                """, uuid, userSeq);
+        executeDelete("""
+                delete from poll_options
+                where poll_id in (
+                    select id from polls
+                    where post_uuid in (select post_uuid from posts where writer_uuid = :uuid)
+                )
+                """, uuid, userSeq);
+        executeDelete("""
+                delete from polls
+                where post_uuid in (select post_uuid from posts where writer_uuid = :uuid)
+                """, uuid, userSeq);
+
+        executeDelete("""
+                delete from post_likes
+                where user_uuid = :uuid
+                   or post_uuid in (select post_uuid from posts where writer_uuid = :uuid)
+                """, uuid, userSeq);
+        executeDelete("""
+                delete from post_bookmarks
+                where user_uuid = :uuid
+                   or post_uuid in (select post_uuid from posts where writer_uuid = :uuid)
+                """, uuid, userSeq);
+        executeDelete("""
+                delete from notifications
+                where recipient_uuid = :uuid
+                   or sender_uuid = :uuid
+                   or post_uuid in (select post_uuid from posts where writer_uuid = :uuid)
+                """, uuid, userSeq);
+        executeDelete("delete from posts where writer_uuid = :uuid", uuid, userSeq);
+
+        executeDelete("""
+                delete from study_group_join_request
+                where user_uuid = :uuid
+                   or group_uuid in (select group_uuid from study_group where owner_uuid = :uuid)
+                """, uuid, userSeq);
+        executeDelete("""
+                delete from study_group_member
+                where user_uuid = :uuid
+                   or group_uuid in (select group_uuid from study_group where owner_uuid = :uuid)
+                """, uuid, userSeq);
+        executeDelete("delete from study_group where owner_uuid = :uuid", uuid, userSeq);
+
+        executeDelete("delete from user_ban where user_seq = :userSeq or admin_seq = :userSeq", uuid, userSeq);
+        executeDelete("delete from user_report where reporter_uuid = :userSeq or target_uuid = :userSeq", uuid, userSeq);
+        executeDelete("delete from reports where reporter_uuid = :uuid or target_uuid = :uuid or resolved_by = :uuid", uuid, userSeq);
+        executeDelete("delete from guestbook_entries where target_uuid = :uuid or writer_uuid = :uuid", uuid, userSeq);
+        executeDelete("delete from cart_item where user_uuid = :uuid", uuid, userSeq);
+        executeDelete("delete from trade_log where user_uuid = :uuid", uuid, userSeq);
+        executeDelete("delete from user_inventory where user_uuid = :uuid", uuid, userSeq);
+        executeDelete("delete from points_usage_history where user_uuid = :uuid", uuid, userSeq);
+        executeDelete("delete from points_event_log where user_uuid = :uuid", uuid, userSeq);
+        executeDelete("delete from user_points where user_uuid = :uuid", uuid, userSeq);
+        executeDelete("delete from user_points_balance where user_uuid = :uuid", uuid, userSeq);
+        executeDelete("delete from user_coins where user_uuid = :uuid", uuid, userSeq);
+        executeDelete("delete from user_coins_balance where user_uuid = :uuid", uuid, userSeq);
+        executeDelete("delete from user_projects where user_uuid = :uuid", uuid, userSeq);
+        executeDelete("delete from user_data where uuid = :uuid", uuid, userSeq);
+    }
+
+    private int executeDelete(String sql, String uuid, Long userSeq) {
+        var query = entityManager.createNativeQuery(sql);
+        if (sql.contains(":uuid")) {
+            query.setParameter("uuid", uuid);
+        }
+        if (sql.contains(":userSeq")) {
+            query.setParameter("userSeq", userSeq);
+        }
+        return query.executeUpdate();
     }
 
     @Transactional

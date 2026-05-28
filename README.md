@@ -256,6 +256,7 @@ http://localhost:8080/swagger-ui.html
 | `GET` | `/api/users/by-username/{username}` | customId로 프로필 조회 | - |
 | `PATCH` | `/api/users/{uuid}/profile` | 프로필 수정 | Required |
 | `PATCH` | `/api/users/{uuid}/role` | 역할 변경 | ADMIN |
+| `DELETE` | `/api/users/{uuid}` | 사용자 삭제 | ADMIN/TEACHER |
 | `POST` | `/api/users/{uuid}/custom` | 커스텀 ID 생성 (최초 1회) | Required |
 | `PATCH` | `/api/users/{uuid}/custom/password` | 비밀번호 변경 | Required |
 

@@ -17,6 +17,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import com.ada.proj.dto.PostCreateRequest;
 import com.ada.proj.entity.Post;
 import com.ada.proj.enums.CommunityCategory;
+import com.ada.proj.repository.PostBookmarkRepository;
 import com.ada.proj.repository.PostLikeRepository;
 import com.ada.proj.repository.PostRepository;
 import com.ada.proj.repository.UserRepository;
@@ -28,6 +29,7 @@ class PostServiceTest {
     private final PostRepository postRepository = org.mockito.Mockito.mock(PostRepository.class);
     private final UserRepository userRepository = org.mockito.Mockito.mock(UserRepository.class);
     private final PostLikeRepository postLikeRepository = org.mockito.Mockito.mock(PostLikeRepository.class);
+    private final PostBookmarkRepository postBookmarkRepository = org.mockito.Mockito.mock(PostBookmarkRepository.class);
     private final UserBanService userBanService = org.mockito.Mockito.mock(UserBanService.class);
     private final PollService pollService = org.mockito.Mockito.mock(PollService.class);
     private final JdbcTemplate jdbcTemplate = org.mockito.Mockito.mock(JdbcTemplate.class);
@@ -36,6 +38,7 @@ class PostServiceTest {
             postRepository,
             userRepository,
             postLikeRepository,
+            postBookmarkRepository,
             userBanService,
             pollService,
             jdbcTemplate
