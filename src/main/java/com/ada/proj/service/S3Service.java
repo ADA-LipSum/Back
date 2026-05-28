@@ -176,6 +176,12 @@ public class S3Service {
         s3Client.putObject(req, RequestBody.empty());
     }
 
+    public String uploadStickerImage(MultipartFile file, String userUuid) {
+        validateImage(file, props.getMaxProfileSizeMb());
+        String key = "stickers/" + userUuid + "/" + UUID.randomUUID() + getExtension(file);
+        return upload(file, key);
+    }
+
     public String uploadToPrefix(MultipartFile file, String prefix) {
         if (!prefix.isEmpty() && !prefix.endsWith("/")) prefix += "/";
         validateImage(file, props.getMaxBannerSizeMb());

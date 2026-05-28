@@ -55,6 +55,9 @@ public class CustomSticker {
     @Column(name = "points_uuid", length = 36)
     private String pointsUuid;
 
+    @Column(name = "trade_item_uuid", length = 36)
+    private String tradeItemUuid;
+
     @Column(name = "reviewed_by", length = 36)
     private String reviewedBy;
 

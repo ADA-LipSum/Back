@@ -13,10 +13,12 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/custom-stickers")
@@ -27,7 +29,7 @@ public class CustomStickerController {
 
     private final CustomStickerService customStickerService;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "커스텀 스티커 등록",
             description = """
@@ -36,20 +38,25 @@ public class CustomStickerController {
                     등록 시 **1500 포인트**가 차감되며, 등록된 스티커는 PENDING(검수 대기) 상태가 됩니다.
                     선생님 또는 관리자가 검수 후 승인하면 커뮤니티 등에서 사용할 수 있습니다.
 
-                    **Request Body:**
+                    **Request (multipart/form-data):**
+                    - `file` (필수): 스티커 이미지 파일 (jpeg, png, gif, webp / 최대 15MB)
                     - `name` (필수): 스티커 이름
                     - `description` (선택): 스티커 설명
-                    - `imageUrl` (필수): 스티커 이미지 URL (S3 업로드 후 URL 입력)
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ApiResponse<CustomStickerResponse> submit(
-            @Valid @RequestBody CustomStickerSubmitRequest req,
+            @Parameter(description = "스티커 이미지 파일") @RequestPart("file") MultipartFile file,
+            @RequestParam String name,
+            @RequestParam(required = false) String description,
             Authentication auth
     ) {
         if (auth == null) throw new SecurityException("Unauthenticated");
+        CustomStickerSubmitRequest req = new CustomStickerSubmitRequest();
+        req.setName(name);
+        req.setDescription(description);
         return ApiResponse.success(
-                CustomStickerResponse.from(customStickerService.submit(auth.getName(), req))
+                CustomStickerResponse.from(customStickerService.submit(auth.getName(), req, file))
         );
     }
 

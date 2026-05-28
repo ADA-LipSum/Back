@@ -3,10 +3,15 @@ package com.ada.proj.service;
 import com.ada.proj.dto.CustomStickerReviewRequest;
 import com.ada.proj.dto.CustomStickerSubmitRequest;
 import com.ada.proj.entity.CustomSticker;
+import com.ada.proj.entity.TradeItem;
 import com.ada.proj.entity.User;
+import com.ada.proj.entity.UserInventory;
 import com.ada.proj.entity.UserPoints;
 import com.ada.proj.enums.CustomStickerStatus;
+import com.ada.proj.enums.TradeCategory;
 import com.ada.proj.repository.CustomStickerRepository;
+import com.ada.proj.repository.TradeItemRepository;
+import com.ada.proj.repository.UserInventoryRepository;
 import com.ada.proj.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -25,15 +31,20 @@ import java.util.UUID;
 @SuppressWarnings("null")
 public class CustomStickerService {
 
-    // 커스텀 스티커 등록 수수료 (포인트)
     public static final int SUBMISSION_FEE = 1500;
+    public static final int SHOP_PRICE = 500;
 
     private final CustomStickerRepository customStickerRepository;
     private final UserRepository userRepository;
     private final PointsService pointsService;
+    private final S3Service s3Service;
+    private final TradeItemRepository tradeItemRepository;
+    private final UserInventoryRepository userInventoryRepository;
 
     @Transactional
-    public CustomSticker submit(String userUuid, CustomStickerSubmitRequest req) {
+    public CustomSticker submit(String userUuid, CustomStickerSubmitRequest req, MultipartFile imageFile) {
+        String imageUrl = s3Service.uploadStickerImage(imageFile, userUuid);
+
         UserPoints tx = pointsService.usePoints(
                 userUuid,
                 SUBMISSION_FEE,
@@ -47,7 +58,7 @@ public class CustomStickerService {
                 .userUuid(userUuid)
                 .name(req.getName())
                 .description(req.getDescription())
-                .imageUrl(req.getImageUrl())
+                .imageUrl(imageUrl)
                 .status(CustomStickerStatus.PENDING)
                 .submissionFee(SUBMISSION_FEE)
                 .pointsUuid(tx.getPointsUuid())
@@ -86,7 +97,34 @@ public class CustomStickerService {
         sticker.setReviewedBy(reviewerUuid);
         sticker.setReviewedAt(Instant.now());
 
-        if (req.getStatus() == CustomStickerStatus.REJECTED) {
+        if (req.getStatus() == CustomStickerStatus.APPROVED) {
+            // 포인트 상점에 배포 (500포인트)
+            String tradeItemUuid = UUID.randomUUID().toString();
+            TradeItem tradeItem = TradeItem.builder()
+                    .itemUuid(tradeItemUuid)
+                    .name(sticker.getName())
+                    .description(sticker.getDescription())
+                    .price(SHOP_PRICE)
+                    .stock(0)
+                    .active(true)
+                    .category(TradeCategory.ETC)
+                    .subCategory(TradeCategory.STICKER)
+                    .imageUrl(sticker.getImageUrl())
+                    .createdBy(reviewerUuid)
+                    .build();
+            tradeItemRepository.save(tradeItem);
+
+            // 신청자 인벤토리에 즉시 지급
+            UserInventory inventory = UserInventory.builder()
+                    .inventoryUuid(UUID.randomUUID().toString())
+                    .userUuid(sticker.getUserUuid())
+                    .itemUuid(tradeItemUuid)
+                    .build();
+            userInventoryRepository.save(inventory);
+
+            sticker.setTradeItemUuid(tradeItemUuid);
+
+        } else if (req.getStatus() == CustomStickerStatus.REJECTED) {
             sticker.setRejectionReason(req.getRejectionReason());
 
             boolean shouldRefund = req.getRefundOnReject() == null || req.getRefundOnReject();

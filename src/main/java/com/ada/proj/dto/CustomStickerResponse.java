@@ -20,6 +20,7 @@ public class CustomStickerResponse {
     private String imageUrl;
     private CustomStickerStatus status;
     private Integer submissionFee;
+    private String tradeItemUuid;
     private String reviewedBy;
     private String rejectionReason;
     private Instant reviewedAt;
@@ -35,6 +36,7 @@ public class CustomStickerResponse {
                 .imageUrl(sticker.getImageUrl())
                 .status(sticker.getStatus())
                 .submissionFee(sticker.getSubmissionFee())
+                .tradeItemUuid(sticker.getTradeItemUuid())
                 .reviewedBy(sticker.getReviewedBy())
                 .rejectionReason(sticker.getRejectionReason())
                 .reviewedAt(sticker.getReviewedAt())
