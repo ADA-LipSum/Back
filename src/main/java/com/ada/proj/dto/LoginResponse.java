@@ -24,4 +24,6 @@ public class LoginResponse {
 
     @JsonProperty("isFirstLogin")
     private boolean firstLogin;
+
+    private boolean rememberMe;
 }

@@ -54,14 +54,20 @@ public class AuthController {
         this.cookieProperties = cookieProperties;
     }
 
-    private ResponseCookie createCookie(String refreshToken) {
-        return ResponseCookie.from("refreshToken", refreshToken)
+    private static final long REMEMBER_ME_MAX_AGE = 2592000; // 30일
+
+    private ResponseCookie createCookie(String refreshToken, boolean rememberMe) {
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(cookieProperties.isHttpOnly())
                 .secure(cookieProperties.isSecure())
                 .sameSite(cookieProperties.getSameSite())
-                .path("/")
-                .maxAge(cookieProperties.getMaxAge())
-                .build();
+                .path("/");
+
+        if (rememberMe) {
+            builder.maxAge(REMEMBER_ME_MAX_AGE);
+        }
+
+        return builder.build();
     }
 
     @PostMapping("/login")
@@ -93,7 +99,7 @@ public class AuthController {
 
         LoginResponse res = authService.login(request);
 
-        ResponseCookie cookie = createCookie(res.getRefreshToken());
+        ResponseCookie cookie = createCookie(res.getRefreshToken(), res.isRememberMe());
 
         AuthTokenResponse body = AuthTokenResponse.builder()
                 .tokenType(res.getTokenType())
@@ -166,7 +172,7 @@ public class AuthController {
 
         LoginResponse res = authService.reissue(effectiveRequest);
 
-        ResponseCookie cookie = createCookie(res.getRefreshToken());
+        ResponseCookie cookie = createCookie(res.getRefreshToken(), res.isRememberMe());
 
         AuthTokenResponse body = AuthTokenResponse.builder()
                 .tokenType(res.getTokenType())

@@ -68,9 +68,12 @@ public class AuthService {
         String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
 
+        boolean rememberMe = request.isRememberMe();
+
         refreshTokenRepository.save(RefreshToken.builder()
                 .uuid(user.getUuid())
                 .token(refreshToken)
+                .rememberMe(rememberMe)
                 .ttl(jwtProperties.getRefreshExpirationMs() / 1000)
                 .build());
 
@@ -87,6 +90,7 @@ public class AuthService {
                 .userNickname(user.getUserNickname())
                 .profileImage(user.getProfileImage())
                 .firstLogin(isFirstLogin)
+                .rememberMe(rememberMe)
                 .build();
     }
 
@@ -201,6 +205,8 @@ public class AuthService {
         String newAccess = jwtTokenProvider.generateAccessToken(uuid, role);
         String newRefresh = jwtTokenProvider.generateRefreshToken(uuid, role);
 
+        boolean rememberMe = stored.isRememberMe();
+
         stored.setToken(newRefresh);
         stored.setTtl(jwtProperties.getRefreshExpirationMs() / 1000);
         refreshTokenRepository.save(stored);
@@ -213,7 +219,8 @@ public class AuthService {
                 .refreshToken(newRefresh)
                 .expiresIn(jwtProperties.getAccessExpirationMs())
                 .uuid(uuid)
-                .role(role == null ? null : Role.valueOf(role));
+                .role(role == null ? null : Role.valueOf(role))
+                .rememberMe(rememberMe);
 
         if (user != null) {
             builder.adminId(user.getAdminId())
