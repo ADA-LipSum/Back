@@ -259,7 +259,10 @@ public class PostService {
         Pageable pageable = PageRequest.of(page, size, sort);
         boolean includeLegacyCommunity = boardType == PostBoardType.COMMUNITY;
         String mediaFilterStr = (mediaFilter == null || mediaFilter == MediaFilter.ALL) ? null : mediaFilter.name();
-        boolean excludeTech = (boardType == PostBoardType.COMMUNITY && category == null);
+        // 일반 커뮤니티 전체 조회 시 TECH(개발 커뮤니티) 게시글 제외
+        CommunityCategory excludeCategory = (boardType == PostBoardType.COMMUNITY && category == null)
+                ? CommunityCategory.TECH
+                : null;
         Page<PostSummaryResponse> result = postRepository.searchSummaries(
                         boardType,
                         category,
@@ -268,7 +271,7 @@ public class PostService {
                         blankToNull(query),
                         includeLegacyCommunity,
                         mediaFilterStr,
-                        excludeTech,
+                        excludeCategory,
                         pageable)
                 .map(this::completeSummary);
         return toPageResponse(result);

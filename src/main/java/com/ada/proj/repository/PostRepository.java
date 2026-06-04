@@ -62,7 +62,11 @@ public interface PostRepository extends JpaRepository<Post, String> {
                 or (:mediaFilter = 'VIDEO' and p.videos is not null and p.videos <> '')
                 or (:mediaFilter = 'TEXT' and (p.images is null or p.images = '') and (p.videos is null or p.videos = ''))
               )
-              and (:excludeTech = false or p.communityCategory <> com.ada.proj.enums.CommunityCategory.TECH)
+              and (
+                :excludeCategory is null
+                or p.communityCategory is null
+                or p.communityCategory <> :excludeCategory
+              )
             """)
     Page<PostSummaryResponse> searchSummaries(
             @Param("boardType") PostBoardType boardType,
@@ -72,7 +76,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
             @Param("query") String query,
             @Param("includeLegacyCommunity") boolean includeLegacyCommunity,
             @Param("mediaFilter") String mediaFilter,
-            @Param("excludeTech") boolean excludeTech,
+            @Param("excludeCategory") CommunityCategory excludeCategory,
             Pageable pageable);
 
     // 공지사항 목록: 핀된 글은 pinnedAt 최신순 최상단, 그 이후 일반 글 writedAt 내림차순
