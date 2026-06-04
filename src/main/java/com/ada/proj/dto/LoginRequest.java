@@ -14,4 +14,7 @@ public class LoginRequest {
     @Schema(description = "비밀번호", example = "P@ssw0rd!")
     @NotBlank
     private String password;
+
+    @Schema(description = "로그인 상태 유지 여부", example = "false", defaultValue = "false")
+    private boolean rememberMe = false;
 }

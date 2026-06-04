@@ -25,6 +25,8 @@ public class RefreshToken {
 
     private String token;
 
+    private boolean rememberMe;
+
     @TimeToLive(unit = TimeUnit.SECONDS)
     private long ttl;
 }
