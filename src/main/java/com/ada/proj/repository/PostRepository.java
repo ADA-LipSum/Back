@@ -114,7 +114,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
             @Param("query") String query,
             Pageable pageable);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("update Post p set p.views = p.views + 1 where p.postUuid = :uuid")
     int increaseViews(@Param("uuid") String uuid);
 

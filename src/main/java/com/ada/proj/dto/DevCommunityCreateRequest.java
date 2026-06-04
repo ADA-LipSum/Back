@@ -34,8 +34,9 @@ public class DevCommunityCreateRequest {
                     - `QUESTION` : 질문
                     - `PROJECT` : 프로젝트
                     - `RESOURCE_SHARING` : 자료 공유
+                    - `POLL` : 투표 (poll 필드 필수)
                     """,
-            allowableValues = {"QUESTION", "PROJECT", "RESOURCE_SHARING"},
+            allowableValues = {"QUESTION", "PROJECT", "RESOURCE_SHARING", "POLL"},
             example = "QUESTION"
     )
     private TechSubTag techSubTag;

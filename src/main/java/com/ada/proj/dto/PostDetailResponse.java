@@ -47,11 +47,11 @@ public class PostDetailResponse {
     @Schema(description = "본문 (Markdown/HTML)")
     private String content;
 
-    @Schema(description = "첨부 이미지 URL 목록 (쉼표 구분)")
-    private String images;
+    @Schema(description = "첨부 이미지 URL 목록")
+    private List<String> images;
 
-    @Schema(description = "첨부 영상 URL 목록 (쉼표 구분)")
-    private String videos;
+    @Schema(description = "첨부 영상 URL 목록")
+    private List<String> videos;
 
     @Schema(description = "썸네일 이미지 URL (블로그 전용)")
     private String thumbnailImage;
