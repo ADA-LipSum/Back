@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ada.proj.dto.ApiResponse;
 import com.ada.proj.dto.CommentResponse;
+import com.ada.proj.dto.GeneralCommunityCreateRequest;
 import com.ada.proj.dto.PageResponse;
 import com.ada.proj.dto.PostCreateRequest;
 import com.ada.proj.dto.PostDetailResponse;
@@ -111,38 +112,19 @@ public class CommunityController {
             description = """
                     일반 커뮤니티 게시글을 작성합니다. **로그인 필요.**
 
-                    **사용하는 필드**
-                    | 필드 | 필수 | 설명 |
-                    |---|---|---|
-                    | title | ✅ | 제목 (최대 20자) |
-                    | content | - | 본문 (Markdown/HTML) |
-                    | images | - | 이미지 URL 목록, 쉼표 구분. 먼저 `POST /api/upload/community/post-media` 로 업로드 후 반환된 URL 전달 |
-                    | videos | - | 영상 URL 목록, 쉼표 구분. 동일하게 업로드 후 전달 |
-
-                    **Request Body에 보이는 기타 필드 안내**
-                    | 필드 | 용도 |
-                    |---|---|
-                    | `communityCategory` / `techSubTag` / `techTags` | **개발 커뮤니티 전용** (`POST /api/community/dev/posts`). 일반 커뮤니티에서는 무시됩니다. |
-                    | `noticeCategory` | **공지사항 전용** (`POST /api/notices`). 일반 커뮤니티에서는 무시됩니다. |
-                    | `attachmentIds` | **공지사항 첨부파일 전용** (`POST /api/notices`). 먼저 `POST /api/upload/notice/attachment` 로 파일을 업로드하면 ID가 반환되며, 공지 작성 시 이 배열에 담아 전달합니다. 일반 커뮤니티에서는 무시됩니다. |
-                    | `poll` | 투표 게시글 전용 (개발 커뮤니티 `techSubTag=POLL`). 일반 커뮤니티에서는 무시됩니다. |
-                    | `boardType` / `isDev` / `devTags` / `thumbnailImage` | 서버가 자동 설정 또는 블로그 전용 필드. 보내지 않아도 됩니다. |
+                    `communityCategory` 미전송 시 기본값은 `CHAT`(잡담)입니다.
+                    개발 커뮤니티 게시글은 `POST /api/community/dev/posts`를 사용하세요.
 
                     **Response:** `data` = 생성된 게시글 순번(Long)
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Long>> create(
-            @Valid @RequestBody PostCreateRequest request,
+            @Valid @RequestBody GeneralCommunityCreateRequest request,
             @Parameter(hidden = true) Authentication authentication
     ) {
-        PostCreateRequest payload = Objects.requireNonNull(request, "request");
-        if (payload.getCommunityCategory() == com.ada.proj.enums.CommunityCategory.TECH) {
-            throw new IllegalArgumentException("개발 커뮤니티 게시글은 POST /api/community/dev/posts 를 사용해주세요.");
-        }
-        if (authentication != null) {
-            payload.setWriterUuid(authentication.getName());
-        }
+        PostCreateRequest payload = Objects.requireNonNull(request).toPostCreateRequest();
+        if (authentication != null) payload.setWriterUuid(authentication.getName());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(postService.createCommunity(payload)));
     }

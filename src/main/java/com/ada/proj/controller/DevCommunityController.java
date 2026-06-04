@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ada.proj.dto.ApiResponse;
 import com.ada.proj.dto.CommentResponse;
+import com.ada.proj.dto.DevCommunityCreateRequest;
 import com.ada.proj.dto.PageResponse;
 import com.ada.proj.dto.PostCreateRequest;
 import com.ada.proj.dto.PostDetailResponse;
@@ -129,26 +130,18 @@ public class DevCommunityController {
     @Operation(
             summary = "게시글 작성",
             description = """
-                    개발 커뮤니티 게시글을 작성합니다. **로그인 필요.** `communityCategory`는 자동으로 `TECH` 로 설정됩니다.
-
-                    | 필드 | 필수 | 설명 |
-                    |---|---|---|
-                    | title | ✅ | 제목 (최대 20자) |
-                    | content | - | 본문 (Markdown/HTML) |
-                    | techSubTag | ✅ | `QUESTION`(질문) · `PROJECT`(프로젝트) · `RESOURCE_SHARING`(자료 공유) |
-                    | techTags | - | 언어·기술 태그 배열 (예: `["React","TypeScript"]`) |
-                    | images | - | 이미지 URL 목록 (쉼표 구분) |
+                    개발 커뮤니티 게시글을 작성합니다. **로그인 필요.**
+                    `communityCategory`는 자동으로 `TECH` 로 설정됩니다.
 
                     **Response:** `data` = 생성된 게시글 순번(Long)
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Long>> create(
-            @Valid @RequestBody PostCreateRequest request,
+            @Valid @RequestBody DevCommunityCreateRequest request,
             @Parameter(hidden = true) Authentication authentication
     ) {
-        PostCreateRequest payload = Objects.requireNonNull(request);
-        payload.setCommunityCategory(CommunityCategory.TECH);
+        PostCreateRequest payload = Objects.requireNonNull(request).toPostCreateRequest();
         if (authentication != null) payload.setWriterUuid(authentication.getName());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(postService.createCommunity(payload)));
