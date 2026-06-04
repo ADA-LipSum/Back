@@ -99,13 +99,16 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET,
                         "/api/posts/**",
                         "/api/community/posts/**",
+                        "/api/community/dev/posts/**",
                         "/api/community/banners",
                         "/api/community/widget/popular-tags",
                         "/api/blog/posts/**",
                         "/api/notices/**",
                         "/api/polls/posts/**",
                         "/api/meal",
-                        "/api/meal/**"
+                        "/api/meal/**",
+                        "/api/calendar",
+                        "/api/calendar/**"
                 ).permitAll()
                 .requestMatchers(HttpMethod.POST,
                         "/api/auth/login",

@@ -35,10 +35,11 @@ public class OpenApiConfig {
                                 ### 주요 기능
                                 | 카테고리 | 설명 |
                                 |---|---|
-                                | 커뮤니티 | 일반·개발 커뮤니티 게시글 CRUD, 이모지 반응, 좋아요 |
+                                | 일반 커뮤니티 | 잡담·밈·프로젝트 자랑 피드, 미디어 필터 |
+                        | 개발 커뮤니티 | 질문·프로젝트·자료 공유, 언어 필터 |
                                 | 공지사항 | 공지 작성/핀 고정/파일 첨부 (관리자) |
                                 | WebSocket | 이모지·좋아요·댓글 수 실시간 동기화 (`/ws`) |
-                                | 위젯 | 커뮤니티 통계, 인기 태그, 급식 정보 |
+                                | 위젯 | 커뮤니티 통계, 인기 태그, 급식 정보, 학사 일정 |
                                 | 스터디 | 스터디 그룹 생성·가입·관리 |
                                 | 거래소 | 아이템 구매/판매, 포인트·코인 시스템 |
 
@@ -63,14 +64,16 @@ public class OpenApiConfig {
                 .tags(List.of(
                         new Tag().name("로그인/인증").description("회원가입, 로그인, 토큰 갱신, OAuth"),
                         new Tag().name("회원/프로필").description("사용자 프로필 조회·수정, 역할 관리"),
-                        new Tag().name("커뮤니티").description("일반·개발 커뮤니티 게시글 CRUD, 좋아요, 북마크, 댓글"),
+                        new Tag().name("일반 커뮤니티").description("잡담·밈·프로젝트 자랑 피드 — CRUD, 미디어 필터, 좋아요, 북마크"),
+                        new Tag().name("개발 커뮤니티").description("개발 피드 — 질문·프로젝트·자료 공유, 언어 필터"),
                         new Tag().name("이모지 반응").description("게시글 이모지 반응 추가·제거·조회 (디스코드 스타일)"),
                         new Tag().name("커뮤니티 위젯").description("우측 위젯 — 내 커뮤니티 통계, 인기 개발 태그"),
                         new Tag().name("공지사항").description("공지사항 CRUD, 핀 고정/해제, 파일 첨부, 북마크"),
                         new Tag().name("댓글").description("댓글 작성·수정·삭제·좋아요, 고정 댓글"),
                         new Tag().name("블로그").description("개인 블로그 게시글 CRUD"),
                         new Tag().name("투표").description("투표 생성, 참여, 결과 조회"),
-                        new Tag().name("급식").description("NEIS 연동 학교 급식 정보 (조식·중식·석식)"),
+                        new Tag().name("급식").description("NEIS 연동 학교 급식 정보 (조식·중식·석식), Redis 12시간 캐싱"),
+                        new Tag().name("학사 일정").description("NEIS 연동 경북SW마이스터고 월별 학사 일정, Redis 6시간 캐싱"),
                         new Tag().name("파일 업로드").description("프로필·게시글·댓글·공지 첨부파일 S3 업로드"),
                         new Tag().name("커뮤니티 배너").description("커뮤니티 상단 배너 슬라이드 관리 (관리자)"),
                         new Tag().name("스터디 그룹").description("스터디 그룹 생성·가입·관리"),

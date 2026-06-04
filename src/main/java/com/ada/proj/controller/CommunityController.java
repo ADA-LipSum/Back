@@ -44,7 +44,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/community/posts")
-@Tag(name = "커뮤니티", description = "일반·개발 커뮤니티 게시글 CRUD, 좋아요(5초 쿨다운), 북마크, 댓글 조회. 이모지 반응은 '이모지 반응' 태그 참고.")
+@Tag(name = "일반 커뮤니티", description = "일반 커뮤니티(잡담·밈·프로젝트 자랑) 피드 — 게시글 CRUD, 미디어 타입 필터, 좋아요(5초 쿨다운), 북마크. 개발 커뮤니티는 '개발 커뮤니티' 태그 참고.")
 public class CommunityController {
 
     private final PostService postService;
@@ -53,31 +53,29 @@ public class CommunityController {
 
     @GetMapping
     @Operation(
-            summary = "게시글 목록 조회 / 검색",
+            summary = "일반 커뮤니티 피드 조회",
             description = """
-                    커뮤니티 게시글 목록을 조회합니다. 파라미터를 조합해 필터·검색·정렬이 가능합니다.
+                    **일반 커뮤니티** 게시글 목록입니다. 개발 커뮤니티는 `GET /api/community/dev/posts` 를 사용하세요.
 
-                    **category (상위 태그)**
+                    **category (글 종류)**
+                    | 값 | 설명 |
+                    |---|---|
+                    | 생략 / ALL | 전체 (잡담 + 밈 + 프로젝트 자랑 포함) |
+                    | CHAT | 잡담만 |
+                    | MEME | 밈만 |
+                    | PROJECT_SHOWCASE | 프로젝트 자랑만 |
+
+                    > `category=TECH` 는 개발 커뮤니티 전용입니다. 여기서도 동작하지만 `/dev/posts` 사용을 권장합니다.
+
+                    **mediaFilter (미디어 유형 필터)**
                     | 값 | 설명 |
                     |---|---|
                     | ALL (기본) | 전체 |
-                    | CHAT | 잡담 |
-                    | TECH | 개발 커뮤니티 |
-                    | MEME | 밈 |
-                    | PROJECT_SHOWCASE | 프로젝트 자랑 |
+                    | PHOTO | 이미지 첨부 게시글만 |
+                    | VIDEO | 영상 첨부 게시글만 |
+                    | TEXT | 텍스트만 (이미지·영상 없는 글) |
 
-                    **techSubTag (개발 커뮤니티 세부 유형, category=TECH 일 때)**
-                    | 값 | 설명 |
-                    |---|---|
-                    | QUESTION | 질문 |
-                    | PROJECT | 프로젝트 |
-                    | RESOURCE_SHARING | 자료 공유 |
-                    | TIP | 팁 |
-                    | POLL | 투표 |
-
-                    **sort** `LATEST`(기본, 최신순) / `POPULAR`(인기순 — 좋아요 수 내림차순)
-
-                    **mediaFilter** `ALL`(기본) / `PHOTO`(이미지만) / `VIDEO`(영상만) / `TEXT`(텍스트만)
+                    **sort** `LATEST`(기본) / `POPULAR`(좋아요 내림차순)
                     """
     )
     public ResponseEntity<ApiResponse<PageResponse<PostSummaryResponse>>> list(
@@ -85,24 +83,20 @@ public class CommunityController {
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기", example = "20")
             @RequestParam(defaultValue = "20") int size,
-            @Parameter(description = "상위 카테고리 필터", schema = @Schema(allowableValues = {"ALL", "CHAT", "TECH", "MEME", "PROJECT_SHOWCASE"}))
+            @Parameter(description = "글 종류 필터", schema = @Schema(allowableValues = {"ALL", "CHAT", "MEME", "PROJECT_SHOWCASE"}))
             @RequestParam(required = false) String category,
-            @Parameter(description = "개발 커뮤니티 세부 유형 필터", schema = @Schema(allowableValues = {"QUESTION", "PROJECT", "RESOURCE_SHARING", "TIP", "POLL", "CHAT"}))
-            @RequestParam(required = false) String techSubTag,
-            @Parameter(description = "언어/기술 태그 필터 (예: React, Spring)", example = "React")
-            @RequestParam(required = false) String techTag,
-            @Parameter(description = "제목·본문 키워드 검색어", example = "상태 관리")
+            @Parameter(description = "제목·본문 키워드 검색어", example = "점심")
             @RequestParam(required = false) String query,
             @Parameter(description = "정렬 방식", schema = @Schema(allowableValues = {"LATEST", "POPULAR"}), example = "LATEST")
             @RequestParam(required = false, defaultValue = "LATEST") String sort,
-            @Parameter(description = "미디어 타입 필터", schema = @Schema(allowableValues = {"ALL", "PHOTO", "VIDEO", "TEXT"}), example = "ALL")
+            @Parameter(description = "미디어 유형 필터", schema = @Schema(allowableValues = {"ALL", "PHOTO", "VIDEO", "TEXT"}), example = "ALL")
             @RequestParam(required = false, defaultValue = "ALL") String mediaFilter
     ) {
         return ResponseEntity.ok(ApiResponse.success(postService.search(
                 PostBoardType.COMMUNITY,
                 CommunityCategory.fromFilter(category),
-                parseTechSubTag(techSubTag),
-                techTag,
+                null,   // techSubTag — 일반 커뮤니티에서는 사용 안 함
+                null,   // techTag    — 일반 커뮤니티에서는 사용 안 함
                 query,
                 page,
                 size,
