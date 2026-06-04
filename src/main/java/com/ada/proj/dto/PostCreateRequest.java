@@ -3,6 +3,7 @@ package com.ada.proj.dto;
 import java.util.List;
 
 import com.ada.proj.enums.CommunityCategory;
+import com.ada.proj.enums.NoticeCategory;
 import com.ada.proj.enums.PostBoardType;
 import com.ada.proj.enums.TechSubTag;
 import com.fasterxml.jackson.annotation.JsonAlias;
@@ -61,4 +62,10 @@ public class PostCreateRequest {
 
     @Schema(description = "투표 생성 정보. 커뮤니티 기술 하위 태그가 POLL일 때 사용합니다.")
     private PollCreateRequest poll;
+
+    @Schema(description = "공지사항 분류. boardType이 NOTICE일 때 사용합니다.", example = "SERVICE")
+    private NoticeCategory noticeCategory;
+
+    @Schema(description = "첨부파일 ID 목록. /api/upload/attachments로 업로드 후 반환된 ID를 전달합니다.")
+    private List<Long> attachmentIds;
 }

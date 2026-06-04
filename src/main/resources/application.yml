@@ -147,6 +147,13 @@ app:
   cors:
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*,https://ada-back.com,https://www.ada-back.com}
 
+neis:
+  api:
+    key: ${NEIS_API_KEY:}
+    base-url: https://open.neis.go.kr/hub
+    office-code: ${NEIS_OFFICE_CODE:B10}
+    school-code: ${NEIS_SCHOOL_CODE:7010536}
+
 aws:
   s3:
     # 로컬 개발 시 .env에 AWS_ACCESS_KEY / AWS_SECRET_KEY 설정

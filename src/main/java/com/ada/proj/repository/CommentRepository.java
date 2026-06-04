@@ -1,5 +1,6 @@
 package com.ada.proj.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.Pageable;
@@ -30,6 +31,13 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     boolean existsByCommentUuid(String commentUuid);
 
     long countByAuthor_Uuid(String uuid);
+
+    default long countByWriterUuid(String uuid) {
+        return countByAuthor_Uuid(uuid);
+    }
+
+    @Query("select count(c) from Comment c where c.author.uuid = :uuid and cast(c.createdAt as localdate) = :date")
+    long countByWriterUuidAndDate(@Param("uuid") String uuid, @Param("date") LocalDate date);
 
     @Modifying
     @Query("UPDATE Comment c SET c.likes = c.likes + 1 WHERE c.id = :id")

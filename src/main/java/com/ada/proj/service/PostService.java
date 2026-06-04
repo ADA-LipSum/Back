@@ -1,5 +1,7 @@
 package com.ada.proj.service;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -12,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.AccessDeniedException;
@@ -23,20 +26,29 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import com.ada.proj.dto.EmojiReactionResponse;
 import com.ada.proj.dto.NoticeSummaryResponse;
 import com.ada.proj.dto.PageResponse;
+import com.ada.proj.dto.PostAttachmentResponse;
 import com.ada.proj.dto.PostCreateRequest;
 import com.ada.proj.dto.PostDetailResponse;
 import com.ada.proj.dto.PostSummaryResponse;
 import com.ada.proj.dto.PostUpdateRequest;
 import com.ada.proj.entity.Post;
+import com.ada.proj.entity.PostAttachment;
 import com.ada.proj.entity.PostBookmark;
 import com.ada.proj.entity.PostLike;
 import com.ada.proj.entity.User;
 import com.ada.proj.enums.CommunityCategory;
+import com.ada.proj.enums.MediaFilter;
+import com.ada.proj.enums.NoticeCategory;
 import com.ada.proj.enums.PostBoardType;
+import com.ada.proj.enums.SortType;
 import com.ada.proj.enums.TechSubTag;
+import com.ada.proj.entity.PostEmojiReaction;
+import com.ada.proj.repository.PostAttachmentRepository;
 import com.ada.proj.repository.PostBookmarkRepository;
+import com.ada.proj.repository.PostEmojiReactionRepository;
 import com.ada.proj.repository.PostLikeRepository;
 import com.ada.proj.repository.PostRepository;
 import com.ada.proj.repository.UserRepository;
@@ -53,14 +65,19 @@ public class PostService {
     private static final Pattern MARKDOWN_IMAGE = Pattern.compile("!\\[[^\\]]*]\\(([^\\s)]+)(?:\\s+\"[^\"]*\")?\\)");
     private static final Pattern HTML_IMAGE = Pattern.compile("<img[^>]+src=[\"']([^\"']+)[\"']", Pattern.CASE_INSENSITIVE);
     private static final String POST_SEQ_LOCK = "ada_posts_seq";
+    private static final String LIKE_COOLDOWN_PREFIX = "like:cooldown:";
+    private static final Duration LIKE_COOLDOWN = Duration.ofSeconds(5);
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final PostLikeRepository postLikeRepository;
     private final PostBookmarkRepository postBookmarkRepository;
+    private final PostAttachmentRepository postAttachmentRepository;
+    private final PostEmojiReactionRepository postEmojiReactionRepository;
     private final UserBanService userBanService;
     private final PollService pollService;
     private final JdbcTemplate jdbcTemplate;
+    private final StringRedisTemplate redisTemplate;
 
     private Post getPostByUuidOrThrow(@NonNull String uuid) {
         return postRepository.findById(uuid)
@@ -150,12 +167,14 @@ public class PostService {
                 .isDev(meta.isDev())
                 .devTags(meta.techTagsCsv())
                 .thumbnailImage(meta.thumbnailImage())
+                .noticeCategory(req.getNoticeCategory())
                 .build();
 
         Post saved = postRepository.saveAndFlush(post);
         if (meta.shouldCreatePoll()) {
             pollService.createPoll(saved, req.getPoll());
         }
+        linkAttachments(saved.getPostUuid(), req.getAttachmentIds());
 
         return saved.getSeq();
     }
@@ -219,8 +238,27 @@ public class PostService {
             int page,
             int size
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "writedAt"));
+        return search(boardType, category, techSubTag, techTag, query, page, size, SortType.LATEST, MediaFilter.ALL);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<PostSummaryResponse> search(
+            PostBoardType boardType,
+            CommunityCategory category,
+            TechSubTag techSubTag,
+            String techTag,
+            String query,
+            int page,
+            int size,
+            SortType sortType,
+            MediaFilter mediaFilter
+    ) {
+        Sort sort = (sortType == SortType.POPULAR)
+                ? Sort.by(Sort.Direction.DESC, "likes").and(Sort.by(Sort.Direction.DESC, "writedAt"))
+                : Sort.by(Sort.Direction.DESC, "writedAt");
+        Pageable pageable = PageRequest.of(page, size, sort);
         boolean includeLegacyCommunity = boardType == PostBoardType.COMMUNITY;
+        String mediaFilterStr = (mediaFilter == null || mediaFilter == MediaFilter.ALL) ? null : mediaFilter.name();
         Page<PostSummaryResponse> result = postRepository.searchSummaries(
                         boardType,
                         category,
@@ -228,6 +266,7 @@ public class PostService {
                         blankToNull(techTag),
                         blankToNull(query),
                         includeLegacyCommunity,
+                        mediaFilterStr,
                         pageable)
                 .map(this::completeSummary);
         return toPageResponse(result);
@@ -235,8 +274,14 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public PageResponse<NoticeSummaryResponse> listNotices(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "writedAt"));
-        Page<NoticeSummaryResponse> result = postRepository.findNoticeSummaries(pageable);
+        return listNotices(page, size, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<NoticeSummaryResponse> listNotices(int page, int size, NoticeCategory category, String query) {
+        // 핀된 글이 최상단에 오도록 정렬은 쿼리 내에서 처리 → Pageable은 unpaged sort로
+        Pageable pageable = PageRequest.of(page, size, Sort.unsorted());
+        Page<NoticeSummaryResponse> result = postRepository.findNoticeSummaries(category, blankToNull(query), pageable);
         return new PageResponse<>(
                 result.getNumber(),
                 result.getSize(),
@@ -244,6 +289,28 @@ public class PostService {
                 result.getTotalPages(),
                 result.getContent()
         );
+    }
+
+    @Transactional
+    public void pinNotice(@NonNull Long seq, Authentication auth) {
+        Post post = getPostBySeqOrThrow(seq);
+        ensureAdminOrThrow(auth);
+        post.setIsPinned(true);
+        post.setPinnedAt(LocalDateTime.now());
+    }
+
+    @Transactional
+    public void unpinNotice(@NonNull Long seq, Authentication auth) {
+        Post post = getPostBySeqOrThrow(seq);
+        ensureAdminOrThrow(auth);
+        post.setIsPinned(false);
+        post.setPinnedAt(null);
+    }
+
+    private void ensureAdminOrThrow(Authentication auth) {
+        if (!hasAdminRole(auth)) {
+            throw new AccessDeniedException("관리자만 수행할 수 있습니다.");
+        }
     }
 
     @Transactional
@@ -261,6 +328,9 @@ public class PostService {
                 && postLikeRepository.existsByUserUuidAndPostUuid(requesterUuid, post.getPostUuid());
         boolean isBookmarked = requesterUuid != null
                 && postBookmarkRepository.existsByUserUuidAndPostUuid(requesterUuid, post.getPostUuid());
+
+        List<EmojiReactionResponse> emojiReactions = loadEmojiReactions(post.getPostUuid(), requesterUuid);
+        List<PostAttachmentResponse> attachments = loadAttachments(post.getPostUuid());
 
         return PostDetailResponse.builder()
                 .postUuid(post.getPostUuid())
@@ -288,6 +358,11 @@ public class PostService {
                 .poll(pollService.findResponseByPostUuid(post.getPostUuid()))
                 .isLiked(isLiked)
                 .isBookmarked(isBookmarked)
+                .noticeCategory(post.getNoticeCategory())
+                .isPinned(post.getIsPinned())
+                .pinnedAt(post.getPinnedAt())
+                .emojiReactions(emojiReactions)
+                .attachments(attachments)
                 .build();
     }
 
@@ -364,6 +439,8 @@ public class PostService {
         Post post = getPostBySeqOrThrow(seq);
         ensureWriterOrAdmin(post, auth);
         pollService.deleteByPost(post);
+        postAttachmentRepository.deleteAllByPostUuid(post.getPostUuid());
+        postEmojiReactionRepository.deleteAllByPostUuid(post.getPostUuid());
         postRepository.deleteById(post.getPostUuid());
     }
 
@@ -379,6 +456,14 @@ public class PostService {
             postRepository.decreaseLikes(postUuid);
             return false;
         }
+
+        // 5초 쿨다운 체크 (좋아요 추가 시에만 적용)
+        String cooldownKey = LIKE_COOLDOWN_PREFIX + userUuid + ":" + postUuid;
+        Boolean onCooldown = redisTemplate.hasKey(cooldownKey);
+        if (Boolean.TRUE.equals(onCooldown)) {
+            throw new IllegalStateException("좋아요는 5초 후에 다시 누를 수 있습니다.");
+        }
+        redisTemplate.opsForValue().set(cooldownKey, "1", LIKE_COOLDOWN);
 
         PostLike like = PostLike.builder()
                 .userUuid(userUuid)
@@ -587,6 +672,8 @@ public class PostService {
                 case CHAT -> "잡담";
                 case TIP -> "팁";
                 case POLL -> "투표";
+                case PROJECT -> "프로젝트";
+                case RESOURCE_SHARING -> "자료 공유";
             };
             return tags != null && !tags.isBlank() ? "기술/" + sub + "(" + tags + ")" : "기술/" + sub;
         }
@@ -681,6 +768,55 @@ public class PostService {
 
     private String displayName(User user) {
         return user.isUseNickname() ? user.getUserNickname() : user.getUserRealname();
+    }
+
+    private List<EmojiReactionResponse> loadEmojiReactions(String postUuid, String requesterUuid) {
+        try {
+            java.util.Map<String, Boolean> reactedMap = new java.util.HashMap<>();
+            if (requesterUuid != null) {
+                postEmojiReactionRepository.findByPostUuid(postUuid).stream()
+                        .filter(r -> requesterUuid.equals(r.getUserUuid()))
+                        .forEach(r -> reactedMap.put(r.getEmoji(), true));
+            }
+            return postEmojiReactionRepository.countByEmojiForPost(postUuid).stream()
+                    .map(row -> EmojiReactionResponse.builder()
+                            .emoji((String) row[0])
+                            .count(((Number) row[1]).longValue())
+                            .reacted(Boolean.TRUE.equals(reactedMap.get(row[0])))
+                            .build())
+                    .toList();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    private List<PostAttachmentResponse> loadAttachments(String postUuid) {
+        try {
+            return postAttachmentRepository.findByPostUuidOrderByDisplayOrderAsc(postUuid)
+                    .stream()
+                    .map(a -> PostAttachmentResponse.builder()
+                            .id(a.getId())
+                            .fileName(a.getFileName())
+                            .fileUrl(a.getFileUrl())
+                            .fileType(a.getFileType())
+                            .fileSize(a.getFileSize())
+                            .uploadedAt(a.getUploadedAt())
+                            .build())
+                    .toList();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    private void linkAttachments(String postUuid, List<Long> attachmentIds) {
+        if (attachmentIds == null || attachmentIds.isEmpty()) return;
+        List<PostAttachment> attachments = postAttachmentRepository.findAllById(attachmentIds);
+        int order = 0;
+        for (PostAttachment att : attachments) {
+            att.setPostUuid(postUuid);
+            att.setDisplayOrder(order++);
+            postAttachmentRepository.save(att);
+        }
     }
 
     private record ResolvedPostMeta(

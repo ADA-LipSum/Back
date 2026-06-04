@@ -23,10 +23,13 @@ import com.ada.proj.dto.PostDetailResponse;
 import com.ada.proj.dto.PostSummaryResponse;
 import com.ada.proj.dto.PostUpdateRequest;
 import com.ada.proj.enums.CommunityCategory;
+import com.ada.proj.enums.MediaFilter;
 import com.ada.proj.enums.PostBoardType;
+import com.ada.proj.enums.SortType;
 import com.ada.proj.enums.TechSubTag;
 import com.ada.proj.service.CommentService;
 import com.ada.proj.service.PostService;
+import com.ada.proj.service.ReactionBroadcastService;
 
 import java.util.List;
 
@@ -41,60 +44,59 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/community/posts")
-@Tag(name = "커뮤니티", description = "커뮤니티 게시글 CRUD, 좋아요, 댓글 조회 API")
+@Tag(name = "커뮤니티", description = "일반·개발 커뮤니티 게시글 CRUD, 좋아요(5초 쿨다운), 북마크, 댓글 조회. 이모지 반응은 '이모지 반응' 태그 참고.")
 public class CommunityController {
 
     private final PostService postService;
     private final CommentService commentService;
+    private final ReactionBroadcastService broadcastService;
 
     @GetMapping
     @Operation(
-            summary = "커뮤니티 게시글 목록 조회 및 검색",
+            summary = "게시글 목록 조회 / 검색",
             description = """
-                    커뮤니티 게시글을 최신순으로 조회합니다. 상위 태그, 기술 하위 태그, 세부 기술 태그, 검색어를 조합해 필터링할 수 있습니다.
+                    커뮤니티 게시글 목록을 조회합니다. 파라미터를 조합해 필터·검색·정렬이 가능합니다.
 
-                    **상위 태그(category):**
-                    - `ALL` 또는 `전체`: 전체 조회
-                    - `CHAT`: 잡담
-                    - `TECH`: 기술
-                    - `MEME`: 밈
-                    - `PROJECT_SHOWCASE`: 프로젝트 자랑
+                    **category (상위 태그)**
+                    | 값 | 설명 |
+                    |---|---|
+                    | ALL (기본) | 전체 |
+                    | CHAT | 잡담 |
+                    | TECH | 개발 커뮤니티 |
+                    | MEME | 밈 |
+                    | PROJECT_SHOWCASE | 프로젝트 자랑 |
 
-                    **기술 하위 태그(techSubTag):**
-                    - `QUESTION`: 질문
-                    - `CHAT`: 잡담
-                    - `TIP`: 팁
-                    - `POLL`: 투표
+                    **techSubTag (개발 커뮤니티 세부 유형, category=TECH 일 때)**
+                    | 값 | 설명 |
+                    |---|---|
+                    | QUESTION | 질문 |
+                    | PROJECT | 프로젝트 |
+                    | RESOURCE_SHARING | 자료 공유 |
+                    | TIP | 팁 |
+                    | POLL | 투표 |
 
-                    **Query Parameters:**
-                    - `page` (선택): 페이지 번호, 0부터 시작
-                    - `size` (선택): 페이지 크기
-                    - `category` (선택): 상위 태그 필터
-                    - `techSubTag` (선택): 기술 하위 태그 필터
-                    - `techTag` (선택): React, MySQL 같은 세부 기술 태그
-                    - `query` (선택): 제목/본문 검색어
+                    **sort** `LATEST`(기본, 최신순) / `POPULAR`(인기순 — 좋아요 수 내림차순)
 
-                    **Response:**
-                    - `data.content`: 게시글 요약 목록
-                    - `boardType`: 항상 `COMMUNITY`
-                    - `communityCategory`: 커뮤니티 상위 태그
-                    - `techSubTag`: 기술 게시글의 하위 태그
-                    - `techTags`: 세부 기술 태그 목록
+                    **mediaFilter** `ALL`(기본) / `PHOTO`(이미지만) / `VIDEO`(영상만) / `TEXT`(텍스트만)
                     """
     )
     public ResponseEntity<ApiResponse<PageResponse<PostSummaryResponse>>> list(
-            @Parameter(description = "페이지 번호, 0부터 시작", example = "0")
+            @Parameter(description = "페이지 번호 (0부터)", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기", example = "20")
             @RequestParam(defaultValue = "20") int size,
-            @Parameter(description = "상위 태그 필터", schema = @Schema(allowableValues = {"ALL", "CHAT", "TECH", "MEME", "PROJECT_SHOWCASE"}))
+            @Parameter(description = "상위 카테고리 필터", schema = @Schema(allowableValues = {"ALL", "CHAT", "TECH", "MEME", "PROJECT_SHOWCASE"}))
             @RequestParam(required = false) String category,
-            @Parameter(description = "기술 하위 태그 필터", schema = @Schema(allowableValues = {"QUESTION", "CHAT", "TIP", "POLL"}))
+            @Parameter(description = "개발 커뮤니티 세부 유형 필터", schema = @Schema(allowableValues = {"QUESTION", "PROJECT", "RESOURCE_SHARING", "TIP", "POLL", "CHAT"}))
             @RequestParam(required = false) String techSubTag,
-            @Parameter(description = "세부 기술 태그 필터", example = "React")
+            @Parameter(description = "언어/기술 태그 필터 (예: React, Spring)", example = "React")
             @RequestParam(required = false) String techTag,
-            @Parameter(description = "제목/본문 검색어", example = "상태 관리")
-            @RequestParam(required = false) String query
+            @Parameter(description = "제목·본문 키워드 검색어", example = "상태 관리")
+            @RequestParam(required = false) String query,
+            @Parameter(description = "정렬 방식", schema = @Schema(allowableValues = {"LATEST", "POPULAR"}), example = "LATEST")
+            @RequestParam(required = false, defaultValue = "LATEST") String sort,
+            @Parameter(description = "미디어 타입 필터", schema = @Schema(allowableValues = {"ALL", "PHOTO", "VIDEO", "TEXT"}), example = "ALL")
+            @RequestParam(required = false, defaultValue = "ALL") String mediaFilter
     ) {
         return ResponseEntity.ok(ApiResponse.success(postService.search(
                 PostBoardType.COMMUNITY,
@@ -103,30 +105,32 @@ public class CommunityController {
                 techTag,
                 query,
                 page,
-                size
+                size,
+                SortType.from(sort),
+                MediaFilter.from(mediaFilter)
         )));
     }
 
     @PostMapping
     @Operation(
-            summary = "커뮤니티 게시글 작성",
+            summary = "게시글 작성",
             description = """
-                    커뮤니티 게시글을 작성합니다. 로그인이 필요합니다.
+                    커뮤니티 게시글을 작성합니다. **로그인 필요.**
 
-                    **Request Body:**
-                    - `title` (필수): 제목, 최대 20자
-                    - `content` (선택): 본문
-                    - `communityCategory` (필수 권장): `CHAT`, `TECH`, `MEME`, `PROJECT_SHOWCASE`
-                    - `techSubTag` (조건부 필수): `communityCategory`가 `TECH`일 때 반드시 1개 선택
-                    - `techTags` (선택): React, MySQL 등 세부 기술 태그 목록
-                    - `poll` (조건부): `techSubTag`가 `POLL`일 때 투표 생성 정보
+                    | 필드 | 필수 | 설명 |
+                    |---|---|---|
+                    | title | ✅ | 제목 (최대 20자) |
+                    | content | - | 본문 (Markdown/HTML) |
+                    | communityCategory | 권장 | `CHAT` · `TECH` · `MEME` · `PROJECT_SHOWCASE` |
+                    | techSubTag | TECH일 때 필수 | `QUESTION` · `PROJECT` · `RESOURCE_SHARING` · `TIP` · `POLL` |
+                    | techTags | - | 언어·기술 태그 배열 (예: `["React","Spring"]`) |
+                    | images | - | S3 이미지 URL 목록 (쉼표 구분) |
+                    | videos | - | S3 영상 URL 목록 (쉼표 구분) |
+                    | poll | POLL일 때 필수 | 투표 선택지·종료 시각 포함 |
 
-                    **기술 게시글 규칙:**
-                    - `communityCategory=TECH`이면 `techSubTag`를 반드시 전달해야 합니다.
-                    - `techSubTag=POLL`이면 투표 선택지와 종료 시각을 포함한 `poll` 정보를 함께 전달합니다.
+                    > 미디어는 먼저 `POST /api/upload/community/post-media` 로 업로드 후 URL을 전달하세요.
 
-                    **Response:**
-                    - `data`: 생성된 게시글 순번 (Long)
+                    **Response:** `data` = 생성된 게시글 순번(Long)
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
@@ -144,19 +148,18 @@ public class CommunityController {
 
     @GetMapping("/{id}")
     @Operation(
-            summary = "커뮤니티 게시글 상세 조회",
+            summary = "게시글 상세 조회",
             description = """
-                    커뮤니티 게시글 상세 정보를 조회합니다. 조회 시 조회수가 1 증가합니다.
+                    게시글 상세를 반환합니다. 호출 시 **조회수 +1** 됩니다.
 
-                    **Path Variable:**
-                    - `id` (필수): 게시글 순번
-
-                    **Response:**
-                    - 제목, 본문, 작성자 정보
-                    - 좋아요 수, 조회 수, 댓글 수
-                    - `isLiked`: 현재 로그인 사용자의 좋아요 여부 (비로그인 시 false)
-                    - 커뮤니티 상위 태그, 기술 하위 태그, 세부 기술 태그
-                    - 투표 게시글인 경우 `poll` 정보
+                    **Response 주요 필드**
+                    | 필드 | 설명 |
+                    |---|---|
+                    | emojiReactions | 이모지별 반응 수·내 반응 여부 목록 |
+                    | isLiked | 로그인 사용자 좋아요 여부 (비로그인 false) |
+                    | isBookmarked | 로그인 사용자 북마크 여부 |
+                    | poll | 투표 게시글인 경우 투표 정보 |
+                    | techTags | 기술 태그 목록 |
                     """
     )
     public ResponseEntity<ApiResponse<PostDetailResponse>> detail(
@@ -169,23 +172,8 @@ public class CommunityController {
 
     @PutMapping("/{id}")
     @Operation(
-            summary = "커뮤니티 게시글 수정",
-            description = """
-                    커뮤니티 게시글을 수정합니다. 작성자 본인 또는 관리자만 가능합니다.
-
-                    **Path Variable:**
-                    - `id` (필수): 수정할 게시글 순번
-
-                    **Request Body:**
-                    - `title`: 제목
-                    - `content`: 본문
-                    - `communityCategory`: 상위 태그
-                    - `techSubTag`: 기술 하위 태그
-                    - `techTags`: 세부 기술 태그 목록
-                    - `poll`: 투표 정보. 투표 게시글에서만 사용 가능
-
-                    **Response:** 성공 응답
-                    """,
+            summary = "게시글 수정",
+            description = "작성자 본인 또는 관리자만 가능합니다. 전달한 필드만 부분 업데이트됩니다.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Void>> update(
@@ -199,15 +187,8 @@ public class CommunityController {
 
     @DeleteMapping("/{id}")
     @Operation(
-            summary = "커뮤니티 게시글 삭제",
-            description = """
-                    커뮤니티 게시글을 삭제합니다. 작성자 본인 또는 관리자만 가능합니다.
-
-                    **Path Variable:**
-                    - `id` (필수): 삭제할 게시글 순번
-
-                    연결된 투표가 있다면 함께 삭제됩니다.
-                    """,
+            summary = "게시글 삭제",
+            description = "작성자 본인 또는 관리자만 가능합니다. 연결된 투표·이모지 반응이 함께 삭제됩니다.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Void>> delete(
@@ -220,15 +201,14 @@ public class CommunityController {
 
     @PostMapping("/{id}/like")
     @Operation(
-            summary = "게시글 좋아요 토글",
+            summary = "좋아요 토글",
             description = """
-                    게시글 좋아요를 토글합니다. 로그인이 필요합니다.
+                    좋아요를 토글합니다. **로그인 필요.**
+                    - 좋아요 **추가** 시 **5초 쿨다운**이 적용됩니다 (5초 내 재요청 시 `400` 반환).
+                    - 취소는 쿨다운 없이 즉시 가능합니다.
+                    - 변경 후 WebSocket `/topic/post/{postUuid}/likes` 로 최대 **10초** 내 전파됩니다.
 
-                    **Path Variable:**
-                    - `id` (필수): 대상 게시글 순번
-
-                    **Response:**
-                    - `data`: 변경 후 좋아요 상태 (true: 좋아요 추가됨, false: 좋아요 취소됨)
+                    **Response:** `data` = `true`(추가됨) / `false`(취소됨)
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
@@ -241,20 +221,18 @@ public class CommunityController {
         }
         String principal = Objects.requireNonNull(authentication.getName(), "principal");
         boolean liked = postService.toggleLike(principal, id);
+
+        // WebSocket 브로드캐스트 예약
+        String postUuid = postService.findUuidBySeq(id);
+        broadcastService.markLikeChanged(postUuid);
+
         return ResponseEntity.ok(ApiResponse.success(liked));
     }
 
     @DeleteMapping("/likes/{likeId}")
     @Operation(
             summary = "좋아요 취소 (ID 기반)",
-            description = """
-                    좋아요 고유 ID로 좋아요를 취소합니다. 로그인이 필요합니다. 본인이 누른 좋아요만 취소 가능합니다.
-
-                    **Path Variable:**
-                    - `likeId` (필수): 취소할 좋아요의 숫자 ID
-
-                    **Response:** 성공 응답 (data: null)
-                    """,
+            description = "좋아요 고유 ID로 좋아요를 취소합니다. 본인의 좋아요만 취소 가능합니다. **로그인 필요.**",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Void>> deleteLikeById(
@@ -271,16 +249,8 @@ public class CommunityController {
 
     @PostMapping("/{id}/bookmark")
     @Operation(
-            summary = "게시글 북마크 토글",
-            description = """
-                    게시글 북마크를 토글합니다. 로그인이 필요합니다.
-
-                    **Path Variable:**
-                    - `id` (필수): 대상 게시글 순번
-
-                    **Response:**
-                    - `data`: 변경 후 북마크 상태 (true: 북마크 추가됨, false: 북마크 취소됨)
-                    """,
+            summary = "북마크 토글",
+            description = "북마크를 추가하거나 제거합니다. **로그인 필요.** `data` = `true`(추가) / `false`(제거)",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Boolean>> toggleBookmark(
@@ -297,17 +267,8 @@ public class CommunityController {
 
     @GetMapping("/bookmarks")
     @Operation(
-            summary = "내 커뮤니티 북마크 목록 조회",
-            description = """
-                    현재 로그인한 사용자가 북마크한 커뮤니티 게시글 목록을 최신순으로 반환합니다.
-
-                    **Query Parameters:**
-                    - `page` (선택): 페이지 번호, 0부터 시작
-                    - `size` (선택): 페이지 크기
-
-                    **Response:**
-                    - `data.content`: 북마크된 커뮤니티 게시글 요약 목록
-                    """,
+            summary = "내 북마크 목록 조회",
+            description = "로그인 사용자가 북마크한 커뮤니티 게시글을 최신순으로 반환합니다. **로그인 필요.**",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<PageResponse<PostSummaryResponse>>> myBookmarks(
@@ -327,12 +288,8 @@ public class CommunityController {
 
     @GetMapping("/{id}/comments")
     @Operation(
-            summary = "게시글 댓글 조회",
-            description = """
-                    게시글에 달린 댓글 및 대댓글 전체를 조회합니다. 인증 불필요.
-
-                    댓글은 `children` 필드로 대댓글을 포함하는 재귀 구조로 반환됩니다.
-                    """
+            summary = "댓글 목록 조회",
+            description = "게시글의 댓글·대댓글을 조회합니다. 인증 불필요. 댓글은 `children` 필드에 대댓글을 포함하는 재귀 구조입니다."
     )
     public ResponseEntity<ApiResponse<List<CommentResponse>>> comments(
             @Parameter(description = "게시글 순번", example = "1") @PathVariable Long id

@@ -83,6 +83,21 @@ public class S3Service {
     }
 
     /**
+     * 공지사항 첨부파일(이미지, 영상, PDF, HWP, 문서 등)을 S3에 업로드하고 퍼블릭 URL을 반환합니다.
+     */
+    public String uploadNoticeAttachment(MultipartFile file, String userUuid) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("파일이 없습니다.");
+        }
+        long maxBytes = 50L * 1024 * 1024; // 50MB
+        if (file.getSize() > maxBytes) {
+            throw new IllegalArgumentException("파일 크기는 50MB를 초과할 수 없습니다.");
+        }
+        String key = "notices/attachments/" + userUuid + "/" + UUID.randomUUID() + getExtension(file);
+        return upload(file, key);
+    }
+
+    /**
      * 댓글 첨부 이미지(mp4 제외)를 S3에 업로드하고 퍼블릭 URL을 반환합니다.
      */
     public String uploadCommentImage(MultipartFile file, String userUuid) {

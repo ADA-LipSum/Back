@@ -6,7 +6,9 @@ public enum TechSubTag {
     QUESTION,
     CHAT,
     TIP,
-    POLL;
+    POLL,
+    PROJECT,
+    RESOURCE_SHARING;
 
     @JsonCreator
     public static TechSubTag from(String value) {
@@ -20,6 +22,8 @@ public enum TechSubTag {
             case "CHAT", "FREE", "잡담" -> CHAT;
             case "TIP", "TIPS", "팁" -> TIP;
             case "POLL", "VOTE", "투표" -> POLL;
+            case "PROJECT", "프로젝트" -> PROJECT;
+            case "RESOURCE_SHARING", "RESOURCE", "자료공유", "자료_공유" -> RESOURCE_SHARING;
             default -> TechSubTag.valueOf(normalized);
         };
     }

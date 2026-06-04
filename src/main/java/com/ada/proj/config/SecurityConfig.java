@@ -58,7 +58,8 @@ public class SecurityConfig {
                 .formLogin(form -> form.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> headers
-                        .frameOptions(frame -> frame.deny())
+                        // SockJS 폴백이 iframe을 사용하므로 sameOrigin 허용
+                        .frameOptions(frame -> frame.sameOrigin())
                         .contentTypeOptions(ct -> {})
                         .httpStrictTransportSecurity(hsts -> hsts
                                 .includeSubDomains(true)
@@ -84,7 +85,11 @@ public class SecurityConfig {
                         "/api/posts/view",
                         "/admin/**",
                         "/error",
-                        "/favicon.ico"
+                        "/favicon.ico",
+                        // WebSocket (SockJS fallback)
+                        "/ws/**",
+                        "/ws/info",
+                        "/ws/info/**"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/auth/status").permitAll()
                 .requestMatchers(HttpMethod.GET,
@@ -95,9 +100,12 @@ public class SecurityConfig {
                         "/api/posts/**",
                         "/api/community/posts/**",
                         "/api/community/banners",
+                        "/api/community/widget/popular-tags",
                         "/api/blog/posts/**",
                         "/api/notices/**",
-                        "/api/polls/posts/**"
+                        "/api/polls/posts/**",
+                        "/api/meal",
+                        "/api/meal/**"
                 ).permitAll()
                 .requestMatchers(HttpMethod.POST,
                         "/api/auth/login",

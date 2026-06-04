@@ -22,10 +22,12 @@ import com.ada.proj.dto.PageResponse;
 import com.ada.proj.dto.PostCreateRequest;
 import com.ada.proj.dto.PostDetailResponse;
 import com.ada.proj.dto.PostUpdateRequest;
+import com.ada.proj.enums.NoticeCategory;
 import com.ada.proj.service.PostService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -34,7 +36,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/notices")
-@Tag(name = "공지사항", description = "공지사항 전용 게시판 목록/상세/작성/수정/삭제 API")
+@Tag(name = "공지사항", description = "공지사항 CRUD, 핀 고정/해제(📌), 분류 필터, 키워드 검색, 파일 첨부, 북마크 — 작성/수정/삭제/핀은 관리자 전용")
 public class NoticeController {
 
     private final PostService postService;
@@ -43,64 +45,64 @@ public class NoticeController {
     @Operation(
             summary = "공지사항 목록 조회",
             description = """
-                    공지사항 전용 게시판의 목록을 최신순으로 조회합니다.
+                    공지사항 목록을 반환합니다.
 
-                    **Query Parameters:**
-                    - `page` (선택): 페이지 번호, 0부터 시작
-                    - `size` (선택): 페이지 크기
+                    **정렬 규칙**
+                    1. 📌 고정 게시물 → `pinnedAt` 최신순
+                    2. 일반 게시물 → `writedAt` 최신순
 
-                    **Response Fields:**
-                    - `id`: 공지 번호. 게시글 UUID 값입니다.
-                    - `title`: 제목
-                    - `authorName`: 작성자 이름
-                    - `authorProfileImage`: 작성자 프로필 이미지 URL
-                    - `createdAt`: 등록일
+                    **Response 주요 필드**
+                    | 필드 | 설명 |
+                    |---|---|
+                    | seq | 번호 (고정 게시물은 UI에서 📌 표시 권장) |
+                    | noticeCategory | EVENT · SERVICE · OTHER |
+                    | isPinned | 고정 여부 |
+                    | views | 누적 조회수 |
                     """
     )
     public ResponseEntity<ApiResponse<PageResponse<NoticeSummaryResponse>>> list(
-            @Parameter(description = "페이지 번호, 0부터 시작", example = "0")
+            @Parameter(description = "페이지 번호 (0부터)", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기", example = "20")
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "분류 필터", schema = @Schema(allowableValues = {"EVENT", "SERVICE", "OTHER"}))
+            @RequestParam(required = false) String category,
+            @Parameter(description = "제목·내용 키워드 검색어", example = "점검")
+            @RequestParam(required = false) String query
     ) {
-        return ResponseEntity.ok(ApiResponse.success(postService.listNotices(page, size)));
+        NoticeCategory noticeCategory = (category != null && !category.isBlank()) ? NoticeCategory.from(category) : null;
+        return ResponseEntity.ok(ApiResponse.success(
+                postService.listNotices(page, size, noticeCategory, query)));
     }
 
     @GetMapping("/{id}")
     @Operation(
             summary = "공지사항 상세 조회",
-            description = """
-                    공지사항 상세 정보를 조회합니다. 조회 시 조회수가 1 증가합니다.
-
-                    **Path Variable:**
-                    - `id` (필수): 공지사항 게시글 순번
-
-                    **Response:**
-                    - 제목, 본문, 작성자 정보
-                    - 등록일, 수정일, 조회 수
-                    """
+            description = "공지사항 상세를 반환합니다. 호출 시 **조회수 +1**. `attachments` 필드에 첨부파일 목록(다운로드 URL 포함)이 반환됩니다."
     )
     public ResponseEntity<ApiResponse<PostDetailResponse>> detail(
-            @Parameter(description = "공지사항 게시글 순번", example = "1") @PathVariable Long id
+            @Parameter(description = "공지사항 게시글 순번") @PathVariable Long id,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(ApiResponse.success(postService.detail(id)));
+        String requesterUuid = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(ApiResponse.success(postService.detail(id, requesterUuid)));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     @Operation(
-            summary = "공지사항 작성",
+            summary = "공지사항 작성 (관리자)",
             description = """
-                    공지사항을 작성합니다. 관리자 권한이 필요합니다.
+                    공지사항을 작성합니다. **관리자 전용.**
 
-                    **Request Body:**
-                    - `title` (필수): 제목, 최대 20자
-                    - `content` (선택): 공지 본문
+                    | 필드 | 필수 | 설명 |
+                    |---|---|---|
+                    | title | ✅ | 제목 (최대 20자) |
+                    | content | - | 본문 |
+                    | noticeCategory | - | `EVENT`(행사) · `SERVICE`(서비스) · `OTHER`(기타) |
+                    | attachmentIds | - | 먼저 `POST /api/upload/notice/attachment` 로 업로드 후 반환된 ID 목록 |
 
-                    요청의 `boardType` 값과 무관하게 `NOTICE` 게시글로 저장됩니다.
-
-                    **Response:**
-                    - `data`: 생성된 공지사항 게시글 순번 (Long)
+                    **Response:** `data` = 생성된 공지사항 순번(Long)
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
@@ -119,23 +121,12 @@ public class NoticeController {
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     @Operation(
-            summary = "공지사항 수정",
-            description = """
-                    공지사항을 수정합니다. 관리자 권한이 필요합니다.
-
-                    **Path Variable:**
-                    - `id` (필수): 수정할 공지사항 게시글 순번
-
-                    **Request Body:**
-                    - `title`: 제목
-                    - `content`: 본문
-
-                    **Response:** 성공 응답
-                    """,
+            summary = "공지사항 수정 (관리자)",
+            description = "공지사항을 수정합니다. **관리자 전용.** 전달한 필드만 부분 업데이트됩니다.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Void>> update(
-            @Parameter(description = "공지사항 게시글 순번", example = "1") @PathVariable Long id,
+            @Parameter(description = "공지사항 게시글 순번") @PathVariable Long id,
             @Valid @RequestBody PostUpdateRequest request,
             Authentication authentication
     ) {
@@ -146,20 +137,60 @@ public class NoticeController {
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     @Operation(
-            summary = "공지사항 삭제",
-            description = """
-                    공지사항을 삭제합니다. 관리자 권한이 필요합니다.
-
-                    **Path Variable:**
-                    - `id` (필수): 삭제할 공지사항 게시글 순번
-                    """,
+            summary = "공지사항 삭제 (관리자)",
+            description = "공지사항을 삭제합니다. **관리자 전용.** 첨부파일 연결 및 이모지 반응이 함께 삭제됩니다.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Void>> delete(
-            @Parameter(description = "공지사항 게시글 순번", example = "1") @PathVariable Long id,
+            @Parameter(description = "공지사항 게시글 순번") @PathVariable Long id,
             Authentication authentication
     ) {
         postService.delete(id, authentication);
         return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{id}/pin")
+    @Operation(
+            summary = "공지사항 고정 (관리자)",
+            description = "공지사항을 목록 최상단에 고정합니다. **관리자 전용.** 다중 고정 지원. `pinnedAt` 최신순으로 정렬됩니다.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<Void>> pin(
+            @Parameter(description = "공지사항 게시글 순번") @PathVariable Long id,
+            Authentication authentication
+    ) {
+        postService.pinNotice(id, authentication);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}/pin")
+    @Operation(
+            summary = "공지사항 고정 해제 (관리자)",
+            description = "공지사항 고정을 해제합니다. **관리자 전용.**",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<Void>> unpin(
+            @Parameter(description = "공지사항 게시글 순번") @PathVariable Long id,
+            Authentication authentication
+    ) {
+        postService.unpinNotice(id, authentication);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @PostMapping("/{id}/bookmark")
+    @Operation(
+            summary = "북마크 토글",
+            description = "공지사항 북마크를 추가하거나 제거합니다. **로그인 필요.** `data` = `true`(추가) / `false`(제거)",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<Boolean>> toggleBookmark(
+            @Parameter(description = "공지사항 게시글 순번") @PathVariable Long id,
+            Authentication authentication
+    ) {
+        if (authentication == null) throw new SecurityException("로그인이 필요합니다.");
+        boolean bookmarked = postService.toggleBookmark(authentication.getName(), id);
+        return ResponseEntity.ok(ApiResponse.success(bookmarked));
     }
 }
