@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -67,40 +68,12 @@ public class MealController {
     @DeleteMapping("/cache")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
-            summary = "급식 캐시 초기화 (관리자)",
-            description = """
-                    Redis에 저장된 급식 캐시를 삭제합니다. **관리자 전용.**
-
-                    - `date` 지정 시 해당 날짜 하루만 삭제
-                    - `from`·`to` 지정 시 날짜 범위 삭제
-                    - 아무 파라미터 없으면 **오늘** 캐시만 삭제
-
-                    캐시 삭제 후 다음 조회 시 NEIS API를 다시 호출합니다.
-                    """,
+            summary = "급식 캐시 전체 초기화 (관리자)",
+            description = "저장된 급식 캐시를 전부 삭제합니다. 이후 조회 시 NEIS에서 새로 가져옵니다.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<ApiResponse<Void>> clearCache(
-            @Parameter(description = "삭제할 날짜 (yyyyMMdd). 단일 날짜 삭제", example = "20260604")
-            @RequestParam(required = false) String date,
-            @Parameter(description = "범위 삭제 시작일 (yyyyMMdd)", example = "20260601")
-            @RequestParam(required = false) String from,
-            @Parameter(description = "범위 삭제 종료일 (yyyyMMdd)", example = "20260630")
-            @RequestParam(required = false) String to
-    ) {
-        if (from != null && to != null) {
-            LocalDate fromDate = parseDate(from);
-            LocalDate toDate   = parseDate(to);
-            if (fromDate == null || toDate == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.fail("날짜 형식이 올바르지 않습니다."));
-            }
-            mealService.clearRangeCache(fromDate, toDate);
-        } else {
-            LocalDate target = (date != null) ? parseDate(date) : LocalDate.now();
-            if (target == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.fail("날짜 형식이 올바르지 않습니다."));
-            }
-            mealService.clearCache(target);
-        }
+    public ResponseEntity<ApiResponse<Void>> clearCache() {
+        mealService.clearAllCache();
         return ResponseEntity.ok(ApiResponse.success());
     }
 

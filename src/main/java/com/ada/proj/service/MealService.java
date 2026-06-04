@@ -43,15 +43,12 @@ public class MealService {
                 : remaining;
     }
 
-    /** 특정 날짜 캐시 삭제 (관리자용) */
-    public void clearCache(LocalDate date) {
-        redisTemplate.delete("meal:" + date.format(DATE_FMT));
-    }
-
-    /** 오늘 포함 전후 일수 범위 캐시 전체 삭제 (관리자용) */
-    public void clearRangeCache(LocalDate from, LocalDate to) {
-        from.datesUntil(to.plusDays(1))
-                .forEach(d -> redisTemplate.delete("meal:" + d.format(DATE_FMT)));
+    /** 저장된 급식 캐시 전체 삭제 (관리자용) */
+    public void clearAllCache() {
+        var keys = redisTemplate.keys("meal:*");
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
     }
 
     public MealResponse getMeal(LocalDate date) {
