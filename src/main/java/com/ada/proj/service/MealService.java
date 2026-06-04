@@ -2,6 +2,8 @@ package com.ada.proj.service;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +31,29 @@ public class MealService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
+    /**
+     * 해당 날짜의 자정(다음날 00:00)까지 남은 시간을 TTL로 반환.
+     * 최소 1분 보장 (자정 직전 요청 대비).
+     */
+    private Duration ttlUntilMidnight(LocalDate date) {
+        LocalDateTime midnight = date.plusDays(1).atStartOfDay();
+        Duration remaining = Duration.between(LocalDateTime.now(), midnight);
+        return remaining.isNegative() || remaining.toMinutes() < 1
+                ? Duration.ofMinutes(1)
+                : remaining;
+    }
+
+    /** 특정 날짜 캐시 삭제 (관리자용) */
+    public void clearCache(LocalDate date) {
+        redisTemplate.delete("meal:" + date.format(DATE_FMT));
+    }
+
+    /** 오늘 포함 전후 일수 범위 캐시 전체 삭제 (관리자용) */
+    public void clearRangeCache(LocalDate from, LocalDate to) {
+        from.datesUntil(to.plusDays(1))
+                .forEach(d -> redisTemplate.delete("meal:" + d.format(DATE_FMT)));
+    }
+
     public MealResponse getMeal(LocalDate date) {
         String dateStr = date.format(DATE_FMT);
         String cacheKey = "meal:" + dateStr;
@@ -42,10 +67,21 @@ public class MealService {
         }
 
         MealResponse response = fetchFromNeis(dateStr);
-        try {
-            redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(response), Duration.ofHours(12));
-        } catch (Exception e) {
-            log.warn("[Meal] 캐시 저장 실패: {}", e.getMessage());
+
+        // 조·중·석식 모두 null이면 캐시하지 않음 (API 오류·키 미설정 등 일시적 실패 대비)
+        boolean hasAnyMeal = response.getBreakfast() != null
+                || response.getLunch() != null
+                || response.getDinner() != null;
+        if (hasAnyMeal) {
+            try {
+                redisTemplate.opsForValue().set(
+                        cacheKey,
+                        objectMapper.writeValueAsString(response),
+                        ttlUntilMidnight(date)
+                );
+            } catch (Exception e) {
+                log.warn("[Meal] 캐시 저장 실패: {}", e.getMessage());
+            }
         }
         return response;
     }
