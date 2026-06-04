@@ -259,6 +259,7 @@ public class PostService {
         Pageable pageable = PageRequest.of(page, size, sort);
         boolean includeLegacyCommunity = boardType == PostBoardType.COMMUNITY;
         String mediaFilterStr = (mediaFilter == null || mediaFilter == MediaFilter.ALL) ? null : mediaFilter.name();
+        boolean excludeTech = (boardType == PostBoardType.COMMUNITY && category == null);
         Page<PostSummaryResponse> result = postRepository.searchSummaries(
                         boardType,
                         category,
@@ -267,6 +268,7 @@ public class PostService {
                         blankToNull(query),
                         includeLegacyCommunity,
                         mediaFilterStr,
+                        excludeTech,
                         pageable)
                 .map(this::completeSummary);
         return toPageResponse(result);
@@ -371,8 +373,17 @@ public class PostService {
         updateInternal(seq, req, auth, false, null);
     }
 
+    /** 일반 커뮤니티(TECH 제외) 게시글 수정 */
     @Transactional
     public void updateCommunity(@NonNull Long seq, @NonNull PostUpdateRequest req, Authentication auth) {
+        ensureNotDevPost(getPostBySeqOrThrow(seq));
+        updateInternal(seq, req, auth, true, PostBoardType.COMMUNITY);
+    }
+
+    /** 개발 커뮤니티(TECH 전용) 게시글 수정 */
+    @Transactional
+    public void updateDevCommunity(@NonNull Long seq, @NonNull PostUpdateRequest req, Authentication auth) {
+        ensureDevPost(getPostBySeqOrThrow(seq));
         updateInternal(seq, req, auth, true, PostBoardType.COMMUNITY);
     }
 
@@ -436,7 +447,25 @@ public class PostService {
 
     @Transactional
     public void delete(@NonNull Long seq, Authentication auth) {
+        deleteInternal(seq, auth, null);
+    }
+
+    /** 일반 커뮤니티(TECH 제외) 게시글 삭제 */
+    @Transactional
+    public void deleteCommunity(@NonNull Long seq, Authentication auth) {
+        deleteInternal(seq, auth, false);
+    }
+
+    /** 개발 커뮤니티(TECH 전용) 게시글 삭제 */
+    @Transactional
+    public void deleteDevCommunity(@NonNull Long seq, Authentication auth) {
+        deleteInternal(seq, auth, true);
+    }
+
+    private void deleteInternal(@NonNull Long seq, Authentication auth, Boolean requireDev) {
         Post post = getPostBySeqOrThrow(seq);
+        if (Boolean.FALSE.equals(requireDev)) ensureNotDevPost(post);
+        if (Boolean.TRUE.equals(requireDev))  ensureDevPost(post);
         ensureWriterOrAdmin(post, auth);
         pollService.deleteByPost(post);
         postAttachmentRepository.deleteAllByPostUuid(post.getPostUuid());
@@ -768,6 +797,18 @@ public class PostService {
 
     private String displayName(User user) {
         return user.isUseNickname() ? user.getUserNickname() : user.getUserRealname();
+    }
+
+    private void ensureNotDevPost(Post post) {
+        if (post.getCommunityCategory() == CommunityCategory.TECH) {
+            throw new IllegalArgumentException("개발 커뮤니티 게시글은 /api/community/dev/posts 엔드포인트를 사용해주세요.");
+        }
+    }
+
+    private void ensureDevPost(Post post) {
+        if (post.getCommunityCategory() != CommunityCategory.TECH) {
+            throw new IllegalArgumentException("일반 커뮤니티 게시글은 /api/community/posts 엔드포인트를 사용해주세요.");
+        }
     }
 
     private List<EmojiReactionResponse> loadEmojiReactions(String postUuid, String requesterUuid) {

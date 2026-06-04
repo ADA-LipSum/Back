@@ -175,9 +175,8 @@ public class DevCommunityController {
             @Valid @RequestBody PostUpdateRequest request,
             @Parameter(hidden = true) Authentication authentication
     ) {
-        // 개발 커뮤니티 카테고리 강제 유지
         request.setCommunityCategory(CommunityCategory.TECH);
-        postService.updateCommunity(id, request, authentication);
+        postService.updateDevCommunity(id, request, authentication);
         return ResponseEntity.ok(ApiResponse.success());
     }
 
@@ -191,7 +190,7 @@ public class DevCommunityController {
             @Parameter(description = "게시글 순번", example = "1") @PathVariable Long id,
             @Parameter(hidden = true) Authentication authentication
     ) {
-        postService.delete(id, authentication);
+        postService.deleteDevCommunity(id, authentication);
         return ResponseEntity.ok(ApiResponse.success());
     }
 

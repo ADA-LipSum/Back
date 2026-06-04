@@ -134,9 +134,12 @@ public class CommunityController {
     )
     public ResponseEntity<ApiResponse<Long>> create(
             @Valid @RequestBody PostCreateRequest request,
-            Authentication authentication
+            @Parameter(hidden = true) Authentication authentication
     ) {
         PostCreateRequest payload = Objects.requireNonNull(request, "request");
+        if (payload.getCommunityCategory() == com.ada.proj.enums.CommunityCategory.TECH) {
+            throw new IllegalArgumentException("개발 커뮤니티 게시글은 POST /api/community/dev/posts 를 사용해주세요.");
+        }
         if (authentication != null) {
             payload.setWriterUuid(authentication.getName());
         }
@@ -177,7 +180,7 @@ public class CommunityController {
     public ResponseEntity<ApiResponse<Void>> update(
             @Parameter(description = "게시글 순번", example = "1") @PathVariable Long id,
             @Valid @RequestBody PostUpdateRequest request,
-            Authentication authentication
+            @Parameter(hidden = true) Authentication authentication
     ) {
         postService.updateCommunity(id, request, authentication);
         return ResponseEntity.ok(ApiResponse.success());
@@ -191,9 +194,9 @@ public class CommunityController {
     )
     public ResponseEntity<ApiResponse<Void>> delete(
             @Parameter(description = "게시글 순번", example = "1") @PathVariable Long id,
-            Authentication authentication
+            @Parameter(hidden = true) Authentication authentication
     ) {
-        postService.delete(id, authentication);
+        postService.deleteCommunity(id, authentication);
         return ResponseEntity.ok(ApiResponse.success());
     }
 
