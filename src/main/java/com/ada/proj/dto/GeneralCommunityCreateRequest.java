@@ -1,5 +1,7 @@
 package com.ada.proj.dto;
 
+import java.util.List;
+
 import com.ada.proj.enums.CommunityCategory;
 import com.fasterxml.jackson.annotation.JsonAlias;
 
@@ -38,27 +40,32 @@ public class GeneralCommunityCreateRequest {
     private CommunityCategory communityCategory;
 
     @Schema(
-            description = "이미지 URL 목록 (쉼표 구분). 먼저 `POST /api/upload/community/post-media` 로 업로드 후 반환된 URL을 넣으세요.",
-            example = "https://bucket.s3.ap-northeast-2.amazonaws.com/community/posts/uuid/img.png"
+            description = "이미지 URL 배열. 먼저 `POST /api/upload/community/post-media` 로 업로드 후 반환된 URL을 배열로 담아 전달하세요.",
+            example = "[\"https://bucket.s3.amazonaws.com/community/posts/uuid/img1.png\", \"https://bucket.s3.amazonaws.com/community/posts/uuid/img2.png\"]"
     )
-    private String images;
+    private List<String> images;
 
     @Schema(
-            description = "영상 URL 목록 (쉼표 구분). 먼저 `POST /api/upload/community/post-media` 로 업로드 후 반환된 URL을 넣으세요.",
-            example = "https://bucket.s3.ap-northeast-2.amazonaws.com/community/posts/uuid/video.mp4"
+            description = "영상 URL 배열. 먼저 `POST /api/upload/community/post-media` 로 업로드 후 반환된 URL을 배열로 담아 전달하세요.",
+            example = "[\"https://bucket.s3.amazonaws.com/community/posts/uuid/video.mp4\"]"
     )
-    private String videos;
+    private List<String> videos;
 
     /** PostCreateRequest 로 변환 */
     public PostCreateRequest toPostCreateRequest() {
         PostCreateRequest req = new PostCreateRequest();
         req.setTitle(title);
         req.setContent(content);
-        req.setImages(images);
-        req.setVideos(videos);
+        req.setImages(joinOrNull(images));
+        req.setVideos(joinOrNull(videos));
         req.setCommunityCategory(
                 communityCategory != null ? communityCategory : CommunityCategory.CHAT
         );
         return req;
+    }
+
+    private static String joinOrNull(List<String> list) {
+        if (list == null || list.isEmpty()) return null;
+        return String.join(",", list.stream().filter(s -> s != null && !s.isBlank()).toList());
     }
 }

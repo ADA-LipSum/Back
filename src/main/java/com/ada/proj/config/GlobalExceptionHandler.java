@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -30,6 +31,31 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    /**
+     * JSON 파싱 오류 — 보통 trailing comma(, 뒤에 }) 나 잘못된 JSON 구문이 원인.
+     * 실사용자는 프론트엔드 에러 처리로 이 메시지를 직접 볼 수 없음.
+     * Swagger로 테스트하는 개발자 전용 메시지.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleJsonParseError(HttpMessageNotReadableException e, HttpServletRequest req) {
+        String cause = e.getMessage() != null ? e.getMessage() : "";
+        // trailing comma 또는 일반 JSON 문법 오류 감지
+        boolean isJsonSyntax = cause.contains("JsonParseException")
+                || cause.contains("Unexpected character")
+                || cause.contains("trailing")
+                || cause.contains("was expecting");
+
+        if (isJsonSyntax) {
+            log.warn("[JSON_PARSE] 쉼표 지우라고 새끼야! path={} cause={}", req != null ? req.getRequestURI() : "", cause);
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("JSON_SYNTAX_ERROR", "쉼표 지우라고 새끼야!"));
+        }
+
+        logWarn(e, req, 400, ErrorCode.BAD_REQUEST.name());
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error(ErrorCode.BAD_REQUEST.name(), "요청 본문을 읽을 수 없습니다."));
+    }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ApiResponse<Void>> handleMaxUploadSize(MaxUploadSizeExceededException e, HttpServletRequest req) {

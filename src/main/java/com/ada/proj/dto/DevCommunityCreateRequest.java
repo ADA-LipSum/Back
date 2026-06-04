@@ -47,10 +47,10 @@ public class DevCommunityCreateRequest {
     private List<String> techTags;
 
     @Schema(
-            description = "이미지 URL 목록 (쉼표 구분). 먼저 `POST /api/upload/community/post-media` 로 업로드 후 반환된 URL을 넣으세요.",
-            example = "https://bucket.s3.ap-northeast-2.amazonaws.com/community/posts/uuid/img.png"
+            description = "이미지 URL 배열. 먼저 `POST /api/upload/community/post-media` 로 업로드 후 반환된 URL을 배열로 담아 전달하세요.",
+            example = "[\"https://bucket.s3.amazonaws.com/community/posts/uuid/img.png\"]"
     )
-    private String images;
+    private List<String> images;
 
     @Schema(
             description = """
@@ -68,11 +68,16 @@ public class DevCommunityCreateRequest {
         PostCreateRequest req = new PostCreateRequest();
         req.setTitle(title);
         req.setContent(content);
-        req.setImages(images);
+        req.setImages(joinOrNull(images));
         req.setCommunityCategory(CommunityCategory.TECH);
         req.setTechSubTag(techSubTag);
         req.setTechTags(techTags);
         req.setPoll(poll);
         return req;
+    }
+
+    private static String joinOrNull(List<String> list) {
+        if (list == null || list.isEmpty()) return null;
+        return String.join(",", list.stream().filter(s -> s != null && !s.isBlank()).toList());
     }
 }
