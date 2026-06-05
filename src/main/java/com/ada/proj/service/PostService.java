@@ -640,6 +640,10 @@ public class PostService {
                     }
                     resolvedSubTag = TechSubTag.CHAT;
                 }
+                // poll 데이터가 제공된 경우 techSubTag를 POLL로 자동 설정
+                if (pollProvided) {
+                    resolvedSubTag = TechSubTag.POLL;
+                }
                 if (resolvedSubTag == TechSubTag.POLL && strict && !pollProvided && requirePollOnPollPost) {
                     throw new IllegalArgumentException("투표 게시글에는 투표 정보가 필요합니다.");
                 }
