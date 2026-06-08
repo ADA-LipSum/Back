@@ -40,10 +40,10 @@ public class NoticeSummaryResponse {
     @Schema(description = "조회수", example = "154")
     private Integer views;
 
-    @Schema(description = "분류 (EVENT=행사, SERVICE=서비스, OTHER=기타). 분류 없으면 null", example = "SERVICE")
+    @Schema(description = "분류 (EVENT=행사, SERVICE=서비스, EMPLOYMENT=취업, OTHER=기타). 분류 없으면 null", example = "SERVICE")
     private NoticeCategory noticeCategory;
 
-    @Schema(description = "고정 여부 — true 이면 목록 최상단에 pinnedAt 최신순으로 표시", example = "false")
+    @Schema(description = "고정 여부 — true 이면 목록 최상단에 먼저 고정한 순(pinnedAt 오름차순)으로 표시", example = "false")
     private Boolean isPinned;
 
     @Schema(description = "고정 시각. isPinned=false 이면 null")

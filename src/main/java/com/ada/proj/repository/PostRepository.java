@@ -81,7 +81,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
             @Param("excludeCategory") CommunityCategory excludeCategory,
             Pageable pageable);
 
-    // 공지사항 목록: 핀된 글은 pinnedAt 최신순 최상단, 그 이후 일반 글 writedAt 내림차순
+    // 공지사항 목록: 핀된 글은 먼저 고정한 순(pinnedAt 오름차순) 최상단, 그 이후 일반 글 writedAt 내림차순
     @Query(value = """
             select new com.ada.proj.dto.NoticeSummaryResponse(
                 p.postUuid, p.seq, p.title, p.writer, u.profileImage,
@@ -97,7 +97,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
               )
             order by
               case when p.isPinned = true then 0 else 1 end asc,
-              case when p.isPinned = true then p.pinnedAt end desc,
+              case when p.isPinned = true then p.pinnedAt end asc,
               p.writedAt desc
             """,
             countQuery = """

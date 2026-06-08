@@ -89,10 +89,6 @@ public class S3Service {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("파일이 없습니다.");
         }
-        long maxBytes = 50L * 1024 * 1024; // 50MB
-        if (file.getSize() > maxBytes) {
-            throw new IllegalArgumentException("파일 크기는 50MB를 초과할 수 없습니다.");
-        }
         String key = "notices/attachments/" + userUuid + "/" + UUID.randomUUID() + getExtension(file);
         return upload(file, key);
     }

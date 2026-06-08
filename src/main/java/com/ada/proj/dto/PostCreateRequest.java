@@ -64,7 +64,7 @@ public class PostCreateRequest {
 
     @Schema(description = """
             ⚠️ 공지사항 전용 (POST /api/notices).
-            공지 분류: EVENT(행사) · SERVICE(서비스) · OTHER(기타)""",
+            공지 분류: EVENT(행사) · SERVICE(서비스) · EMPLOYMENT(취업) · OTHER(기타)""",
             example = "SERVICE")
     private NoticeCategory noticeCategory;
 

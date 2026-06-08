@@ -98,7 +98,7 @@ public class PostDetailResponse {
     @Schema(description = "현재 로그인 사용자의 북마크 여부 (비로그인 시 false)", example = "false")
     private Boolean isBookmarked;
 
-    @Schema(description = "공지사항 분류 (NOTICE 게시글에만 존재). EVENT · SERVICE · OTHER")
+    @Schema(description = "공지사항 분류 (NOTICE 게시글에만 존재). EVENT · SERVICE · EMPLOYMENT · OTHER")
     private NoticeCategory noticeCategory;
 
     @Schema(description = "공지사항 고정 여부 (NOTICE 게시글에만 의미 있음)", example = "false")

@@ -48,14 +48,14 @@ public class NoticeController {
                     공지사항 목록을 반환합니다.
 
                     **정렬 규칙**
-                    1. 📌 고정 게시물 → `pinnedAt` 최신순
+                    1. 📌 고정 게시물 → 먼저 고정한 순 (`pinnedAt` 오름차순)
                     2. 일반 게시물 → `writedAt` 최신순
 
                     **Response 주요 필드**
                     | 필드 | 설명 |
                     |---|---|
                     | seq | 번호 (고정 게시물은 UI에서 📌 표시 권장) |
-                    | noticeCategory | EVENT · SERVICE · OTHER |
+                    | noticeCategory | EVENT · SERVICE · EMPLOYMENT · OTHER |
                     | isPinned | 고정 여부 |
                     | views | 누적 조회수 |
                     """
@@ -65,7 +65,7 @@ public class NoticeController {
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기", example = "20")
             @RequestParam(defaultValue = "20") int size,
-            @Parameter(description = "분류 필터", schema = @Schema(allowableValues = {"EVENT", "SERVICE", "OTHER"}))
+            @Parameter(description = "분류 필터", schema = @Schema(allowableValues = {"EVENT", "SERVICE", "EMPLOYMENT", "OTHER"}))
             @RequestParam(required = false) String category,
             @Parameter(description = "제목·내용 키워드 검색어", example = "점검")
             @RequestParam(required = false) String query
@@ -99,7 +99,7 @@ public class NoticeController {
                     |---|---|---|
                     | title | ✅ | 제목 (최대 20자) |
                     | content | - | 본문 |
-                    | noticeCategory | - | `EVENT`(행사) · `SERVICE`(서비스) · `OTHER`(기타) |
+                    | noticeCategory | - | `EVENT`(행사) · `SERVICE`(서비스) · `EMPLOYMENT`(취업) · `OTHER`(기타) |
                     | attachmentIds | - | 먼저 `POST /api/upload/notice/attachment` 로 업로드 후 반환된 ID 목록 |
 
                     **Response:** `data` = 생성된 공지사항 순번(Long)
@@ -153,7 +153,7 @@ public class NoticeController {
     @PostMapping("/{id}/pin")
     @Operation(
             summary = "공지사항 고정 (관리자)",
-            description = "공지사항을 목록 최상단에 고정합니다. **관리자 전용.** 다중 고정 지원. `pinnedAt` 최신순으로 정렬됩니다.",
+            description = "공지사항을 목록 최상단에 고정합니다. **관리자 전용.** 다중 고정 지원. 먼저 고정한 게시물이 위로 오도록(`pinnedAt` 오름차순) 정렬됩니다.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Void>> pin(
