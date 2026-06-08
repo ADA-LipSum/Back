@@ -1,8 +1,11 @@
 package com.ada.proj.controller;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -14,7 +17,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.ada.proj.dto.ApiResponse;
 import com.ada.proj.dto.NoticeSummaryResponse;
@@ -22,8 +27,12 @@ import com.ada.proj.dto.PageResponse;
 import com.ada.proj.dto.PostCreateRequest;
 import com.ada.proj.dto.PostDetailResponse;
 import com.ada.proj.dto.PostUpdateRequest;
+import com.ada.proj.entity.PostAttachment;
+import com.ada.proj.enums.AttachmentType;
 import com.ada.proj.enums.NoticeCategory;
+import com.ada.proj.repository.PostAttachmentRepository;
 import com.ada.proj.service.PostService;
+import com.ada.proj.service.S3Service;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,6 +49,8 @@ import lombok.RequiredArgsConstructor;
 public class NoticeController {
 
     private final PostService postService;
+    private final S3Service s3Service;
+    private final PostAttachmentRepository postAttachmentRepository;
 
     @GetMapping
     @Operation(
@@ -89,33 +100,69 @@ public class NoticeController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "공지사항 작성 (관리자)",
             description = """
-                    공지사항을 작성합니다. **관리자 전용.**
+                    공지사항을 작성합니다. **관리자 전용.** (multipart/form-data)
 
+                    | 파트 | 필수 | 설명 |
+                    |---|---|---|
+                    | request | ✅ | 공지 정보 JSON (`Content-Type: application/json`) |
+                    | attachments | - | 첨부파일 목록 (이미지·영상·PDF·HWP·문서 등 모든 형식, 크기·개수 제한 없음) — 바로 업로드되어 공지에 연결됨 |
+
+                    **request JSON 필드**
                     | 필드 | 필수 | 설명 |
                     |---|---|---|
                     | title | ✅ | 제목 (최대 20자) |
                     | content | - | 본문 |
                     | noticeCategory | - | `EVENT`(행사) · `SERVICE`(서비스) · `EMPLOYMENT`(취업) · `OTHER`(기타) |
-                    | attachmentIds | - | 먼저 `POST /api/upload/notice/attachment` 로 업로드 후 반환된 ID 목록 |
+                    | attachmentIds | - | (선택) 미리 `POST /api/upload/notice/attachment` 로 업로드한 첨부파일 ID 목록. `attachments` 파트와 함께 사용하면 둘 다 연결됨 |
+                    | poll | - | 투표 정보 (질문·선택지·종료 시각). 전달 시 해당 공지사항이 투표 게시글이 됨 |
 
                     **Response:** `data` = 생성된 공지사항 순번(Long)
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Long>> create(
-            @Valid @RequestBody PostCreateRequest request,
+            @Valid @RequestPart("request") PostCreateRequest request,
+            @Parameter(description = "첨부파일 목록 (여러 개 선택 가능)")
+            @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments,
             Authentication authentication
     ) {
         PostCreateRequest payload = Objects.requireNonNull(request, "request");
-        if (authentication != null) {
-            payload.setWriterUuid(authentication.getName());
-        }
+        String adminUuid = authentication.getName();
+        payload.setWriterUuid(adminUuid);
+        payload.setAttachmentIds(mergeAttachmentIds(payload.getAttachmentIds(), uploadAttachments(attachments, adminUuid)));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(postService.createNotice(payload)));
+    }
+
+    private List<Long> uploadAttachments(List<MultipartFile> files, String uploaderUuid) {
+        if (files == null || files.isEmpty()) return null;
+        return files.stream()
+                .filter(file -> file != null && !file.isEmpty())
+                .map(file -> {
+                    String url = s3Service.uploadNoticeAttachment(file, uploaderUuid);
+                    String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "attachment";
+                    PostAttachment attachment = PostAttachment.builder()
+                            .postUuid(null)
+                            .fileName(originalFilename)
+                            .fileUrl(url)
+                            .fileType(AttachmentType.fromFileName(originalFilename))
+                            .fileSize(file.getSize())
+                            .build();
+                    return postAttachmentRepository.save(attachment).getId();
+                })
+                .toList();
+    }
+
+    private List<Long> mergeAttachmentIds(List<Long> existing, List<Long> uploaded) {
+        List<Long> merged = Stream.concat(
+                existing == null ? Stream.<Long>empty() : existing.stream(),
+                uploaded == null ? Stream.<Long>empty() : uploaded.stream()
+        ).toList();
+        return merged.isEmpty() ? null : merged;
     }
 
     @PreAuthorize("hasRole('ADMIN')")

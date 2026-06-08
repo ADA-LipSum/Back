@@ -59,7 +59,7 @@ public class PostCreateRequest {
             example = "[\"React\", \"TypeScript\"]")
     private List<String> techTags;
 
-    @Schema(description = "⚠️ 투표 게시글 전용 (개발 커뮤니티 techSubTag=POLL). 투표 선택지·종료 시각 포함.")
+    @Schema(description = "투표 정보. 개발 커뮤니티 투표 게시글(techSubTag=POLL) 또는 공지사항에서 사용 가능. 전달 시 개발 커뮤니티는 techSubTag가 POLL로 자동 설정됨. 투표 선택지·종료 시각 포함.")
     private PollCreateRequest poll;
 
     @Schema(description = """

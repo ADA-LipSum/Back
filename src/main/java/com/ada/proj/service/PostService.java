@@ -578,7 +578,8 @@ public class PostService {
                 Boolean.TRUE.equals(req.getIsDev()),
                 req.getPoll() != null,
                 strict,
-                true
+                true,
+                false
         );
     }
 
@@ -602,6 +603,7 @@ public class PostService {
         }
 
         boolean isDev = req.getIsDev() != null ? req.getIsDev() : Boolean.TRUE.equals(post.getIsDev());
+        boolean existingPollPost = pollService.findResponseByPostUuid(post.getPostUuid()) != null;
 
         return normalizeMeta(
                 boardType,
@@ -612,7 +614,8 @@ public class PostService {
                 isDev,
                 req.getPoll() != null,
                 strict,
-                false
+                false,
+                existingPollPost
         );
     }
 
@@ -625,7 +628,8 @@ public class PostService {
             boolean isDev,
             boolean pollProvided,
             boolean strict,
-            boolean requirePollOnPollPost
+            boolean requirePollOnPollPost,
+            boolean existingPollPost
     ) {
         if (boardType == PostBoardType.COMMUNITY) {
             CommunityCategory resolvedCategory = category != null
@@ -660,19 +664,21 @@ public class PostService {
             }
 
             if (pollProvided) {
-                throw new IllegalArgumentException("투표 정보는 커뮤니티 기술/투표 게시글에서만 사용할 수 있습니다.");
+                throw new IllegalArgumentException("투표 정보는 커뮤니티 기술/투표 게시글 또는 공지사항에서만 사용할 수 있습니다.");
             }
             return new ResolvedPostMeta(boardType, resolvedCategory, null, null, thumbnail, false, false, false);
         }
 
-        if (pollProvided) {
-            throw new IllegalArgumentException("투표 정보는 커뮤니티 기술/투표 게시글에서만 사용할 수 있습니다.");
-        }
         if (boardType == PostBoardType.BLOG) {
+            if (pollProvided) {
+                throw new IllegalArgumentException("투표 정보는 커뮤니티 기술/투표 게시글 또는 공지사항에서만 사용할 수 있습니다.");
+            }
             boolean hasTechTags = techTagsCsv != null && !techTagsCsv.isBlank();
             return new ResolvedPostMeta(boardType, null, null, techTagsCsv, thumbnail, hasTechTags, false, false);
         }
-        return new ResolvedPostMeta(PostBoardType.NOTICE, null, null, null, null, false, false, false);
+
+        boolean isPollPost = pollProvided || existingPollPost;
+        return new ResolvedPostMeta(PostBoardType.NOTICE, null, null, null, null, false, isPollPost, isPollPost && pollProvided);
     }
 
     private String resolveWriterUuid(String requestWriterUuid) {
