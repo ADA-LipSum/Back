@@ -77,6 +77,8 @@ public class CommunityController {
                     | TEXT | 텍스트만 (이미지·영상 없는 글) |
 
                     **sort** `LATEST`(기본) / `POPULAR`(좋아요 내림차순)
+
+                    응답의 `images`, `videos` 필드로 상세 조회 없이도 첨부 이미지·영상 URL 목록을 확인할 수 있습니다.
                     """
     )
     public ResponseEntity<ApiResponse<PageResponse<PostSummaryResponse>>> list(

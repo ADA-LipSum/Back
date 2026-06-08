@@ -29,7 +29,8 @@ public interface PostRepository extends JpaRepository<Post, String> {
                 p.postUuid, p.seq, p.title, p.writer, u.profileImage,
                 p.writedAt, p.likes, p.views, p.comments,
                 p.isDev, p.devTags, null,
-                p.boardType, p.communityCategory, p.techSubTag, p.thumbnailImage
+                p.boardType, p.communityCategory, p.techSubTag, p.thumbnailImage,
+                p.images, p.videos
             )
             from Post p left join com.ada.proj.entity.User u on u.uuid = p.writerUuid
             """)
@@ -40,7 +41,8 @@ public interface PostRepository extends JpaRepository<Post, String> {
                 p.postUuid, p.seq, p.title, p.writer, u.profileImage,
                 p.writedAt, p.likes, p.views, p.comments,
                 p.isDev, p.devTags, null,
-                p.boardType, p.communityCategory, p.techSubTag, p.thumbnailImage
+                p.boardType, p.communityCategory, p.techSubTag, p.thumbnailImage,
+                p.images, p.videos
             )
             from Post p left join com.ada.proj.entity.User u on u.uuid = p.writerUuid
             where (
@@ -171,7 +173,8 @@ public interface PostRepository extends JpaRepository<Post, String> {
                 p.postUuid, p.seq, p.title, p.writer, u.profileImage,
                 p.writedAt, p.likes, p.views, p.comments,
                 p.isDev, p.devTags, null,
-                p.boardType, p.communityCategory, p.techSubTag, p.thumbnailImage
+                p.boardType, p.communityCategory, p.techSubTag, p.thumbnailImage,
+                p.images, p.videos
             )
             from Post p
             join com.ada.proj.entity.PostBookmark pb on pb.postUuid = p.postUuid
