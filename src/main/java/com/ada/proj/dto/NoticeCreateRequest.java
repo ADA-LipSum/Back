@@ -5,6 +5,7 @@ import java.util.List;
 import com.ada.proj.enums.NoticeCategory;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -26,6 +27,7 @@ public class NoticeCreateRequest {
     @Schema(description = "공지 분류: EVENT(행사) · SERVICE(서비스) · EMPLOYMENT(취업) · OTHER(기타)", example = "SERVICE")
     private NoticeCategory noticeCategory;
 
+    @Valid
     @Schema(description = "투표 정보 (질문·선택지·종료 시각). 전달 시 해당 공지사항이 투표 게시글이 됨")
     private PollCreateRequest poll;
 

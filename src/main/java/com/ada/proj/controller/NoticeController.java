@@ -1,7 +1,7 @@
 package com.ada.proj.controller;
 
 import java.util.List;
-import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.springframework.http.HttpStatus;
@@ -20,6 +20,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.ada.proj.dto.ApiResponse;
 import com.ada.proj.dto.NoticeCreateRequest;
@@ -40,7 +43,10 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -52,6 +58,8 @@ public class NoticeController {
     private final PostService postService;
     private final S3Service s3Service;
     private final PostAttachmentRepository postAttachmentRepository;
+    private final ObjectMapper objectMapper;
+    private final Validator validator;
 
     @GetMapping
     @Operation(
@@ -109,7 +117,7 @@ public class NoticeController {
 
                     | 파트 | 필수 | 설명 |
                     |---|---|---|
-                    | request | ✅ | 공지 정보 JSON (`Content-Type: application/json`) |
+                    | request | ✅ | 공지 정보 JSON 문자열 (Swagger에서 테스트 시 텍스트 그대로 입력하면 됩니다. Content-Type 무관) |
                     | attachments | - | 첨부파일 목록 (이미지·영상·PDF·HWP·문서 등 모든 형식, 크기·개수 제한 없음) — 바로 업로드되어 공지에 연결됨 |
 
                     **request JSON 필드**
@@ -126,17 +134,35 @@ public class NoticeController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Long>> create(
-            @Valid @RequestPart("request") NoticeCreateRequest request,
+            @Parameter(description = "공지 정보 JSON 문자열 (title/content/noticeCategory/poll/attachmentIds)", required = true)
+            @RequestPart("request") String requestJson,
             @Parameter(description = "첨부파일 목록 (여러 개 선택 가능)")
             @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments,
             Authentication authentication
     ) {
-        PostCreateRequest payload = Objects.requireNonNull(request, "request").toPostCreateRequest();
+        PostCreateRequest payload = parseNoticeRequest(requestJson).toPostCreateRequest();
         String adminUuid = authentication.getName();
         payload.setWriterUuid(adminUuid);
         payload.setAttachmentIds(mergeAttachmentIds(payload.getAttachmentIds(), uploadAttachments(attachments, adminUuid)));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(postService.createNotice(payload)));
+    }
+
+    private NoticeCreateRequest parseNoticeRequest(String requestJson) {
+        if (requestJson == null || requestJson.isBlank()) {
+            throw new IllegalArgumentException("request: 공지 정보를 JSON으로 전달해주세요.");
+        }
+        NoticeCreateRequest request;
+        try {
+            request = objectMapper.readValue(requestJson, NoticeCreateRequest.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("request: JSON 형식이 올바르지 않습니다.");
+        }
+        Set<ConstraintViolation<NoticeCreateRequest>> violations = validator.validate(request);
+        if (!violations.isEmpty()) {
+            throw new ConstraintViolationException(violations);
+        }
+        return request;
     }
 
     private List<Long> uploadAttachments(List<MultipartFile> files, String uploaderUuid) {
