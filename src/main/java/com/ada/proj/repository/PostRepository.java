@@ -85,7 +85,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
     @Query(value = """
             select new com.ada.proj.dto.NoticeSummaryResponse(
                 p.postUuid, p.seq, p.title, p.writer, u.profileImage,
-                p.writedAt, p.views, p.noticeCategory, p.isPinned, p.pinnedAt
+                p.writedAt, p.noticeCategory, p.isPinned, p.pinnedAt
             )
             from Post p left join com.ada.proj.entity.User u on u.uuid = p.writerUuid
             where p.boardType = com.ada.proj.enums.PostBoardType.NOTICE

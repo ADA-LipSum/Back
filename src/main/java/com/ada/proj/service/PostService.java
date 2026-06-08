@@ -400,7 +400,10 @@ public class PostService {
     }
 
     private PostDetailResponse buildDetailResponse(Post post, String requesterUuid) {
-        postRepository.increaseViews(post.getPostUuid());
+        boolean isNotice = post.getBoardType() == PostBoardType.NOTICE;
+        if (!isNotice) {
+            postRepository.increaseViews(post.getPostUuid());
+        }
 
         User user = userRepository.findByUuid(post.getWriterUuid()).orElse(null);
         boolean isLiked = requesterUuid != null
@@ -426,7 +429,7 @@ public class PostService {
                 .writedAt(post.getWritedAt())
                 .updatedAt(post.getUpdatedAt())
                 .likes(post.getLikes())
-                .views(post.getViews())
+                .views(isNotice ? null : post.getViews())
                 .comments(post.getComments())
                 .isDev(post.getIsDev())
                 .devTags(post.getDevTags())

@@ -37,9 +37,6 @@ public class NoticeSummaryResponse {
     @Schema(description = "등록일")
     private LocalDateTime createdAt;
 
-    @Schema(description = "조회수", example = "154")
-    private Integer views;
-
     @Schema(description = "분류 (EVENT=행사, SERVICE=서비스, EMPLOYMENT=취업, OTHER=기타). 분류 없으면 null", example = "SERVICE")
     private NoticeCategory noticeCategory;
 

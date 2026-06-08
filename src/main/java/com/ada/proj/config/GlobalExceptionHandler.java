@@ -9,12 +9,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.validation.FieldError;
+import software.amazon.awssdk.core.exception.SdkException;
 
 import com.ada.proj.dto.ApiResponse;
 import com.ada.proj.enums.ErrorCode;
@@ -55,6 +58,31 @@ public class GlobalExceptionHandler {
         logWarn(e, req, 400, ErrorCode.BAD_REQUEST.name());
         return ResponseEntity.badRequest()
                 .body(ApiResponse.error(ErrorCode.BAD_REQUEST.name(), "요청 본문을 읽을 수 없습니다."));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException e, HttpServletRequest req) {
+        logWarn(e, req, 415, ErrorCode.BAD_REQUEST.name());
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(ApiResponse.error(ErrorCode.BAD_REQUEST.name(), "이 API는 multipart/form-data 형식의 요청만 허용합니다. (request 파트에 JSON, attachments 파트에 파일)"));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingPart(MissingServletRequestPartException e, HttpServletRequest req) {
+        logWarn(e, req, 400, ErrorCode.BAD_REQUEST.name());
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error(ErrorCode.BAD_REQUEST.name(), "필수 요청 파트(" + e.getRequestPartName() + ")가 누락되었습니다. multipart/form-data로 요청해주세요."));
+    }
+
+    /**
+     * S3 등 AWS SDK 호출 실패 (자격 증명 누락/네트워크/권한 등) — 보통 환경설정 문제이며 500보다는
+     * 503으로 구분해 응답해야 클라이언트/개발자가 "서버 버그"가 아닌 "업로드 인프라 문제"임을 알 수 있다.
+     */
+    @ExceptionHandler(SdkException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAwsSdkError(SdkException e, HttpServletRequest req) {
+        logError(e, req, 503, ErrorCode.INTERNAL_ERROR.name());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiResponse.error(ErrorCode.INTERNAL_ERROR.name(), "파일 업로드 서비스(S3)에 연결할 수 없습니다. AWS 자격 증명/버킷 설정을 확인해주세요."));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

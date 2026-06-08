@@ -68,7 +68,6 @@ public class NoticeController {
                     | seq | 번호 (고정 게시물은 UI에서 📌 표시 권장) |
                     | noticeCategory | EVENT · SERVICE · EMPLOYMENT · OTHER |
                     | isPinned | 고정 여부 |
-                    | views | 누적 조회수 |
                     """
     )
     public ResponseEntity<ApiResponse<PageResponse<NoticeSummaryResponse>>> list(
@@ -89,7 +88,7 @@ public class NoticeController {
     @GetMapping("/{id}")
     @Operation(
             summary = "공지사항 상세 조회",
-            description = "공지사항 상세를 반환합니다. 호출 시 **조회수 +1**. `attachments` 필드에 첨부파일 목록(다운로드 URL 포함)이 반환됩니다."
+            description = "공지사항 상세를 반환합니다. `attachments` 필드에 첨부파일 목록(다운로드 URL 포함)이 반환됩니다."
     )
     public ResponseEntity<ApiResponse<PostDetailResponse>> detail(
             @Parameter(description = "공지사항 게시글 순번") @PathVariable Long id,
