@@ -32,7 +32,7 @@ public class PostAttachment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "post_uuid", length = 36, nullable = false)
+    @Column(name = "post_uuid", length = 36)
     private String postUuid;
 
     @Column(name = "file_name", length = 255, nullable = false)

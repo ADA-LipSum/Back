@@ -185,10 +185,8 @@ public class AuthService {
         }
 
         final String uuid;
-        final String role;
         try {
             uuid = jwtTokenProvider.getUuid(refreshToken);
-            role = jwtTokenProvider.getRole(refreshToken);
         } catch (ExpiredJwtException ex) {
             throw new TokenExpiredException("Refresh token expired");
         } catch (JwtException | IllegalArgumentException ex) {
@@ -202,6 +200,12 @@ public class AuthService {
             throw new TokenInvalidException("Invalid refresh token");
         }
 
+        // 토큰에 박혀있던 role 클레임이 아니라 DB의 현재 role을 기준으로 재발급해야
+        // 재발급 시점 이후의 권한 변경(승격/강등)이 즉시 반영된다.
+        User user = userRepository.findByUuid(uuid)
+                .orElseThrow(() -> new TokenInvalidException("Invalid refresh token"));
+        String role = user.getRole().name();
+
         String newAccess = jwtTokenProvider.generateAccessToken(uuid, role);
         String newRefresh = jwtTokenProvider.generateRefreshToken(uuid, role);
 
@@ -211,27 +215,21 @@ public class AuthService {
         stored.setTtl(jwtProperties.getRefreshExpirationMs() / 1000);
         refreshTokenRepository.save(stored);
 
-        User user = userRepository.findByUuid(uuid).orElse(null);
-
-        LoginResponse.LoginResponseBuilder builder = LoginResponse.builder()
+        return LoginResponse.builder()
                 .tokenType("Bearer")
                 .accessToken(newAccess)
                 .refreshToken(newRefresh)
                 .expiresIn(jwtProperties.getAccessExpirationMs())
                 .uuid(uuid)
-                .role(role == null ? null : Role.valueOf(role))
-                .rememberMe(rememberMe);
-
-        if (user != null) {
-            builder.adminId(user.getAdminId())
-                    .customId(user.getCustomId())
-                    .userRealname(user.getUserRealname())
-                    .userNickname(user.getUserNickname())
-                    .profileImage(user.getProfileImage())
-                    .firstLogin(user.getLoginCount() == 0L);
-        }
-
-        return builder.build();
+                .role(user.getRole())
+                .rememberMe(rememberMe)
+                .adminId(user.getAdminId())
+                .customId(user.getCustomId())
+                .userRealname(user.getUserRealname())
+                .userNickname(user.getUserNickname())
+                .profileImage(user.getProfileImage())
+                .firstLogin(user.getLoginCount() == 0L)
+                .build();
     }
 
     public void logout(String uuid) {

@@ -173,7 +173,7 @@ public class CommunityController {
             Authentication authentication
     ) {
         String requesterUuid = authentication != null ? authentication.getName() : null;
-        return ResponseEntity.ok(ApiResponse.success(postService.detail(id, requesterUuid)));
+        return ResponseEntity.ok(ApiResponse.success(postService.detailCommunity(id, requesterUuid)));
     }
 
     @PutMapping("/{id}")

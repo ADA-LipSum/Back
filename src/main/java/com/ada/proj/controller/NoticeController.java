@@ -96,7 +96,7 @@ public class NoticeController {
             Authentication authentication
     ) {
         String requesterUuid = authentication != null ? authentication.getName() : null;
-        return ResponseEntity.ok(ApiResponse.success(postService.detail(id, requesterUuid)));
+        return ResponseEntity.ok(ApiResponse.success(postService.detailNotice(id, requesterUuid)));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

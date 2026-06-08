@@ -325,7 +325,50 @@ public class PostService {
 
     @Transactional
     public PostDetailResponse detail(@NonNull Long seq, String requesterUuid) {
+        return buildDetailResponse(getPostBySeqOrThrow(seq), requesterUuid);
+    }
+
+    /** 일반 커뮤니티(TECH 제외) 게시글 상세 — 다른 게시판의 글이면 404 */
+    @Transactional
+    public PostDetailResponse detailCommunity(@NonNull Long seq, String requesterUuid) {
         Post post = getPostBySeqOrThrow(seq);
+        ensureBoardType(post, PostBoardType.COMMUNITY);
+        ensureNotDevPost(post);
+        return buildDetailResponse(post, requesterUuid);
+    }
+
+    /** 개발 커뮤니티(TECH 전용) 게시글 상세 — 다른 게시판의 글이면 404 */
+    @Transactional
+    public PostDetailResponse detailDevCommunity(@NonNull Long seq, String requesterUuid) {
+        Post post = getPostBySeqOrThrow(seq);
+        ensureBoardType(post, PostBoardType.COMMUNITY);
+        ensureDevPost(post);
+        return buildDetailResponse(post, requesterUuid);
+    }
+
+    /** 블로그 게시글 상세 — 다른 게시판의 글이면 404 */
+    @Transactional
+    public PostDetailResponse detailBlog(@NonNull Long seq, String requesterUuid) {
+        Post post = getPostBySeqOrThrow(seq);
+        ensureBoardType(post, PostBoardType.BLOG);
+        return buildDetailResponse(post, requesterUuid);
+    }
+
+    /** 공지사항 상세 — 다른 게시판의 글이면 404 */
+    @Transactional
+    public PostDetailResponse detailNotice(@NonNull Long seq, String requesterUuid) {
+        Post post = getPostBySeqOrThrow(seq);
+        ensureBoardType(post, PostBoardType.NOTICE);
+        return buildDetailResponse(post, requesterUuid);
+    }
+
+    private void ensureBoardType(Post post, PostBoardType expected) {
+        if (post.getBoardType() != expected) {
+            throw new EntityNotFoundException("Post not found: " + post.getSeq());
+        }
+    }
+
+    private PostDetailResponse buildDetailResponse(Post post, String requesterUuid) {
         postRepository.increaseViews(post.getPostUuid());
 
         User user = userRepository.findByUuid(post.getWriterUuid()).orElse(null);

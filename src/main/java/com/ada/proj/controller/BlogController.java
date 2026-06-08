@@ -133,7 +133,7 @@ public class BlogController {
             Authentication authentication
     ) {
         String requesterUuid = authentication != null ? authentication.getName() : null;
-        return ResponseEntity.ok(ApiResponse.success(postService.detail(id, requesterUuid)));
+        return ResponseEntity.ok(ApiResponse.success(postService.detailBlog(id, requesterUuid)));
     }
 
     @PutMapping("/{id}")
