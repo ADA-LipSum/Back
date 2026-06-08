@@ -72,7 +72,8 @@ public class PostSummaryResponse {
             TechSubTag techSubTag,
             String thumbnailImage,
             String images,
-            String videos
+            String videos,
+            Boolean showMediaInList
     ) {
         this.postUuid = postUuid;
         this.seq = seq;
@@ -89,9 +90,11 @@ public class PostSummaryResponse {
         this.boardType = boardType;
         this.communityCategory = communityCategory;
         this.techSubTag = techSubTag;
-        this.thumbnailImage = thumbnailImage;
-        this.images = splitCsv(images);
-        this.videos = splitCsv(videos);
+
+        boolean mediaVisible = !Boolean.FALSE.equals(showMediaInList);
+        this.thumbnailImage = mediaVisible ? thumbnailImage : null;
+        this.images = mediaVisible ? splitCsv(images) : List.of();
+        this.videos = mediaVisible ? splitCsv(videos) : List.of();
     }
 
     private static List<String> splitCsv(String csv) {

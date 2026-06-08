@@ -30,7 +30,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
                 p.writedAt, p.likes, p.views, p.comments,
                 p.isDev, p.devTags, null,
                 p.boardType, p.communityCategory, p.techSubTag, p.thumbnailImage,
-                p.images, p.videos
+                p.images, p.videos, p.showMediaInList
             )
             from Post p left join com.ada.proj.entity.User u on u.uuid = p.writerUuid
             """)
@@ -42,7 +42,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
                 p.writedAt, p.likes, p.views, p.comments,
                 p.isDev, p.devTags, null,
                 p.boardType, p.communityCategory, p.techSubTag, p.thumbnailImage,
-                p.images, p.videos
+                p.images, p.videos, p.showMediaInList
             )
             from Post p left join com.ada.proj.entity.User u on u.uuid = p.writerUuid
             where (
@@ -174,7 +174,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
                 p.writedAt, p.likes, p.views, p.comments,
                 p.isDev, p.devTags, null,
                 p.boardType, p.communityCategory, p.techSubTag, p.thumbnailImage,
-                p.images, p.videos
+                p.images, p.videos, p.showMediaInList
             )
             from Post p
             join com.ada.proj.entity.PostBookmark pb on pb.postUuid = p.postUuid

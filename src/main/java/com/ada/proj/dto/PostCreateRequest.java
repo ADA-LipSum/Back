@@ -51,7 +51,7 @@ public class PostCreateRequest {
 
     @Schema(description = """
             ⚠️ 개발 커뮤니티 전용 (POST /api/community/dev/posts).
-            게시물 유형: QUESTION(질문) · PROJECT(프로젝트) · RESOURCE_SHARING(자료 공유) · TIP · POLL""",
+            게시물 유형: QUESTION(질문) · PROJECT(프로젝트) · MEME(밈) · RESOURCE_SHARING(자료 공유) · POLL(투표)""",
             example = "QUESTION")
     private TechSubTag techSubTag;
 
@@ -86,4 +86,10 @@ public class PostCreateRequest {
 
     @Schema(description = "블로그 썸네일 URL 전용. 비우면 본문 첫 번째 이미지가 자동 지정됩니다.", hidden = true)
     private String thumbnailImage;
+
+    @Schema(description = """
+            게시글 목록 조회 시 첨부 이미지·영상을 노출할지 여부 (선택, 기본값: true).
+            `false` 로 설정하면 목록(PostSummaryResponse)의 images/videos/thumbnailImage가 비어서 내려가고, 상세 조회에서만 확인할 수 있습니다.""",
+            example = "true")
+    private Boolean showMediaInList;
 }

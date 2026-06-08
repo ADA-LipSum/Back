@@ -88,6 +88,9 @@ public class Post {
     @Column(name = "thumbnail_image", length = 455)
     private String thumbnailImage;
 
+    @Column(name = "show_media_in_list")
+    private Boolean showMediaInList;
+
     @Column(name = "is_dev")
     private Boolean isDev;
 
@@ -113,6 +116,7 @@ public class Post {
         if (this.views == null) this.views = 0;
         if (this.comments == null) this.comments = 0;
         if (this.isDev == null) this.isDev = false;
+        if (this.showMediaInList == null) this.showMediaInList = true;
         if (this.boardType == null) this.boardType = PostBoardType.COMMUNITY;
         if (this.isPinned == null) this.isPinned = false;
     }

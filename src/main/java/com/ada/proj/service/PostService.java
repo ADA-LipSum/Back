@@ -169,6 +169,7 @@ public class PostService {
                 .devTags(meta.techTagsCsv())
                 .thumbnailImage(meta.thumbnailImage())
                 .noticeCategory(req.getNoticeCategory())
+                .showMediaInList(req.getShowMediaInList() != null ? req.getShowMediaInList() : true)
                 .build();
 
         Post saved = postRepository.saveAndFlush(post);
@@ -494,6 +495,9 @@ public class PostService {
         }
         if (req.getVideos() != null) {
             post.setVideos(req.getVideos());
+        }
+        if (req.getShowMediaInList() != null) {
+            post.setShowMediaInList(req.getShowMediaInList());
         }
 
         ResolvedPostMeta meta = resolveUpdateMeta(post, req, strict, forcedBoardType);

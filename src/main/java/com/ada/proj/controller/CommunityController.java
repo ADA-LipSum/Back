@@ -49,7 +49,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/community/posts")
-@Tag(name = "일반 커뮤니티", description = "일반 커뮤니티(잡담·밈·프로젝트 자랑) 피드 — 게시글 CRUD, 미디어 타입 필터, 좋아요(5초 쿨다운), 북마크. 개발 커뮤니티는 '개발 커뮤니티' 태그 참고.")
+@Tag(name = "일반 커뮤니티", description = "일반 커뮤니티 피드 — 게시글 CRUD, 미디어 타입 필터, 좋아요(5초 쿨다운), 북마크. 글 종류 분류(태그)는 없으며 투표는 별개 기능으로 지원. 개발 커뮤니티는 '개발 커뮤니티' 태그 참고.")
 public class CommunityController {
 
     private final PostService postService;
@@ -74,6 +74,7 @@ public class CommunityController {
                     **sort** `LATEST`(기본) / `POPULAR`(좋아요 내림차순)
 
                     응답의 `images`, `videos` 필드로 상세 조회 없이도 첨부 이미지·영상 URL 목록을 확인할 수 있습니다.
+                    단, 작성자가 `showMediaInList=false`로 설정한 게시글은 목록에서 `images`/`videos`/`thumbnailImage`가 비어서 내려가며, 상세 조회에서만 확인할 수 있습니다.
                     """
     )
     public ResponseEntity<ApiResponse<PageResponse<PostSummaryResponse>>> list(

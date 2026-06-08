@@ -54,4 +54,10 @@ public class PostUpdateRequest {
 
     @Schema(description = "투표 수정 정보. 투표 게시글에서만 사용합니다.")
     private PollCreateRequest poll;
+
+    @Schema(description = """
+            게시글 목록 조회 시 첨부 이미지·영상을 노출할지 여부.
+            `false` 로 설정하면 목록(PostSummaryResponse)의 images/videos/thumbnailImage가 비어서 내려가고, 상세 조회에서만 확인할 수 있습니다.""",
+            example = "true")
+    private Boolean showMediaInList;
 }
