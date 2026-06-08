@@ -108,7 +108,7 @@ logging:
 
 jwt:
   secret: ${JWT_SECRET}
-  access-expiration-ms: 60000
+  access-expiration-ms: 600000
   refresh-expiration-ms: 604800000
 
 swagger:

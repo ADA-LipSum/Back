@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -238,7 +239,7 @@ public class PostService {
             int page,
             int size
     ) {
-        return search(boardType, category, techSubTag, techTag, query, page, size, SortType.LATEST, MediaFilter.ALL);
+        return search(boardType, category, techSubTag, techTag, query, page, size, SortType.LATEST, MediaFilter.ALL, null);
     }
 
     @Transactional(readOnly = true)
@@ -252,6 +253,22 @@ public class PostService {
             int size,
             SortType sortType,
             MediaFilter mediaFilter
+    ) {
+        return search(boardType, category, techSubTag, techTag, query, page, size, sortType, mediaFilter, null);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<PostSummaryResponse> search(
+            PostBoardType boardType,
+            CommunityCategory category,
+            TechSubTag techSubTag,
+            String techTag,
+            String query,
+            int page,
+            int size,
+            SortType sortType,
+            MediaFilter mediaFilter,
+            String requesterUuid
     ) {
         Sort sort = (sortType == SortType.POPULAR)
                 ? Sort.by(Sort.Direction.DESC, "likes").and(Sort.by(Sort.Direction.DESC, "writedAt"))
@@ -274,7 +291,20 @@ public class PostService {
                         excludeCategory,
                         pageable)
                 .map(this::completeSummary);
+        applyBookmarkFlags(result.getContent(), requesterUuid);
         return toPageResponse(result);
+    }
+
+    private void applyBookmarkFlags(List<PostSummaryResponse> summaries, String requesterUuid) {
+        if (requesterUuid == null || summaries.isEmpty()) {
+            summaries.forEach(s -> s.setIsBookmarked(false));
+            return;
+        }
+        List<String> postUuids = summaries.stream().map(PostSummaryResponse::getPostUuid).toList();
+        Set<String> bookmarked = postBookmarkRepository.findByUserUuidAndPostUuidIn(requesterUuid, postUuids).stream()
+                .map(PostBookmark::getPostUuid)
+                .collect(Collectors.toSet());
+        summaries.forEach(s -> s.setIsBookmarked(bookmarked.contains(s.getPostUuid())));
     }
 
     @Transactional(readOnly = true)

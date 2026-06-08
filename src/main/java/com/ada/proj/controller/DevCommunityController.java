@@ -98,7 +98,8 @@ public class DevCommunityController {
                 page,
                 size,
                 SortType.from(sort),
-                MediaFilter.ALL
+                MediaFilter.ALL,
+                null
         )));
     }
 

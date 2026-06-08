@@ -99,8 +99,10 @@ public class CommunityController {
             @Parameter(description = "정렬 방식", schema = @Schema(allowableValues = {"LATEST", "POPULAR"}), example = "LATEST")
             @RequestParam(required = false, defaultValue = "LATEST") String sort,
             @Parameter(description = "미디어 유형 필터", schema = @Schema(allowableValues = {"ALL", "PHOTO", "VIDEO", "TEXT"}), example = "ALL")
-            @RequestParam(required = false, defaultValue = "ALL") String mediaFilter
+            @RequestParam(required = false, defaultValue = "ALL") String mediaFilter,
+            Authentication authentication
     ) {
+        String requesterUuid = authentication != null ? authentication.getName() : null;
         return ResponseEntity.ok(ApiResponse.success(postService.search(
                 PostBoardType.COMMUNITY,
                 CommunityCategory.fromFilter(category),
@@ -110,7 +112,8 @@ public class CommunityController {
                 page,
                 size,
                 SortType.from(sort),
-                MediaFilter.from(mediaFilter)
+                MediaFilter.from(mediaFilter),
+                requesterUuid
         )));
     }
 

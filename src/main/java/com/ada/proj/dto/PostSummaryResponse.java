@@ -51,6 +51,9 @@ public class PostSummaryResponse {
     @Schema(description = "첨부 영상 URL 목록")
     private List<String> videos;
 
+    @Schema(description = "현재 로그인 사용자의 북마크 여부 (비로그인 시 false)")
+    private Boolean isBookmarked;
+
     public PostSummaryResponse(
             String postUuid,
             Long seq,
