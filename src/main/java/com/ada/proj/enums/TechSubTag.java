@@ -4,11 +4,10 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 
 public enum TechSubTag {
     QUESTION,
-    CHAT,
-    TIP,
-    POLL,
     PROJECT,
-    RESOURCE_SHARING;
+    MEME,
+    RESOURCE_SHARING,
+    POLL;
 
     @JsonCreator
     public static TechSubTag from(String value) {
@@ -19,11 +18,10 @@ public enum TechSubTag {
         String normalized = value.trim().replace("-", "_").replace(" ", "_").toUpperCase();
         return switch (normalized) {
             case "QUESTION", "QNA", "Q_A", "질문" -> QUESTION;
-            case "CHAT", "FREE", "잡담" -> CHAT;
-            case "TIP", "TIPS", "팁" -> TIP;
-            case "POLL", "VOTE", "투표" -> POLL;
             case "PROJECT", "프로젝트" -> PROJECT;
+            case "MEME", "밈" -> MEME;
             case "RESOURCE_SHARING", "RESOURCE", "자료공유", "자료_공유" -> RESOURCE_SHARING;
+            case "POLL", "VOTE", "투표" -> POLL;
             default -> TechSubTag.valueOf(normalized);
         };
     }

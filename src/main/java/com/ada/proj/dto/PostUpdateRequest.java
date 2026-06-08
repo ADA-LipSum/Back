@@ -43,7 +43,7 @@ public class PostUpdateRequest {
     @Schema(description = "커뮤니티 상위 태그", example = "TECH")
     private CommunityCategory communityCategory;
 
-    @Schema(description = "기술 하위 태그", example = "TIP")
+    @Schema(description = "기술 하위 태그", example = "QUESTION")
     private TechSubTag techSubTag;
 
     @Schema(description = "세부 기술 태그 목록", example = "[\"Spring\", \"JPA\"]")

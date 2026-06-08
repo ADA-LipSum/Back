@@ -27,34 +27,30 @@ public class GeneralCommunityCreateRequest {
     @Schema(description = "본문 — Markdown 또는 HTML", example = "오늘 학식 메뉴 맛있어 보여서요!")
     private String content;
 
-    @Schema(
-            description = """
-                    게시글 종류 (선택, 기본값: CHAT)
-                    - `CHAT` : 잡담
-                    - `MEME` : 밈
-                    - `PROJECT_SHOWCASE` : 프로젝트 자랑
-
-                    ⚠️ `TECH`(개발 커뮤니티)는 이 엔드포인트에서 사용 불가 → `POST /api/community/dev/posts` 사용
-                    """,
-            allowableValues = {"CHAT", "MEME", "PROJECT_SHOWCASE"},
-            example = "CHAT"
-    )
-    private CommunityCategory communityCategory;
-
     @Schema(description = "첨부 이미지 파일 목록 (jpeg, png, gif, webp, svg / 개당 최대 15MB)")
     private List<MultipartFile> images;
 
     @Schema(description = "첨부 영상 파일 목록 (mp4 / 개당 최대 100MB)")
     private List<MultipartFile> videos;
 
+    @Schema(
+            description = """
+                    투표 정보 (선택). 전달하면 이 게시글은 투표 게시글이 됩니다.
+                    - `question` : 투표 질문
+                    - `options` : 선택지 배열 (최소 2개)
+                    - `endsAt` : 투표 종료 시각 (ISO 8601)
+                    - `anonymous` : 익명 여부
+                    """
+    )
+    private PollCreateRequest poll;
+
     /** PostCreateRequest 로 변환 (images/videos 는 업로드 후 URL을 별도로 설정) */
     public PostCreateRequest toPostCreateRequest() {
         PostCreateRequest req = new PostCreateRequest();
         req.setTitle(title);
         req.setContent(content);
-        req.setCommunityCategory(
-                communityCategory != null ? communityCategory : CommunityCategory.CHAT
-        );
+        req.setCommunityCategory(CommunityCategory.CHAT);
+        req.setPoll(poll);
         return req;
     }
 }

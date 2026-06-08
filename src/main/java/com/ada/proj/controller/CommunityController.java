@@ -26,7 +26,6 @@ import com.ada.proj.dto.PostCreateRequest;
 import com.ada.proj.dto.PostDetailResponse;
 import com.ada.proj.dto.PostSummaryResponse;
 import com.ada.proj.dto.PostUpdateRequest;
-import com.ada.proj.enums.CommunityCategory;
 import com.ada.proj.enums.MediaFilter;
 import com.ada.proj.enums.PostBoardType;
 import com.ada.proj.enums.SortType;
@@ -64,16 +63,6 @@ public class CommunityController {
             description = """
                     **일반 커뮤니티** 게시글 목록입니다. 개발 커뮤니티는 `GET /api/community/dev/posts` 를 사용하세요.
 
-                    **category (글 종류)**
-                    | 값 | 설명 |
-                    |---|---|
-                    | 생략 / ALL | 전체 (잡담 + 밈 + 프로젝트 자랑 포함) |
-                    | CHAT | 잡담만 |
-                    | MEME | 밈만 |
-                    | PROJECT_SHOWCASE | 프로젝트 자랑만 |
-
-                    > `category=TECH` 는 개발 커뮤니티 전용입니다. 여기서도 동작하지만 `/dev/posts` 사용을 권장합니다.
-
                     **mediaFilter (미디어 유형 필터)**
                     | 값 | 설명 |
                     |---|---|
@@ -92,8 +81,6 @@ public class CommunityController {
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기", example = "20")
             @RequestParam(defaultValue = "20") int size,
-            @Parameter(description = "글 종류 필터", schema = @Schema(allowableValues = {"ALL", "CHAT", "MEME", "PROJECT_SHOWCASE"}))
-            @RequestParam(required = false) String category,
             @Parameter(description = "제목·본문 키워드 검색어", example = "점심")
             @RequestParam(required = false) String query,
             @Parameter(description = "정렬 방식", schema = @Schema(allowableValues = {"LATEST", "POPULAR"}), example = "LATEST")
@@ -105,7 +92,7 @@ public class CommunityController {
         String requesterUuid = authentication != null ? authentication.getName() : null;
         return ResponseEntity.ok(ApiResponse.success(postService.search(
                 PostBoardType.COMMUNITY,
-                CommunityCategory.fromFilter(category),
+                null,   // category   — 일반 커뮤니티는 더 이상 글 종류로 분류하지 않음
                 null,   // techSubTag — 일반 커뮤니티에서는 사용 안 함
                 null,   // techTag    — 일반 커뮤니티에서는 사용 안 함
                 query,
@@ -123,7 +110,8 @@ public class CommunityController {
             description = """
                     일반 커뮤니티 게시글을 작성합니다. **로그인 필요.** (multipart/form-data)
 
-                    `communityCategory` 미전송 시 기본값은 `CHAT`(잡담)입니다.
+                    일반 커뮤니티에는 별도의 글 종류 분류(태그)가 없습니다.
+                    `poll` 정보는 태그/분류와 무관한 별개 기능으로, 전달하면 투표 게시글로 작성됩니다.
                     `images`, `videos` 는 파일을 직접 첨부합니다 (URL이 아닌 파일 업로드 방식).
                     개발 커뮤니티 게시글은 `POST /api/community/dev/posts`를 사용하세요.
 

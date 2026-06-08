@@ -715,7 +715,7 @@ public class PostService {
                     if (strict) {
                         throw new IllegalArgumentException("기술 태그 선택 시 하위 태그를 반드시 1개 선택해야 합니다.");
                     }
-                    resolvedSubTag = TechSubTag.CHAT;
+                    resolvedSubTag = TechSubTag.QUESTION;
                 }
                 // poll 데이터가 제공된 경우 techSubTag를 POLL로 자동 설정
                 if (pollProvided) {
@@ -736,10 +736,18 @@ public class PostService {
                 );
             }
 
-            if (pollProvided) {
-                throw new IllegalArgumentException("투표 정보는 커뮤니티 기술/투표 게시글 또는 공지사항에서만 사용할 수 있습니다.");
-            }
-            return new ResolvedPostMeta(boardType, resolvedCategory, null, null, thumbnail, false, false, false);
+            // 일반 커뮤니티에도 투표 게시글은 예외적으로 허용
+            boolean isPollPost = pollProvided || existingPollPost;
+            return new ResolvedPostMeta(
+                    boardType,
+                    resolvedCategory,
+                    null,
+                    null,
+                    thumbnail,
+                    false,
+                    isPollPost,
+                    isPollPost && pollProvided
+            );
         }
 
         if (boardType == PostBoardType.BLOG) {
@@ -782,23 +790,16 @@ public class PostService {
             return "공지사항";
         }
         if (category == CommunityCategory.TECH) {
-            String sub = switch (techSubTag == null ? TechSubTag.CHAT : techSubTag) {
+            String sub = switch (techSubTag == null ? TechSubTag.QUESTION : techSubTag) {
                 case QUESTION -> "질문";
-                case CHAT -> "잡담";
-                case TIP -> "팁";
-                case POLL -> "투표";
                 case PROJECT -> "프로젝트";
+                case MEME -> "밈";
                 case RESOURCE_SHARING -> "자료 공유";
+                case POLL -> "투표";
             };
             return tags != null && !tags.isBlank() ? "기술/" + sub + "(" + tags + ")" : "기술/" + sub;
         }
-        if (category == CommunityCategory.MEME) {
-            return "밈";
-        }
-        if (category == CommunityCategory.PROJECT_SHOWCASE) {
-            return "프로젝트 자랑";
-        }
-        return "잡담";
+        return null;
     }
 
     private PostBoardType resolveBoardType(PostBoardType boardType) {

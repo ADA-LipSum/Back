@@ -62,9 +62,10 @@ public class DevCommunityController {
                     **postType (게시물 유형)**
                     | 값 | 설명 |
                     |---|---|
-                    | 생략 / ALL | 전체 (질문 + 프로젝트 + 자료 공유) |
+                    | 생략 / ALL | 전체 (질문 + 프로젝트 + 밈 + 자료 공유) |
                     | QUESTION | 질문 |
                     | PROJECT | 프로젝트 |
+                    | MEME | 밈 |
                     | RESOURCE_SHARING | 자료 공유 |
 
                     **language** — `React`, `Spring`, `Python` 등 기술 태그 이름 (부분 일치, 대소문자 무시)
@@ -80,7 +81,7 @@ public class DevCommunityController {
             @Parameter(description = "페이지 크기", example = "20")
             @RequestParam(defaultValue = "20") int size,
             @Parameter(description = "게시물 유형 필터",
-                    schema = @Schema(allowableValues = {"ALL", "QUESTION", "PROJECT", "RESOURCE_SHARING"}))
+                    schema = @Schema(allowableValues = {"ALL", "QUESTION", "PROJECT", "MEME", "RESOURCE_SHARING"}))
             @RequestParam(required = false) String postType,
             @Parameter(description = "프로그래밍 언어 태그 필터", example = "React")
             @RequestParam(required = false) String language,
