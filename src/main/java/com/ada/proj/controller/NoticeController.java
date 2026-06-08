@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ada.proj.dto.ApiResponse;
+import com.ada.proj.dto.NoticeCreateRequest;
 import com.ada.proj.dto.NoticeSummaryResponse;
 import com.ada.proj.dto.PageResponse;
 import com.ada.proj.dto.PostCreateRequest;
@@ -125,12 +126,12 @@ public class NoticeController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Long>> create(
-            @Valid @RequestPart("request") PostCreateRequest request,
+            @Valid @RequestPart("request") NoticeCreateRequest request,
             @Parameter(description = "첨부파일 목록 (여러 개 선택 가능)")
             @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments,
             Authentication authentication
     ) {
-        PostCreateRequest payload = Objects.requireNonNull(request, "request");
+        PostCreateRequest payload = Objects.requireNonNull(request, "request").toPostCreateRequest();
         String adminUuid = authentication.getName();
         payload.setWriterUuid(adminUuid);
         payload.setAttachmentIds(mergeAttachmentIds(payload.getAttachmentIds(), uploadAttachments(attachments, adminUuid)));
