@@ -49,6 +49,11 @@ public class Notice {
     @Column(name = "content", columnDefinition = "LONGTEXT")
     private String content;
 
+    // 쉼표(,) 구분 첨부파일 URL 목록
+    @Lob
+    @Column(name = "attachment_urls", columnDefinition = "LONGTEXT")
+    private String attachmentUrls;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "tag", length = 20)
     private NoticeTag tag;

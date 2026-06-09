@@ -1,9 +1,10 @@
 package com.ada.proj.controller;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.ada.proj.dto.ApiResponse;
-import com.ada.proj.dto.NoticeAttachmentResponse;
 import com.ada.proj.exception.ForbiddenException;
-import com.ada.proj.service.NoticeService;
 import com.ada.proj.service.S3Service;
 import com.ada.proj.service.UserService;
 
@@ -14,9 +15,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,28 +29,26 @@ public class FileUploadController {
 
     private final S3Service s3Service;
     private final UserService userService;
-    private final NoticeService noticeService;
 
-    public FileUploadController(S3Service s3Service, UserService userService, NoticeService noticeService) {
+    public FileUploadController(S3Service s3Service, UserService userService) {
         this.s3Service = s3Service;
         this.userService = userService;
-        this.noticeService = noticeService;
     }
 
     @PostMapping(value = "/notice/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
-            summary = "공지사항 첨부파일 다중 업로드 (ADMIN)",
+            summary = "공지사항 첨부파일 사전 업로드 (ADMIN)",
             description = """
-                    공지사항에 첨부할 파일을 한 번에 여러 개 S3에 업로드합니다. **ADMIN 전용.**
+                    공지사항 작성 전에 파일을 미리 S3에 올려두는 용도입니다. **ADMIN 전용.**
 
-                    파일 형식·크기 제한 없음. `files` 파라미터에 파일을 원하는 만큼 담아 전송합니다.
+                    > 공지사항 작성/수정 시 `files` 파트에 직접 첨부하는 방식을 권장합니다.
+                    > 이 API는 리치 에디터 등에서 본문 작성 중 파일 URL이 필요한 경우에 사용하세요.
 
-                    **Response:** `data` — 저장된 첨부파일 정보 목록 (`id`, `originalFileName`, `fileUrl`, `fileSize`, `attachmentType`)
-                    공지사항 작성/수정 시 반환된 `id` 목록을 `attachmentIds`에 담아 전송하세요.
+                    **Response:** `data` — 업로드된 파일 URL 목록 (List&lt;String&gt;)
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<ApiResponse<List<NoticeAttachmentResponse>>> uploadNoticeAttachments(
+    public ResponseEntity<ApiResponse<List<String>>> uploadNoticeAttachments(
             @Parameter(description = "업로드할 파일 목록") @RequestPart("files") List<MultipartFile> files,
             Authentication auth) {
 
@@ -62,19 +58,13 @@ public class FileUploadController {
         if (!isAdmin) throw new ForbiddenException("관리자만 첨부파일을 업로드할 수 있습니다.");
         if (files == null || files.isEmpty()) throw new IllegalArgumentException("파일을 하나 이상 첨부해주세요.");
 
-        List<String> names = new ArrayList<>();
         List<String> urls = new ArrayList<>();
-        List<Long> sizes = new ArrayList<>();
-
         for (MultipartFile file : files) {
-            String url = s3Service.uploadNoticeAttachment(file);
-            names.add(file.getOriginalFilename() != null ? file.getOriginalFilename() : "file");
-            urls.add(url);
-            sizes.add(file.getSize());
+            if (file != null && !file.isEmpty()) {
+                urls.add(s3Service.uploadNoticeAttachment(file));
+            }
         }
-
-        List<NoticeAttachmentResponse> responses = noticeService.saveAttachments(names, urls, sizes);
-        return ResponseEntity.ok(ApiResponse.ok(responses));
+        return ResponseEntity.ok(ApiResponse.ok(urls));
     }
 
     private void ensureSelfOrAdmin(Authentication auth, String targetUuid) {
@@ -118,9 +108,7 @@ public class FileUploadController {
 
         ensureSelfOrAdmin(auth, uuid);
         String url = s3Service.uploadProfileImage(file, uuid);
-
         userService.updateProfileImage(uuid, url);
-
         return ResponseEntity.ok(ApiResponse.ok(url));
     }
 
@@ -144,8 +132,7 @@ public class FileUploadController {
             Authentication auth) {
 
         if (auth == null || !auth.isAuthenticated()) throw new ForbiddenException("인증이 필요합니다.");
-        String userUuid = auth.getName();
-        String url = s3Service.uploadPostMedia(file, userUuid);
+        String url = s3Service.uploadPostMedia(file, auth.getName());
         return ResponseEntity.ok(ApiResponse.ok(url));
     }
 
@@ -169,9 +156,7 @@ public class FileUploadController {
             Authentication auth) {
 
         if (auth == null || !auth.isAuthenticated()) throw new ForbiddenException("인증이 필요합니다.");
-        String userUuid = auth.getName();
-        String url = s3Service.uploadCommentImage(file, userUuid);
+        String url = s3Service.uploadCommentImage(file, auth.getName());
         return ResponseEntity.ok(ApiResponse.ok(url));
     }
-
 }

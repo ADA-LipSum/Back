@@ -45,6 +45,6 @@ public class NoticeDetailResponse {
     @Schema(description = "고정 여부")
     private Boolean isPinned;
 
-    @Schema(description = "첨부파일 목록")
-    private List<NoticeAttachmentResponse> attachments;
+    @Schema(description = "첨부파일 URL 목록")
+    private List<String> attachments;
 }

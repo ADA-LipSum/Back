@@ -2,6 +2,7 @@ package com.ada.proj.service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -16,17 +17,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.ada.proj.dto.NoticeCreateRequest;
 import com.ada.proj.dto.NoticeDetailResponse;
-import com.ada.proj.dto.NoticeAttachmentResponse;
 import com.ada.proj.dto.NoticeSummaryResponse;
 import com.ada.proj.dto.NoticeUpdateRequest;
 import com.ada.proj.dto.PageResponse;
 import com.ada.proj.entity.Notice;
-import com.ada.proj.entity.NoticeAttachment;
 import com.ada.proj.entity.User;
-import com.ada.proj.enums.AttachmentType;
 import com.ada.proj.enums.NoticeTag;
 import com.ada.proj.exception.ForbiddenException;
-import com.ada.proj.repository.NoticeAttachmentRepository;
 import com.ada.proj.repository.NoticeRepository;
 import com.ada.proj.repository.UserRepository;
 
@@ -42,7 +39,6 @@ public class NoticeService {
     private static final String NOTICE_SEQ_LOCK = "ada_notices_seq";
 
     private final NoticeRepository noticeRepository;
-    private final NoticeAttachmentRepository noticeAttachmentRepository;
     private final UserRepository userRepository;
     private final S3Service s3Service;
     private final JdbcTemplate jdbcTemplate;
@@ -77,12 +73,6 @@ public class NoticeService {
         noticeRepository.incrementViews(notice.getNoticeUuid());
         notice.setViews(notice.getViews() + 1);
 
-        List<NoticeAttachmentResponse> attachments = noticeAttachmentRepository
-                .findAllByNoticeUuidOrderByIdAsc(notice.getNoticeUuid())
-                .stream()
-                .map(NoticeAttachmentResponse::from)
-                .collect(Collectors.toList());
-
         return NoticeDetailResponse.builder()
                 .seq(notice.getSeq())
                 .tag(notice.getTag())
@@ -93,7 +83,7 @@ public class NoticeService {
                 .views(notice.getViews())
                 .content(notice.getContent())
                 .isPinned(notice.getIsPinned())
-                .attachments(attachments)
+                .attachments(splitUrls(notice.getAttachmentUrls()))
                 .build();
     }
 
@@ -104,10 +94,9 @@ public class NoticeService {
         ensureAdmin(auth);
 
         Long seq = allocateSeq();
-        String noticeUuid = UUID.randomUUID().toString();
 
         Notice notice = Notice.builder()
-                .noticeUuid(noticeUuid)
+                .noticeUuid(UUID.randomUUID().toString())
                 .seq(seq)
                 .writerUuid(auth.getName())
                 .writer(resolveWriter(auth))
@@ -115,11 +104,10 @@ public class NoticeService {
                 .content(req.getContent())
                 .tag(parseTag(req.getTag()))
                 .isPinned(false)
+                .attachmentUrls(uploadAndJoin(files))
                 .build();
 
         noticeRepository.save(notice);
-        uploadAndLink(noticeUuid, files);
-
         return seq;
     }
 
@@ -134,10 +122,9 @@ public class NoticeService {
         if (req.getContent() != null) notice.setContent(req.getContent());
         if (req.getTag() != null) notice.setTag(parseTag(req.getTag()));
 
-        // 새 파일이 전달된 경우 기존 첨부파일을 교체
+        // 새 파일이 전달된 경우 기존 첨부파일 교체
         if (files != null && !files.isEmpty()) {
-            noticeAttachmentRepository.deleteAllByNoticeUuid(notice.getNoticeUuid());
-            uploadAndLink(notice.getNoticeUuid(), files);
+            notice.setAttachmentUrls(uploadAndJoin(files));
         }
     }
 
@@ -146,9 +133,7 @@ public class NoticeService {
     @Transactional
     public void delete(Long seq, Authentication auth) {
         ensureAdmin(auth);
-        Notice notice = getBySeqOrThrow(seq);
-        noticeAttachmentRepository.deleteAllByNoticeUuid(notice.getNoticeUuid());
-        noticeRepository.delete(notice);
+        noticeRepository.delete(getBySeqOrThrow(seq));
     }
 
     // ── 고정 (ADMIN) ─────────────────────────────────────────────────
@@ -159,9 +144,8 @@ public class NoticeService {
         Notice notice = getBySeqOrThrow(seq);
         if (Boolean.TRUE.equals(notice.getIsPinned())) return;
 
-        int nextOrder = noticeRepository.findMaxPinnedOrder() + 1;
         notice.setIsPinned(true);
-        notice.setPinnedOrder(nextOrder);
+        notice.setPinnedOrder(noticeRepository.findMaxPinnedOrder() + 1);
         notice.setPinnedAt(LocalDateTime.now());
     }
 
@@ -176,46 +160,25 @@ public class NoticeService {
         notice.setPinnedAt(null);
     }
 
-    // ── 첨부파일 단건/다건 임시 저장 (사전 업로드 전용) ──────────────────
-
-    @Transactional
-    public NoticeAttachmentResponse saveAttachment(String originalFileName, String fileUrl, long fileSize) {
-        return NoticeAttachmentResponse.from(
-                noticeAttachmentRepository.save(buildAttachmentRecord(null, originalFileName, fileUrl, fileSize)));
-    }
-
-    @Transactional
-    public List<NoticeAttachmentResponse> saveAttachments(List<String> names, List<String> urls, List<Long> sizes) {
-        List<NoticeAttachment> records = new ArrayList<>();
-        for (int i = 0; i < names.size(); i++) {
-            records.add(buildAttachmentRecord(null, names.get(i), urls.get(i), sizes.get(i)));
-        }
-        return noticeAttachmentRepository.saveAll(records)
-                .stream().map(NoticeAttachmentResponse::from).collect(Collectors.toList());
-    }
-
     // ── private helpers ──────────────────────────────────────────────
 
-    private void uploadAndLink(String noticeUuid, List<MultipartFile> files) {
-        if (files == null || files.isEmpty()) return;
-        List<NoticeAttachment> records = new ArrayList<>();
+    private String uploadAndJoin(List<MultipartFile> files) {
+        if (files == null || files.isEmpty()) return null;
+        List<String> urls = new ArrayList<>();
         for (MultipartFile file : files) {
-            if (file == null || file.isEmpty()) continue;
-            String url = s3Service.uploadNoticeAttachment(file);
-            String name = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
-            records.add(buildAttachmentRecord(noticeUuid, name, url, file.getSize()));
+            if (file != null && !file.isEmpty()) {
+                urls.add(s3Service.uploadNoticeAttachment(file));
+            }
         }
-        if (!records.isEmpty()) noticeAttachmentRepository.saveAll(records);
+        return urls.isEmpty() ? null : String.join(",", urls);
     }
 
-    private NoticeAttachment buildAttachmentRecord(String noticeUuid, String originalFileName, String fileUrl, long fileSize) {
-        return NoticeAttachment.builder()
-                .noticeUuid(noticeUuid)
-                .originalFileName(originalFileName)
-                .fileUrl(fileUrl)
-                .fileSize(fileSize)
-                .attachmentType(AttachmentType.fromFileName(originalFileName))
-                .build();
+    private List<String> splitUrls(String csv) {
+        if (csv == null || csv.isBlank()) return List.of();
+        return Arrays.stream(csv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
     }
 
     private Notice getBySeqOrThrow(Long seq) {
@@ -248,9 +211,7 @@ public class NoticeService {
                 throw new IllegalStateException("Could not acquire notice seq lock");
             }
             Long nextSeq = jdbcTemplate.queryForObject(
-                    "SELECT COALESCE(MAX(seq), 0) + 1 FROM notices",
-                    Long.class
-            );
+                    "SELECT COALESCE(MAX(seq), 0) + 1 FROM notices", Long.class);
             if (nextSeq == null || nextSeq <= 0) {
                 throw new IllegalStateException("Could not allocate notice seq");
             }
