@@ -94,6 +94,15 @@ public class CommunityEventService {
         return CommunityEventResponse.from(eventRepository.save(event));
     }
 
+    // ── 활성화/비활성화 (ADMIN/TEACHER) ─────────────────────────────────
+
+    @Transactional
+    public CommunityEventResponse setActive(Long id, boolean active) {
+        CommunityEvent event = getOrThrow(id);
+        event.setActive(active);
+        return CommunityEventResponse.from(eventRepository.save(event));
+    }
+
     // ── 삭제 (ADMIN/TEACHER) ─────────────────────────────────────────
 
     @Transactional

@@ -13,8 +13,8 @@ import com.ada.proj.entity.CommunityEvent;
 @Repository
 public interface CommunityEventRepository extends JpaRepository<CommunityEvent, Long> {
 
-    // 종료일이 오늘 이후인 이벤트만 반환 (시작일 오름차순)
-    @Query("select e from CommunityEvent e where e.endDate >= :today order by e.startDate asc")
+    // active=true이고 종료일이 오늘 이후인 이벤트만 반환 (시작일 오름차순)
+    @Query("select e from CommunityEvent e where e.active = true and e.endDate >= :today order by e.startDate asc")
     List<CommunityEvent> findActiveEvents(@Param("today") LocalDate today);
 
     // 전체 목록 (관리자용, 시작일 오름차순)

@@ -42,6 +42,9 @@ public class CommunityEventResponse {
     @Schema(description = "관련 링크")
     private String relatedLink;
 
+    @Schema(description = "활성화 여부 (false면 위젯에서 숨김)")
+    private boolean active;
+
     @Schema(description = "등록일시")
     private LocalDateTime createdAt;
 
@@ -55,6 +58,7 @@ public class CommunityEventResponse {
                 .location(e.getLocation())
                 .description(e.getDescription())
                 .relatedLink(e.getRelatedLink())
+                .active(e.isActive())
                 .createdAt(e.getCreatedAt())
                 .build();
     }

@@ -9,10 +9,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -113,6 +115,25 @@ public class CommunityEventController {
             @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnail
     ) {
         return ResponseEntity.ok(ApiResponse.success(eventService.update(id, request, thumbnail)));
+    }
+
+    @PatchMapping("/{id}/active")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER')")
+    @Operation(
+            summary = "이벤트 활성화/비활성화 (ADMIN/TEACHER)",
+            description = """
+                    이벤트를 강제로 활성화하거나 비활성화합니다. **ADMIN 또는 TEACHER 전용.**
+
+                    - `active=false`: 종료일이 남아 있어도 위젯에서 숨깁니다.
+                    - `active=true`: 종료일이 지나지 않은 경우 다시 위젯에 노출됩니다.
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<CommunityEventResponse>> setActive(
+            @Parameter(description = "이벤트 ID", example = "1") @PathVariable Long id,
+            @Parameter(description = "활성화 여부", example = "false") @RequestParam boolean active
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(eventService.setActive(id, active)));
     }
 
     @DeleteMapping("/{id}")

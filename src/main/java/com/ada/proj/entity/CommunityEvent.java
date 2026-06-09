@@ -55,6 +55,10 @@ public class CommunityEvent {
     @Column(name = "related_link", length = 512)
     private String relatedLink;
 
+    @Column(name = "active", nullable = false)
+    @Builder.Default
+    private boolean active = true;
+
     @Column(name = "created_by_uuid", length = 36)
     private String createdByUuid;
 
