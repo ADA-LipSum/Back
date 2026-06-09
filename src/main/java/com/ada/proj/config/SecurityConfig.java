@@ -102,6 +102,7 @@ public class SecurityConfig {
                         "/api/community/dev/posts/**",
                         "/api/community/banners",
                         "/api/community/widget/popular-tags",
+                        "/api/community/widget/events",
                         "/api/blog/posts/**",
                         "/api/polls/posts/**",
                         "/api/meal",

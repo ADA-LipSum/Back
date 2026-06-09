@@ -198,6 +198,16 @@ public class S3Service {
     }
 
     /**
+     * 이벤트 썸네일 이미지를 S3에 업로드하고 퍼블릭 URL을 반환합니다.
+     */
+    public String uploadEventThumbnail(MultipartFile file) {
+        validateMedia(file, ALLOWED_COMMUNITY_IMAGE_TYPES, props.getMaxCommunityImageSizeMb(),
+                "허용되지 않는 파일 형식입니다. (jpeg, png, gif, webp, svg만 허용)");
+        String key = "events/thumbnails/" + UUID.randomUUID() + getExtension(file);
+        return upload(file, key);
+    }
+
+    /**
      * 공지사항 첨부파일을 S3에 업로드하고 퍼블릭 URL을 반환합니다. 파일 형식·크기 제한 없음.
      */
     public String uploadNoticeAttachment(MultipartFile file) {
