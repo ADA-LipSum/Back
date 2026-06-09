@@ -15,6 +15,9 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -36,32 +39,42 @@ public class FileUploadController {
         this.noticeService = noticeService;
     }
 
-    @PostMapping(value = "/notice/attachment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/notice/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
-            summary = "공지사항 첨부파일 업로드 (ADMIN)",
+            summary = "공지사항 첨부파일 다중 업로드 (ADMIN)",
             description = """
-                    공지사항에 첨부할 파일을 S3에 업로드합니다. **ADMIN 전용.**
+                    공지사항에 첨부할 파일을 한 번에 여러 개 S3에 업로드합니다. **ADMIN 전용.**
 
-                    파일 형식·크기 제한 없음. 여러 파일을 올릴 경우 파일마다 개별 호출합니다.
+                    파일 형식·크기 제한 없음. `files` 파라미터에 파일을 원하는 만큼 담아 전송합니다.
 
-                    **Response:** `data` — 저장된 첨부파일 정보 (`id`, `originalFileName`, `fileUrl`, `fileSize`, `attachmentType`)
-                    공지사항 작성/수정 시 `attachmentIds`에 이 `id`를 담아 전송하세요.
+                    **Response:** `data` — 저장된 첨부파일 정보 목록 (`id`, `originalFileName`, `fileUrl`, `fileSize`, `attachmentType`)
+                    공지사항 작성/수정 시 반환된 `id` 목록을 `attachmentIds`에 담아 전송하세요.
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<ApiResponse<NoticeAttachmentResponse>> uploadNoticeAttachment(
-            @Parameter(description = "업로드할 파일") @RequestPart("file") MultipartFile file,
+    public ResponseEntity<ApiResponse<List<NoticeAttachmentResponse>>> uploadNoticeAttachments(
+            @Parameter(description = "업로드할 파일 목록") @RequestPart("files") List<MultipartFile> files,
             Authentication auth) {
 
         if (auth == null || !auth.isAuthenticated()) throw new ForbiddenException("인증이 필요합니다.");
         boolean isAdmin = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         if (!isAdmin) throw new ForbiddenException("관리자만 첨부파일을 업로드할 수 있습니다.");
+        if (files == null || files.isEmpty()) throw new IllegalArgumentException("파일을 하나 이상 첨부해주세요.");
 
-        String fileUrl = s3Service.uploadNoticeAttachment(file);
-        String originalFileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
-        NoticeAttachmentResponse response = noticeService.saveAttachment(originalFileName, fileUrl, file.getSize());
-        return ResponseEntity.ok(ApiResponse.ok(response));
+        List<String> names = new ArrayList<>();
+        List<String> urls = new ArrayList<>();
+        List<Long> sizes = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            String url = s3Service.uploadNoticeAttachment(file);
+            names.add(file.getOriginalFilename() != null ? file.getOriginalFilename() : "file");
+            urls.add(url);
+            sizes.add(file.getSize());
+        }
+
+        List<NoticeAttachmentResponse> responses = noticeService.saveAttachments(names, urls, sizes);
+        return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 
     private void ensureSelfOrAdmin(Authentication auth, String targetUuid) {

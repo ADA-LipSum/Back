@@ -21,10 +21,12 @@ import com.ada.proj.dto.NoticeUpdateRequest;
 import com.ada.proj.dto.PageResponse;
 import com.ada.proj.entity.Notice;
 import com.ada.proj.entity.NoticeAttachment;
+import com.ada.proj.entity.User;
 import com.ada.proj.enums.NoticeTag;
 import com.ada.proj.exception.ForbiddenException;
 import com.ada.proj.repository.NoticeAttachmentRepository;
 import com.ada.proj.repository.NoticeRepository;
+import com.ada.proj.repository.UserRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,7 @@ public class NoticeService {
 
     private final NoticeRepository noticeRepository;
     private final NoticeAttachmentRepository noticeAttachmentRepository;
+    private final UserRepository userRepository;
     private final JdbcTemplate jdbcTemplate;
 
     // ── 목록 조회 ────────────────────────────────────────────────────
@@ -177,14 +180,28 @@ public class NoticeService {
 
     @Transactional
     public NoticeAttachmentResponse saveAttachment(String originalFileName, String fileUrl, long fileSize) {
-        NoticeAttachment attachment = NoticeAttachment.builder()
-                .noticeUuid(null)  // 아직 게시물에 연결되지 않은 임시 상태
+        NoticeAttachment attachment = buildAttachment(originalFileName, fileUrl, fileSize);
+        return NoticeAttachmentResponse.from(noticeAttachmentRepository.save(attachment));
+    }
+
+    @Transactional
+    public List<NoticeAttachmentResponse> saveAttachments(List<String> originalFileNames, List<String> fileUrls, List<Long> fileSizes) {
+        List<NoticeAttachment> attachments = new ArrayList<>();
+        for (int i = 0; i < originalFileNames.size(); i++) {
+            attachments.add(buildAttachment(originalFileNames.get(i), fileUrls.get(i), fileSizes.get(i)));
+        }
+        return noticeAttachmentRepository.saveAll(attachments)
+                .stream().map(NoticeAttachmentResponse::from).collect(Collectors.toList());
+    }
+
+    private NoticeAttachment buildAttachment(String originalFileName, String fileUrl, long fileSize) {
+        return NoticeAttachment.builder()
+                .noticeUuid(null)
                 .originalFileName(originalFileName)
                 .fileUrl(fileUrl)
                 .fileSize(fileSize)
                 .attachmentType(com.ada.proj.enums.AttachmentType.fromFileName(originalFileName))
                 .build();
-        return NoticeAttachmentResponse.from(noticeAttachmentRepository.save(attachment));
     }
 
     // ── private helpers ──────────────────────────────────────────────
@@ -207,8 +224,9 @@ public class NoticeService {
     }
 
     private String resolveWriter(Authentication auth) {
-        // UserService 참조 없이 principal 이름을 그대로 사용; 필요 시 UserService 주입 가능
-        return auth.getName();
+        User user = userRepository.findByUuid(auth.getName()).orElse(null);
+        if (user == null) return null;
+        return user.isUseNickname() ? user.getUserNickname() : user.getUserRealname();
     }
 
     private void linkAttachments(String noticeUuid, List<Long> attachmentIds) {
