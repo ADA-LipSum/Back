@@ -107,7 +107,9 @@ public class SecurityConfig {
                         "/api/meal",
                         "/api/meal/**",
                         "/api/calendar",
-                        "/api/calendar/year"
+                        "/api/calendar/year",
+                        "/api/notices",
+                        "/api/notices/**"
                 ).permitAll()
                 .requestMatchers(HttpMethod.POST,
                         "/api/auth/login",

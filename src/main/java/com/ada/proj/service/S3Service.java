@@ -197,6 +197,17 @@ public class S3Service {
         return upload(file, key);
     }
 
+    /**
+     * 공지사항 첨부파일을 S3에 업로드하고 퍼블릭 URL을 반환합니다. 파일 형식·크기 제한 없음.
+     */
+    public String uploadNoticeAttachment(MultipartFile file) {
+        if (file == null || file.isEmpty()) throw new IllegalArgumentException("파일이 비어 있습니다.");
+        String original = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
+        String ext = original.contains(".") ? original.substring(original.lastIndexOf('.')) : "";
+        String key = "notices/attachments/" + UUID.randomUUID() + ext;
+        return upload(file, key);
+    }
+
     // ── private helpers ──────────────────────────────────────────────
     private String upload(MultipartFile file, String key) {
         try {

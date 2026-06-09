@@ -1,7 +1,9 @@
 package com.ada.proj.controller;
 
 import com.ada.proj.dto.ApiResponse;
+import com.ada.proj.dto.NoticeAttachmentResponse;
 import com.ada.proj.exception.ForbiddenException;
+import com.ada.proj.service.NoticeService;
 import com.ada.proj.service.S3Service;
 import com.ada.proj.service.UserService;
 
@@ -10,6 +12,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.http.MediaType;
@@ -20,15 +23,45 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/upload")
-@Tag(name = "파일 업로드", description = "S3 파일 업로드 — 프로필 이미지, 게시글 미디어(이미지·영상), 댓글 이미지")
+@Tag(name = "파일 업로드", description = "S3 파일 업로드 — 프로필 이미지, 게시글 미디어(이미지·영상), 댓글 이미지, 공지사항 첨부파일")
 public class FileUploadController {
 
     private final S3Service s3Service;
     private final UserService userService;
+    private final NoticeService noticeService;
 
-    public FileUploadController(S3Service s3Service, UserService userService) {
+    public FileUploadController(S3Service s3Service, UserService userService, NoticeService noticeService) {
         this.s3Service = s3Service;
         this.userService = userService;
+        this.noticeService = noticeService;
+    }
+
+    @PostMapping(value = "/notice/attachment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "공지사항 첨부파일 업로드 (ADMIN)",
+            description = """
+                    공지사항에 첨부할 파일을 S3에 업로드합니다. **ADMIN 전용.**
+
+                    파일 형식·크기 제한 없음. 여러 파일을 올릴 경우 파일마다 개별 호출합니다.
+
+                    **Response:** `data` — 저장된 첨부파일 정보 (`id`, `originalFileName`, `fileUrl`, `fileSize`, `attachmentType`)
+                    공지사항 작성/수정 시 `attachmentIds`에 이 `id`를 담아 전송하세요.
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<NoticeAttachmentResponse>> uploadNoticeAttachment(
+            @Parameter(description = "업로드할 파일") @RequestPart("file") MultipartFile file,
+            Authentication auth) {
+
+        if (auth == null || !auth.isAuthenticated()) throw new ForbiddenException("인증이 필요합니다.");
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) throw new ForbiddenException("관리자만 첨부파일을 업로드할 수 있습니다.");
+
+        String fileUrl = s3Service.uploadNoticeAttachment(file);
+        String originalFileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
+        NoticeAttachmentResponse response = noticeService.saveAttachment(originalFileName, fileUrl, file.getSize());
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     private void ensureSelfOrAdmin(Authentication auth, String targetUuid) {
