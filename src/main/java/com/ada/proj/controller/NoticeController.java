@@ -2,6 +2,8 @@ package com.ada.proj.controller;
 
 import java.util.List;
 
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -165,6 +167,27 @@ public class NoticeController {
     ) {
         noticeService.pin(seq, authentication);
         return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @GetMapping("/{seq}/attachments/{index}")
+    @Operation(
+            summary = "공지사항 첨부파일 다운로드",
+            description = "공지사항 첨부파일을 백엔드를 통해 프록시로 다운로드합니다. 인증 불필요."
+    )
+    public ResponseEntity<byte[]> downloadAttachment(
+            @Parameter(description = "게시물 순번", example = "1") @PathVariable Long seq,
+            @Parameter(description = "첨부파일 인덱스 (0부터)", example = "0") @PathVariable int index
+    ) {
+        NoticeService.AttachmentData data = noticeService.downloadAttachment(seq, index);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(data.contentType()));
+        headers.setContentDisposition(
+                ContentDisposition.attachment().filename(data.filename()).build()
+        );
+        headers.setContentLength(data.bytes().length);
+
+        return new ResponseEntity<>(data.bytes(), headers, HttpStatus.OK);
     }
 
     @DeleteMapping("/{seq}/pin")

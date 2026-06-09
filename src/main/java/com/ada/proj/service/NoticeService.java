@@ -73,6 +73,12 @@ public class NoticeService {
         noticeRepository.incrementViews(notice.getNoticeUuid());
         notice.setViews(notice.getViews() + 1);
 
+        List<String> urls = splitUrls(notice.getAttachmentUrls());
+        List<String> proxyUrls = new ArrayList<>();
+        for (int i = 0; i < urls.size(); i++) {
+            proxyUrls.add("/api/notices/" + seq + "/attachments/" + i);
+        }
+
         return NoticeDetailResponse.builder()
                 .seq(notice.getSeq())
                 .tag(notice.getTag())
@@ -83,8 +89,33 @@ public class NoticeService {
                 .views(notice.getViews())
                 .content(notice.getContent())
                 .isPinned(notice.getIsPinned())
-                .attachments(splitUrls(notice.getAttachmentUrls()))
+                .attachments(proxyUrls)
                 .build();
+    }
+
+    // ── 첨부파일 다운로드 ────────────────────────────────────────────
+
+    public record AttachmentData(byte[] bytes, String contentType, String filename) {}
+
+    @Transactional(readOnly = true)
+    public AttachmentData downloadAttachment(Long seq, int index) {
+        Notice notice = getBySeqOrThrow(seq);
+        List<String> urls = splitUrls(notice.getAttachmentUrls());
+        if (index < 0 || index >= urls.size()) {
+            throw new EntityNotFoundException("첨부파일을 찾을 수 없습니다: index=" + index);
+        }
+        String s3Url = urls.get(index);
+        String key = extractS3Key(s3Url);
+        S3Service.S3ObjectData data = s3Service.getObject(key);
+        String filename = key.substring(key.lastIndexOf('/') + 1);
+        return new AttachmentData(data.bytes(), data.contentType(), filename);
+    }
+
+    private String extractS3Key(String url) {
+        // https://bucket.s3.region.amazonaws.com/key
+        int idx = url.indexOf(".amazonaws.com/");
+        if (idx == -1) throw new IllegalArgumentException("올바르지 않은 S3 URL: " + url);
+        return url.substring(idx + ".amazonaws.com/".length());
     }
 
     // ── 작성 (ADMIN) ─────────────────────────────────────────────────
