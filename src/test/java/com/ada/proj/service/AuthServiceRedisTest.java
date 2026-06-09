@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -99,6 +100,7 @@ class AuthServiceRedisTest {
                 .build();
 
         when(jwtTokenProvider.getUuid("refresh-old")).thenReturn("uuid-001");
+        when(jwtTokenProvider.getUuidAllowExpired("access-old")).thenReturn("uuid-001");
         when(jwtTokenProvider.getRole("refresh-old")).thenReturn("ADMIN");
         when(jwtTokenProvider.generateAccessToken("uuid-001", "ADMIN")).thenReturn("access-new");
         when(jwtTokenProvider.generateRefreshToken("uuid-001", "ADMIN")).thenReturn("refresh-new");
@@ -114,6 +116,7 @@ class AuthServiceRedisTest {
 
         TokenReissueRequest request = new TokenReissueRequest();
         request.setRefreshToken("refresh-old");
+        request.setAccessToken("access-old");
 
         LoginResponse response = authService.reissue(request);
 
@@ -135,6 +138,7 @@ class AuthServiceRedisTest {
         jwtProperties.setRefreshExpirationMs(604_800_000L);
 
         when(jwtTokenProvider.getUuid("refresh-old")).thenReturn("uuid-001");
+        when(jwtTokenProvider.getUuidAllowExpired("access-old")).thenReturn("uuid-001");
         when(jwtTokenProvider.getRole("refresh-old")).thenReturn("ADMIN");
         when(refreshTokenRepository.findById("uuid-001")).thenReturn(Optional.empty());
 
@@ -147,9 +151,114 @@ class AuthServiceRedisTest {
 
         TokenReissueRequest request = new TokenReissueRequest();
         request.setRefreshToken("refresh-old");
+        request.setAccessToken("access-old");
 
         assertThatThrownBy(() -> authService.reissue(request))
                 .isInstanceOf(TokenInvalidException.class)
                 .hasMessageContaining("Invalid refresh token");
+    }
+
+    @Test
+    void reissue_rejectsRefreshTokenFromDifferentUser() {
+        UserRepository userRepository = mock(UserRepository.class);
+        RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
+        JwtTokenProvider jwtTokenProvider = mock(JwtTokenProvider.class);
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        JwtProperties jwtProperties = new JwtProperties();
+
+        when(jwtTokenProvider.getUuid("admin-refresh")).thenReturn("admin-uuid");
+        when(jwtTokenProvider.getUuidAllowExpired("user-access")).thenReturn("user-uuid");
+
+        AuthService authService = new AuthService(
+                userRepository,
+                refreshTokenRepository,
+                jwtTokenProvider,
+                passwordEncoder,
+                jwtProperties);
+
+        TokenReissueRequest request = new TokenReissueRequest();
+        request.setRefreshToken("admin-refresh");
+        request.setAccessToken("user-access");
+
+        assertThatThrownBy(() -> authService.reissue(request))
+                .isInstanceOf(TokenInvalidException.class)
+                .hasMessageContaining("different users");
+    }
+
+    @Test
+    void reissue_rejectsMissingAccessToken() {
+        UserRepository userRepository = mock(UserRepository.class);
+        RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
+        JwtTokenProvider jwtTokenProvider = mock(JwtTokenProvider.class);
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        JwtProperties jwtProperties = new JwtProperties();
+
+        AuthService authService = new AuthService(
+                userRepository,
+                refreshTokenRepository,
+                jwtTokenProvider,
+                passwordEncoder,
+                jwtProperties);
+
+        TokenReissueRequest request = new TokenReissueRequest();
+        request.setRefreshToken("admin-refresh");
+
+        assertThatThrownBy(() -> authService.reissue(request))
+                .isInstanceOf(TokenInvalidException.class)
+                .hasMessageContaining("Access token is required");
+    }
+
+    @Test
+    void logout_revokesRefreshTokenFromCookieWithoutAccessToken() {
+        UserRepository userRepository = mock(UserRepository.class);
+        RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
+        JwtTokenProvider jwtTokenProvider = mock(JwtTokenProvider.class);
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        JwtProperties jwtProperties = new JwtProperties();
+        RefreshToken stored = RefreshToken.builder()
+                .uuid("admin-uuid")
+                .token("admin-refresh")
+                .build();
+
+        when(jwtTokenProvider.getUuid("admin-refresh")).thenReturn("admin-uuid");
+        when(refreshTokenRepository.findById("admin-uuid")).thenReturn(Optional.of(stored));
+
+        AuthService authService = new AuthService(
+                userRepository,
+                refreshTokenRepository,
+                jwtTokenProvider,
+                passwordEncoder,
+                jwtProperties);
+
+        authService.logout(null, "admin-refresh");
+
+        verify(refreshTokenRepository).deleteById("admin-uuid");
+    }
+
+    @Test
+    void logout_doesNotRevokeRefreshTokenWhenCookieDoesNotMatchStoredToken() {
+        UserRepository userRepository = mock(UserRepository.class);
+        RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
+        JwtTokenProvider jwtTokenProvider = mock(JwtTokenProvider.class);
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        JwtProperties jwtProperties = new JwtProperties();
+        RefreshToken stored = RefreshToken.builder()
+                .uuid("admin-uuid")
+                .token("other-refresh")
+                .build();
+
+        when(jwtTokenProvider.getUuid("stale-refresh")).thenReturn("admin-uuid");
+        when(refreshTokenRepository.findById("admin-uuid")).thenReturn(Optional.of(stored));
+
+        AuthService authService = new AuthService(
+                userRepository,
+                refreshTokenRepository,
+                jwtTokenProvider,
+                passwordEncoder,
+                jwtProperties);
+
+        authService.logout(null, "stale-refresh");
+
+        verify(refreshTokenRepository, never()).deleteById("admin-uuid");
     }
 }

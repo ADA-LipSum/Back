@@ -23,7 +23,6 @@ import com.ada.proj.dto.LoginRequest;
 import com.ada.proj.dto.LoginResponse;
 import com.ada.proj.dto.TeacherSignupRequest;
 import com.ada.proj.dto.TokenReissueRequest;
-import com.ada.proj.exception.UnauthenticatedException;
 import com.ada.proj.service.AuthService;
 import com.ada.proj.service.UserService;
 
@@ -68,6 +67,16 @@ public class AuthController {
         }
 
         return builder.build();
+    }
+
+    private ResponseCookie createExpiredRefreshCookie() {
+        return ResponseCookie.from("refreshToken", "")
+                .httpOnly(cookieProperties.isHttpOnly())
+                .secure(cookieProperties.isSecure())
+                .sameSite(cookieProperties.getSameSite())
+                .path("/")
+                .maxAge(0)
+                .build();
     }
 
     @PostMapping("/login")
@@ -125,13 +134,12 @@ public class AuthController {
             description = """
                     만료된 access token을 refresh token으로 재발급합니다.
 
-                    refresh token은 아래 세 가지 방법 중 하나로 전달할 수 있습니다 (우선순위 순):
-                    1. **HttpOnly 쿠키** `refreshToken` (권장 — 로그인 시 자동 설정)
-                    2. **Authorization 헤더**: `Authorization: Bearer <refreshToken>`
-                    3. **Request Body** `refreshToken` 필드 (위 두 방법이 없을 때만 사용)
+                    계정이 바뀌는 것을 방지하기 위해 기존 access token과 refresh token의 사용자 UUID가
+                    일치할 때만 재발급합니다. 만료된 access token도 사용할 수 있습니다.
 
-                    **Request Body (선택):**
-                    - `refreshToken`: refresh token 문자열 (쿠키/헤더로 전달한 경우 불필요)
+                    **토큰 전달 방법:**
+                    - 기존 access token (필수): `Authorization: Bearer <accessToken>` 또는 Request Body `accessToken`
+                    - refresh token: HttpOnly 쿠키 `refreshToken` (권장) 또는 Request Body `refreshToken`
 
                     **Response:**
                     - `tokenType`: 토큰 타입 (Bearer)
@@ -148,18 +156,24 @@ public class AuthController {
 
         // 1) Cookie (HttpOnly refreshToken)
         String refreshToken = extractRefreshTokenFromCookie(httpServletRequest);
+        String bearerToken = extractBearerToken(httpServletRequest);
+        String accessToken = request == null ? null : request.getAccessToken();
+        String bodyRefreshToken = request == null ? null : request.getRefreshToken();
 
-        // 2) Authorization: Bearer <refreshToken> (compat)
+        // 2) JSON body { refreshToken }
         if (refreshToken == null || refreshToken.isBlank()) {
-            refreshToken = extractBearerToken(httpServletRequest);
+            refreshToken = bodyRefreshToken;
         }
 
-        // 3) JSON body { refreshToken }
-        if ((refreshToken == null || refreshToken.isBlank())
-                && request != null
-                && request.getRefreshToken() != null
-                && !request.getRefreshToken().isBlank()) {
-            refreshToken = request.getRefreshToken();
+        // When refresh is supplied separately, Authorization carries the existing access token.
+        if (refreshToken != null && !refreshToken.isBlank()
+                && (accessToken == null || accessToken.isBlank())) {
+            accessToken = bearerToken;
+        }
+
+        // 3) Authorization: Bearer <refreshToken> (legacy compatibility)
+        if (refreshToken == null || refreshToken.isBlank()) {
+            refreshToken = bearerToken;
         }
 
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -169,6 +183,7 @@ public class AuthController {
 
         TokenReissueRequest effectiveRequest = new TokenReissueRequest();
         effectiveRequest.setRefreshToken(refreshToken);
+        effectiveRequest.setAccessToken(accessToken);
 
         LoginResponse res = authService.reissue(effectiveRequest);
 
@@ -228,34 +243,25 @@ public class AuthController {
     @Operation(
             summary = "로그아웃",
             description = """
-                    현재 로그인된 사용자의 refresh token을 폐기하고 쿠키를 만료시킵니다.
+                    현재 브라우저의 refresh token을 폐기하고 쿠키를 만료시킵니다.
 
-                    **Request Body:** 없음 (Authorization 헤더의 Bearer access token으로 인증)
+                    **Request Body:** 없음
 
                     **Response:** 성공 메시지 반환 (`"logged out"`)
 
                     로그아웃 성공 시 `refreshToken` 쿠키가 빈 값으로 만료 처리됩니다.
-                    인증되지 않은 요청은 401을 반환합니다.
-                    """,
-            security = @SecurityRequirement(name = "bearerAuth")
+                    access token이 만료되었거나 없어도 쿠키 만료 응답은 항상 반환합니다.
+                    """
     )
-    public ResponseEntity<ApiResponse<Void>> logout(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
-            throw new UnauthenticatedException("Unauthenticated");
-        }
-
-        authService.logout(authentication.getName());
-
-        ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
-                .httpOnly(cookieProperties.isHttpOnly())
-                .secure(cookieProperties.isSecure())
-                .sameSite(cookieProperties.getSameSite())
-                .path("/")
-                .maxAge(0)
-                .build();
+    public ResponseEntity<ApiResponse<Void>> logout(
+            HttpServletRequest httpServletRequest,
+            Authentication authentication) {
+        String authenticatedUuid = authentication == null ? null : authentication.getName();
+        String refreshToken = extractRefreshTokenFromCookie(httpServletRequest);
+        authService.logout(authenticatedUuid, refreshToken);
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .header(HttpHeaders.SET_COOKIE, createExpiredRefreshCookie().toString())
                 .body(ApiResponse.okMessage("logged out"));
     }
 
