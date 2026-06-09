@@ -4,8 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 
 public enum PostBoardType {
     COMMUNITY,
-    BLOG,
-    NOTICE;
+    BLOG;
 
     @JsonCreator
     public static PostBoardType from(String value) {
@@ -17,7 +16,6 @@ public enum PostBoardType {
         return switch (normalized) {
             case "COMMUNITY", "커뮤니티" -> COMMUNITY;
             case "BLOG", "블로그" -> BLOG;
-            case "NOTICE", "공지", "공지사항" -> NOTICE;
             default -> PostBoardType.valueOf(normalized);
         };
     }

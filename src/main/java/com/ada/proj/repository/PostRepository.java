@@ -11,11 +11,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.ada.proj.dto.AdminPostSummaryResponse;
-import com.ada.proj.dto.NoticeSummaryResponse;
 import com.ada.proj.dto.PostSummaryResponse;
 import com.ada.proj.entity.Post;
 import com.ada.proj.enums.CommunityCategory;
-import com.ada.proj.enums.NoticeCategory;
 import com.ada.proj.enums.PostBoardType;
 import com.ada.proj.enums.TechSubTag;
 
@@ -79,41 +77,6 @@ public interface PostRepository extends JpaRepository<Post, String> {
             @Param("includeLegacyCommunity") boolean includeLegacyCommunity,
             @Param("mediaFilter") String mediaFilter,
             @Param("excludeCategory") CommunityCategory excludeCategory,
-            Pageable pageable);
-
-    // 공지사항 목록: 핀된 글은 먼저 고정한 순(pinnedAt 오름차순) 최상단, 그 이후 일반 글 writedAt 내림차순
-    @Query(value = """
-            select new com.ada.proj.dto.NoticeSummaryResponse(
-                p.postUuid, p.seq, p.title, p.writer, u.profileImage,
-                p.writedAt, p.noticeCategory, p.isPinned, p.pinnedAt
-            )
-            from Post p left join com.ada.proj.entity.User u on u.uuid = p.writerUuid
-            where p.boardType = com.ada.proj.enums.PostBoardType.NOTICE
-              and (:noticeCategory is null or p.noticeCategory = :noticeCategory)
-              and (
-                :query is null
-                or lower(p.title) like lower(concat('%', :query, '%'))
-                or p.content like concat('%', :query, '%')
-              )
-            order by
-              case when p.isPinned = true then 0 else 1 end asc,
-              case when p.isPinned = true then p.pinnedAt end asc,
-              p.writedAt desc
-            """,
-            countQuery = """
-            select count(p)
-            from Post p
-            where p.boardType = com.ada.proj.enums.PostBoardType.NOTICE
-              and (:noticeCategory is null or p.noticeCategory = :noticeCategory)
-              and (
-                :query is null
-                or lower(p.title) like lower(concat('%', :query, '%'))
-                or p.content like concat('%', :query, '%')
-              )
-            """)
-    Page<NoticeSummaryResponse> findNoticeSummaries(
-            @Param("noticeCategory") NoticeCategory noticeCategory,
-            @Param("query") String query,
             Pageable pageable);
 
     @Modifying(clearAutomatically = true)

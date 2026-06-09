@@ -2,8 +2,6 @@ package com.ada.proj.dto;
 
 import java.util.List;
 
-import org.springframework.web.multipart.MultipartFile;
-
 import com.ada.proj.enums.CommunityCategory;
 import com.fasterxml.jackson.annotation.JsonAlias;
 
@@ -27,11 +25,31 @@ public class GeneralCommunityCreateRequest {
     @Schema(description = "본문 — Markdown 또는 HTML", example = "오늘 학식 메뉴 맛있어 보여서요!")
     private String content;
 
-    @Schema(description = "첨부 이미지 파일 목록 (jpeg, png, gif, webp, svg / 개당 최대 15MB)")
-    private List<MultipartFile> images;
+    @Schema(
+            description = """
+                    게시글 종류 (선택, 기본값: CHAT)
+                    - `CHAT` : 잡담
+                    - `MEME` : 밈
+                    - `PROJECT_SHOWCASE` : 프로젝트 자랑
 
-    @Schema(description = "첨부 영상 파일 목록 (mp4 / 개당 최대 100MB)")
-    private List<MultipartFile> videos;
+                    ⚠️ `TECH`(개발 커뮤니티)는 이 엔드포인트에서 사용 불가 → `POST /api/community/dev/posts` 사용
+                    """,
+            allowableValues = {"CHAT", "MEME", "PROJECT_SHOWCASE"},
+            example = "CHAT"
+    )
+    private CommunityCategory communityCategory;
+
+    @Schema(
+            description = "이미지 URL 배열. 먼저 `POST /api/upload/community/post-media` 로 업로드 후 반환된 URL을 배열로 담아 전달하세요.",
+            example = "[\"https://bucket.s3.amazonaws.com/community/posts/uuid/img1.png\"]"
+    )
+    private List<String> images;
+
+    @Schema(
+            description = "영상 URL 배열. 먼저 `POST /api/upload/community/post-media` 로 업로드 후 반환된 URL을 배열로 담아 전달하세요.",
+            example = "[\"https://bucket.s3.amazonaws.com/community/posts/uuid/video.mp4\"]"
+    )
+    private List<String> videos;
 
     @Schema(
             description = """
@@ -53,14 +71,20 @@ public class GeneralCommunityCreateRequest {
     )
     private PollCreateRequest poll;
 
-    /** PostCreateRequest 로 변환 (images/videos 는 업로드 후 URL을 별도로 설정) */
     public PostCreateRequest toPostCreateRequest() {
         PostCreateRequest req = new PostCreateRequest();
         req.setTitle(title);
         req.setContent(content);
-        req.setCommunityCategory(CommunityCategory.CHAT);
+        req.setImages(joinOrNull(images));
+        req.setVideos(joinOrNull(videos));
+        req.setCommunityCategory(communityCategory != null ? communityCategory : CommunityCategory.CHAT);
         req.setPoll(poll);
         req.setShowMediaInList(showMediaInList);
         return req;
+    }
+
+    private static String joinOrNull(List<String> list) {
+        if (list == null || list.isEmpty()) return null;
+        return String.join(",", list.stream().filter(s -> s != null && !s.isBlank()).toList());
     }
 }

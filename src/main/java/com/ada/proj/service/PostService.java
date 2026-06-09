@@ -28,26 +28,21 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.ada.proj.dto.EmojiReactionResponse;
-import com.ada.proj.dto.NoticeSummaryResponse;
 import com.ada.proj.dto.PageResponse;
-import com.ada.proj.dto.PostAttachmentResponse;
 import com.ada.proj.dto.PostCreateRequest;
 import com.ada.proj.dto.PostDetailResponse;
 import com.ada.proj.dto.PostSummaryResponse;
 import com.ada.proj.dto.PostUpdateRequest;
 import com.ada.proj.entity.Post;
-import com.ada.proj.entity.PostAttachment;
 import com.ada.proj.entity.PostBookmark;
 import com.ada.proj.entity.PostLike;
 import com.ada.proj.entity.User;
 import com.ada.proj.enums.CommunityCategory;
 import com.ada.proj.enums.MediaFilter;
-import com.ada.proj.enums.NoticeCategory;
 import com.ada.proj.enums.PostBoardType;
 import com.ada.proj.enums.SortType;
 import com.ada.proj.enums.TechSubTag;
 import com.ada.proj.entity.PostEmojiReaction;
-import com.ada.proj.repository.PostAttachmentRepository;
 import com.ada.proj.repository.PostBookmarkRepository;
 import com.ada.proj.repository.PostEmojiReactionRepository;
 import com.ada.proj.repository.PostLikeRepository;
@@ -73,7 +68,6 @@ public class PostService {
     private final UserRepository userRepository;
     private final PostLikeRepository postLikeRepository;
     private final PostBookmarkRepository postBookmarkRepository;
-    private final PostAttachmentRepository postAttachmentRepository;
     private final PostEmojiReactionRepository postEmojiReactionRepository;
     private final UserBanService userBanService;
     private final PollService pollService;
@@ -134,11 +128,6 @@ public class PostService {
         return createInternal(req, true, PostBoardType.BLOG);
     }
 
-    @Transactional
-    public Long createNotice(@NonNull PostCreateRequest req) {
-        return createInternal(req, true, PostBoardType.NOTICE);
-    }
-
     private Long createInternal(PostCreateRequest req, boolean strict, PostBoardType forcedBoardType) {
         String writerUuid = resolveWriterUuid(req.getWriterUuid());
         User writerUser = null;
@@ -168,7 +157,6 @@ public class PostService {
                 .isDev(meta.isDev())
                 .devTags(meta.techTagsCsv())
                 .thumbnailImage(meta.thumbnailImage())
-                .noticeCategory(req.getNoticeCategory())
                 .showMediaInList(req.getShowMediaInList() != null ? req.getShowMediaInList() : true)
                 .build();
 
@@ -176,7 +164,6 @@ public class PostService {
         if (meta.shouldCreatePoll()) {
             pollService.createPoll(saved, req.getPoll());
         }
-        linkAttachments(saved.getPostUuid(), req.getAttachmentIds());
 
         return saved.getSeq();
     }
@@ -308,47 +295,6 @@ public class PostService {
         summaries.forEach(s -> s.setIsBookmarked(bookmarked.contains(s.getPostUuid())));
     }
 
-    @Transactional(readOnly = true)
-    public PageResponse<NoticeSummaryResponse> listNotices(int page, int size) {
-        return listNotices(page, size, null, null);
-    }
-
-    @Transactional(readOnly = true)
-    public PageResponse<NoticeSummaryResponse> listNotices(int page, int size, NoticeCategory category, String query) {
-        // 핀된 글이 최상단에 오도록 정렬은 쿼리 내에서 처리 → Pageable은 unpaged sort로
-        Pageable pageable = PageRequest.of(page, size, Sort.unsorted());
-        Page<NoticeSummaryResponse> result = postRepository.findNoticeSummaries(category, blankToNull(query), pageable);
-        return new PageResponse<>(
-                result.getNumber(),
-                result.getSize(),
-                result.getTotalElements(),
-                result.getTotalPages(),
-                result.getContent()
-        );
-    }
-
-    @Transactional
-    public void pinNotice(@NonNull Long seq, Authentication auth) {
-        Post post = getPostBySeqOrThrow(seq);
-        ensureAdminOrThrow(auth);
-        post.setIsPinned(true);
-        post.setPinnedAt(LocalDateTime.now());
-    }
-
-    @Transactional
-    public void unpinNotice(@NonNull Long seq, Authentication auth) {
-        Post post = getPostBySeqOrThrow(seq);
-        ensureAdminOrThrow(auth);
-        post.setIsPinned(false);
-        post.setPinnedAt(null);
-    }
-
-    private void ensureAdminOrThrow(Authentication auth) {
-        if (!hasAdminRole(auth)) {
-            throw new AccessDeniedException("관리자만 수행할 수 있습니다.");
-        }
-    }
-
     @Transactional
     public PostDetailResponse detail(@NonNull Long seq) {
         return detail(seq, (String) null);
@@ -385,14 +331,6 @@ public class PostService {
         return buildDetailResponse(post, requesterUuid);
     }
 
-    /** 공지사항 상세 — 다른 게시판의 글이면 404 */
-    @Transactional
-    public PostDetailResponse detailNotice(@NonNull Long seq, String requesterUuid) {
-        Post post = getPostBySeqOrThrow(seq);
-        ensureBoardType(post, PostBoardType.NOTICE);
-        return buildDetailResponse(post, requesterUuid);
-    }
-
     private void ensureBoardType(Post post, PostBoardType expected) {
         if (post.getBoardType() != expected) {
             throw new EntityNotFoundException("Post not found: " + post.getSeq());
@@ -400,10 +338,7 @@ public class PostService {
     }
 
     private PostDetailResponse buildDetailResponse(Post post, String requesterUuid) {
-        boolean isNotice = post.getBoardType() == PostBoardType.NOTICE;
-        if (!isNotice) {
-            postRepository.increaseViews(post.getPostUuid());
-        }
+        postRepository.increaseViews(post.getPostUuid());
 
         User user = userRepository.findByUuid(post.getWriterUuid()).orElse(null);
         boolean isLiked = requesterUuid != null
@@ -412,7 +347,6 @@ public class PostService {
                 && postBookmarkRepository.existsByUserUuidAndPostUuid(requesterUuid, post.getPostUuid());
 
         List<EmojiReactionResponse> emojiReactions = loadEmojiReactions(post.getPostUuid(), requesterUuid);
-        List<PostAttachmentResponse> attachments = loadAttachments(post.getPostUuid());
 
         return PostDetailResponse.builder()
                 .postUuid(post.getPostUuid())
@@ -429,7 +363,7 @@ public class PostService {
                 .writedAt(post.getWritedAt())
                 .updatedAt(post.getUpdatedAt())
                 .likes(post.getLikes())
-                .views(isNotice ? null : post.getViews())
+                .views(post.getViews())
                 .comments(post.getComments())
                 .isDev(post.getIsDev())
                 .devTags(post.getDevTags())
@@ -440,11 +374,7 @@ public class PostService {
                 .poll(pollService.findResponseByPostUuid(post.getPostUuid()))
                 .isLiked(isLiked)
                 .isBookmarked(isBookmarked)
-                .noticeCategory(post.getNoticeCategory())
-                .isPinned(post.getIsPinned())
-                .pinnedAt(post.getPinnedAt())
                 .emojiReactions(emojiReactions)
-                .attachments(attachments)
                 .build();
     }
 
@@ -470,11 +400,6 @@ public class PostService {
     @Transactional
     public void updateBlog(@NonNull Long seq, @NonNull PostUpdateRequest req, Authentication auth) {
         updateInternal(seq, req, auth, true, PostBoardType.BLOG);
-    }
-
-    @Transactional
-    public void updateNotice(@NonNull Long seq, @NonNull PostUpdateRequest req, Authentication auth) {
-        updateInternal(seq, req, auth, true, PostBoardType.NOTICE);
     }
 
     private void updateInternal(
@@ -551,7 +476,6 @@ public class PostService {
         if (Boolean.TRUE.equals(requireDev))  ensureDevPost(post);
         ensureWriterOrAdmin(post, auth);
         pollService.deleteByPost(post);
-        postAttachmentRepository.deleteAllByPostUuid(post.getPostUuid());
         postEmojiReactionRepository.deleteAllByPostUuid(post.getPostUuid());
         postRepository.deleteById(post.getPostUuid());
     }
@@ -759,14 +683,13 @@ public class PostService {
 
         if (boardType == PostBoardType.BLOG) {
             if (pollProvided) {
-                throw new IllegalArgumentException("투표 정보는 커뮤니티 기술/투표 게시글 또는 공지사항에서만 사용할 수 있습니다.");
+                throw new IllegalArgumentException("투표 정보는 커뮤니티 기술/투표 게시글에서만 사용할 수 있습니다.");
             }
             boolean hasTechTags = techTagsCsv != null && !techTagsCsv.isBlank();
             return new ResolvedPostMeta(boardType, null, null, techTagsCsv, thumbnail, hasTechTags, false, false);
         }
 
-        boolean isPollPost = pollProvided || existingPollPost;
-        return new ResolvedPostMeta(PostBoardType.NOTICE, null, null, null, null, false, isPollPost, isPollPost && pollProvided);
+        throw new IllegalArgumentException("지원하지 않는 게시판 타입입니다: " + boardType);
     }
 
     private String resolveWriterUuid(String requestWriterUuid) {
@@ -792,9 +715,6 @@ public class PostService {
     private String readableTag(PostBoardType boardType, CommunityCategory category, TechSubTag techSubTag, String tags) {
         if (boardType == PostBoardType.BLOG) {
             return "블로그";
-        }
-        if (boardType == PostBoardType.NOTICE) {
-            return "공지사항";
         }
         if (category == CommunityCategory.TECH) {
             String sub = switch (techSubTag == null ? TechSubTag.QUESTION : techSubTag) {
@@ -922,35 +842,6 @@ public class PostService {
                     .toList();
         } catch (Exception e) {
             return List.of();
-        }
-    }
-
-    private List<PostAttachmentResponse> loadAttachments(String postUuid) {
-        try {
-            return postAttachmentRepository.findByPostUuidOrderByDisplayOrderAsc(postUuid)
-                    .stream()
-                    .map(a -> PostAttachmentResponse.builder()
-                            .id(a.getId())
-                            .fileName(a.getFileName())
-                            .fileUrl(a.getFileUrl())
-                            .fileType(a.getFileType())
-                            .fileSize(a.getFileSize())
-                            .uploadedAt(a.getUploadedAt())
-                            .build())
-                    .toList();
-        } catch (Exception e) {
-            return List.of();
-        }
-    }
-
-    private void linkAttachments(String postUuid, List<Long> attachmentIds) {
-        if (attachmentIds == null || attachmentIds.isEmpty()) return;
-        List<PostAttachment> attachments = postAttachmentRepository.findAllById(attachmentIds);
-        int order = 0;
-        for (PostAttachment att : attachments) {
-            att.setPostUuid(postUuid);
-            att.setDisplayOrder(order++);
-            postAttachmentRepository.save(att);
         }
     }
 

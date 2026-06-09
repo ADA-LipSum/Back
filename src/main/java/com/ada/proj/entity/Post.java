@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.ada.proj.enums.CommunityCategory;
-import com.ada.proj.enums.NoticeCategory;
 import com.ada.proj.enums.PostBoardType;
 import com.ada.proj.enums.TechSubTag;
 
@@ -97,16 +96,6 @@ public class Post {
     @Column(name = "dev_tags", length = 255)
     private String devTags;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "notice_category", length = 20)
-    private NoticeCategory noticeCategory;
-
-    @Column(name = "is_pinned")
-    private Boolean isPinned;
-
-    @Column(name = "pinned_at")
-    private LocalDateTime pinnedAt;
-
     @PrePersist
     public void onCreate() {
         if (this.postUuid == null) this.postUuid = UUID.randomUUID().toString();
@@ -118,7 +107,6 @@ public class Post {
         if (this.isDev == null) this.isDev = false;
         if (this.showMediaInList == null) this.showMediaInList = true;
         if (this.boardType == null) this.boardType = PostBoardType.COMMUNITY;
-        if (this.isPinned == null) this.isPinned = false;
     }
 
     @PreUpdate

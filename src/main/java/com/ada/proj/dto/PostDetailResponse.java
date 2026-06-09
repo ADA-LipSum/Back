@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.ada.proj.enums.CommunityCategory;
-import com.ada.proj.enums.NoticeCategory;
 import com.ada.proj.enums.PostBoardType;
 import com.ada.proj.enums.TechSubTag;
 
@@ -80,7 +79,7 @@ public class PostDetailResponse {
     @Schema(description = "기술 태그 목록", example = "[\"React\",\"TypeScript\"]")
     private List<String> techTags;
 
-    @Schema(description = "게시판 타입 (COMMUNITY · BLOG · NOTICE)")
+    @Schema(description = "게시판 타입 (COMMUNITY · BLOG)")
     private PostBoardType boardType;
 
     @Schema(description = "커뮤니티 상위 카테고리 (CHAT · TECH · MEME · PROJECT_SHOWCASE)")
@@ -98,18 +97,6 @@ public class PostDetailResponse {
     @Schema(description = "현재 로그인 사용자의 북마크 여부 (비로그인 시 false)", example = "false")
     private Boolean isBookmarked;
 
-    @Schema(description = "공지사항 분류 (NOTICE 게시글에만 존재). EVENT · SERVICE · EMPLOYMENT · OTHER")
-    private NoticeCategory noticeCategory;
-
-    @Schema(description = "공지사항 고정 여부 (NOTICE 게시글에만 의미 있음)", example = "false")
-    private Boolean isPinned;
-
-    @Schema(description = "고정 시각 (isPinned=true 인 경우에만 존재)")
-    private LocalDateTime pinnedAt;
-
     @Schema(description = "이모지 반응 목록 — 이모지별 반응 수 및 내 반응 여부 포함")
     private List<EmojiReactionResponse> emojiReactions;
-
-    @Schema(description = "첨부파일 목록 (공지사항 전용, 다운로드 URL 포함)")
-    private List<PostAttachmentResponse> attachments;
 }

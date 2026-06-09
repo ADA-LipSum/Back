@@ -3,12 +3,10 @@ package com.ada.proj.controller;
 import java.util.Objects;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -16,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.ada.proj.dto.ApiResponse;
 import com.ada.proj.dto.CommentResponse;
@@ -30,11 +27,9 @@ import com.ada.proj.enums.MediaFilter;
 import com.ada.proj.enums.PostBoardType;
 import com.ada.proj.enums.SortType;
 import com.ada.proj.enums.TechSubTag;
-import com.ada.proj.exception.ForbiddenException;
 import com.ada.proj.service.CommentService;
 import com.ada.proj.service.PostService;
 import com.ada.proj.service.ReactionBroadcastService;
-import com.ada.proj.service.S3Service;
 
 import java.util.List;
 
@@ -55,7 +50,6 @@ public class CommunityController {
     private final PostService postService;
     private final CommentService commentService;
     private final ReactionBroadcastService broadcastService;
-    private final S3Service s3Service;
 
     @GetMapping
     @Operation(
@@ -105,15 +99,15 @@ public class CommunityController {
         )));
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping
     @Operation(
             summary = "게시글 작성",
             description = """
-                    일반 커뮤니티 게시글을 작성합니다. **로그인 필요.** (multipart/form-data)
+                    일반 커뮤니티 게시글을 작성합니다. **로그인 필요.**
 
                     일반 커뮤니티에는 별도의 글 종류 분류(태그)가 없습니다.
                     `poll` 정보는 태그/분류와 무관한 별개 기능으로, 전달하면 투표 게시글로 작성됩니다.
-                    `images`, `videos` 는 파일을 직접 첨부합니다 (URL이 아닌 파일 업로드 방식).
+                    `communityCategory` 미전송 시 기본값은 `CHAT`(잡담)입니다.
                     개발 커뮤니티 게시글은 `POST /api/community/dev/posts`를 사용하세요.
 
                     **Response:** `data` = 생성된 게시글 순번(Long)
@@ -121,27 +115,13 @@ public class CommunityController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<Long>> create(
-            @Valid @ModelAttribute GeneralCommunityCreateRequest request,
+            @Valid @RequestBody GeneralCommunityCreateRequest request,
             @Parameter(hidden = true) Authentication authentication
     ) {
-        if (authentication == null) throw new ForbiddenException("인증이 필요합니다.");
-        String writerUuid = authentication.getName();
-
         PostCreateRequest payload = Objects.requireNonNull(request).toPostCreateRequest();
-        payload.setWriterUuid(writerUuid);
-        payload.setImages(uploadMedia(request.getImages(), writerUuid));
-        payload.setVideos(uploadMedia(request.getVideos(), writerUuid));
+        if (authentication != null) payload.setWriterUuid(authentication.getName());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(postService.createCommunity(payload)));
-    }
-
-    private String uploadMedia(List<MultipartFile> files, String writerUuid) {
-        if (files == null || files.isEmpty()) return null;
-        List<String> urls = files.stream()
-                .filter(file -> file != null && !file.isEmpty())
-                .map(file -> s3Service.uploadPostMedia(file, writerUuid))
-                .toList();
-        return urls.isEmpty() ? null : String.join(",", urls);
     }
 
     @GetMapping("/{id}")

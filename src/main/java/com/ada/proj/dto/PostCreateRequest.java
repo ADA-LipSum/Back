@@ -3,7 +3,6 @@ package com.ada.proj.dto;
 import java.util.List;
 
 import com.ada.proj.enums.CommunityCategory;
-import com.ada.proj.enums.NoticeCategory;
 import com.ada.proj.enums.PostBoardType;
 import com.ada.proj.enums.TechSubTag;
 import com.fasterxml.jackson.annotation.JsonAlias;
@@ -34,7 +33,7 @@ public class PostCreateRequest {
     private String content;
 
     @Schema(description = """
-            첨부 이미지 URL 목록 (쉼표 구분) — 일반·개발 커뮤니티, 공지사항 공통 선택.
+            첨부 이미지 URL 목록 (쉼표 구분) — 일반·개발 커뮤니티 공통 선택.
             먼저 POST /api/upload/community/post-media 로 업로드 후 반환된 URL을 넣으세요.""",
             example = "https://bucket.s3.amazonaws.com/community/posts/uuid/img.png")
     private String images;
@@ -59,23 +58,10 @@ public class PostCreateRequest {
             example = "[\"React\", \"TypeScript\"]")
     private List<String> techTags;
 
-    @Schema(description = "투표 정보. 개발 커뮤니티 투표 게시글(techSubTag=POLL) 또는 공지사항에서 사용 가능. 전달 시 개발 커뮤니티는 techSubTag가 POLL로 자동 설정됨. 투표 선택지·종료 시각 포함.")
+    @Schema(description = "투표 정보. 개발 커뮤니티 투표 게시글(techSubTag=POLL)에서 사용 가능. 전달 시 techSubTag가 POLL로 자동 설정됨. 투표 선택지·종료 시각 포함.")
     private PollCreateRequest poll;
 
-    @Schema(description = """
-            ⚠️ 공지사항 전용 (POST /api/notices).
-            공지 분류: EVENT(행사) · SERVICE(서비스) · EMPLOYMENT(취업) · OTHER(기타)""",
-            example = "SERVICE")
-    private NoticeCategory noticeCategory;
-
-    @Schema(description = """
-            ⚠️ 공지사항 첨부파일 전용 (POST /api/notices).
-            파일을 먼저 POST /api/upload/notice/attachment 로 업로드하면 ID가 반환됩니다.
-            그 ID를 이 배열에 담아 전달하면 공지사항과 연결됩니다.""",
-            example = "[1, 2, 3]")
-    private List<Long> attachmentIds;
-
-    @Schema(description = "서버가 자동 설정 (COMMUNITY / BLOG / NOTICE). 보내지 않아도 됩니다.", hidden = true)
+    @Schema(description = "서버가 자동 설정 (COMMUNITY / BLOG). 보내지 않아도 됩니다.", hidden = true)
     private PostBoardType boardType;
 
     @Schema(description = "레거시 호환 필드. 신규 요청에서는 사용하지 마세요.", hidden = true)
