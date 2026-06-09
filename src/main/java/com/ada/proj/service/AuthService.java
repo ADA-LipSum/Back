@@ -184,6 +184,11 @@ public class AuthService {
             throw new TokenInvalidException("Invalid refresh token");
         }
 
+        String accessToken = request.getAccessToken();
+        if (accessToken == null || accessToken.isBlank()) {
+            throw new TokenInvalidException("Access token is required for reissue");
+        }
+
         final String uuid;
         try {
             uuid = jwtTokenProvider.getUuid(refreshToken);
@@ -191,6 +196,17 @@ public class AuthService {
             throw new TokenExpiredException("Refresh token expired");
         } catch (JwtException | IllegalArgumentException ex) {
             throw new TokenInvalidException("Invalid refresh token");
+        }
+
+        final String accessTokenUuid;
+        try {
+            accessTokenUuid = jwtTokenProvider.getUuidAllowExpired(accessToken);
+        } catch (JwtException | IllegalArgumentException ex) {
+            throw new TokenInvalidException("Invalid access token");
+        }
+
+        if (!uuid.equals(accessTokenUuid)) {
+            throw new TokenInvalidException("Access token and refresh token belong to different users");
         }
 
         RefreshToken stored = refreshTokenRepository.findById(uuid)
@@ -232,8 +248,27 @@ public class AuthService {
                 .build();
     }
 
-    public void logout(String uuid) {
-        refreshTokenRepository.deleteById(uuid);
+    public void logout(String authenticatedUuid, String refreshToken) {
+        if (authenticatedUuid != null && !authenticatedUuid.isBlank()) {
+            refreshTokenRepository.deleteById(authenticatedUuid);
+        }
+
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return;
+        }
+
+        try {
+            String refreshUuid = jwtTokenProvider.getUuid(refreshToken);
+            if (refreshUuid.equals(authenticatedUuid)) {
+                return;
+            }
+
+            refreshTokenRepository.findById(refreshUuid)
+                    .filter(stored -> refreshToken.equals(stored.getToken()))
+                    .ifPresent(stored -> refreshTokenRepository.deleteById(refreshUuid));
+        } catch (JwtException | IllegalArgumentException ignored) {
+            // The browser cookie is still expired even when its token is invalid or already expired.
+        }
     }
 
 

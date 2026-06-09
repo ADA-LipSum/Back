@@ -59,6 +59,14 @@ public class JwtTokenProvider {
         return parse(token).getBody().getSubject();
     }
 
+    public String getUuidAllowExpired(String token) {
+        try {
+            return getUuid(token);
+        } catch (ExpiredJwtException ex) {
+            return ex.getClaims().getSubject();
+        }
+    }
+
     public String getRole(String token) {
         Object role = parse(token).getBody().get("role");
         return role == null ? null : role.toString();

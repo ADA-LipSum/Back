@@ -114,6 +114,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST,
                         "/api/auth/login",
                         "/api/auth/reissue",
+                        "/api/auth/logout",
                         "/api/auth/signup/teacher",
                         "/api/auth/admin/init"
                 ).permitAll()
