@@ -2,7 +2,6 @@ package com.ada.proj.controller;
 
 import java.util.List;
 
-import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -182,9 +181,7 @@ public class NoticeController {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType(data.contentType()));
-        headers.setContentDisposition(
-                ContentDisposition.attachment().filename(data.filename()).build()
-        );
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + data.filename() + "\"");
         headers.setContentLength(data.bytes().length);
 
         return new ResponseEntity<>(data.bytes(), headers, HttpStatus.OK);
