@@ -110,22 +110,9 @@ public class AuthController {
 
         ResponseCookie cookie = createCookie(res.getRefreshToken(), res.isRememberMe());
 
-        AuthTokenResponse body = AuthTokenResponse.builder()
-                .tokenType(res.getTokenType())
-                .accessToken(res.getAccessToken())
-                .refreshToken(res.getRefreshToken())
-                .expiresIn(res.getExpiresIn())
-                .uuid(res.getUuid())
-                .adminId(res.getAdminId())
-                .customId(res.getCustomId())
-                .userRealname(res.getUserRealname())
-                .userNickname(res.getUserNickname())
-                .profileImage(res.getProfileImage())
-                .build();
-
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(ApiResponse.ok(body));
+                .body(ApiResponse.ok(toAuthTokenResponse(res)));
     }
 
     @PostMapping("/reissue")
@@ -134,12 +121,9 @@ public class AuthController {
             description = """
                     만료된 access token을 refresh token으로 재발급합니다.
 
-                    계정이 바뀌는 것을 방지하기 위해 기존 access token과 refresh token의 사용자 UUID가
-                    일치할 때만 재발급합니다. 만료된 access token도 사용할 수 있습니다.
-
                     **토큰 전달 방법:**
-                    - 기존 access token (필수): `Authorization: Bearer <accessToken>` 또는 Request Body `accessToken`
                     - refresh token: HttpOnly 쿠키 `refreshToken` (권장) 또는 Request Body `refreshToken`
+                    - 호환 방식: `Authorization: Bearer <refreshToken>`
 
                     **Response:**
                     - `tokenType`: 토큰 타입 (Bearer)
@@ -157,18 +141,11 @@ public class AuthController {
         // 1) Cookie (HttpOnly refreshToken)
         String refreshToken = extractRefreshTokenFromCookie(httpServletRequest);
         String bearerToken = extractBearerToken(httpServletRequest);
-        String accessToken = request == null ? null : request.getAccessToken();
         String bodyRefreshToken = request == null ? null : request.getRefreshToken();
 
         // 2) JSON body { refreshToken }
         if (refreshToken == null || refreshToken.isBlank()) {
             refreshToken = bodyRefreshToken;
-        }
-
-        // When refresh is supplied separately, Authorization carries the existing access token.
-        if (refreshToken != null && !refreshToken.isBlank()
-                && (accessToken == null || accessToken.isBlank())) {
-            accessToken = bearerToken;
         }
 
         // 3) Authorization: Bearer <refreshToken> (legacy compatibility)
@@ -183,22 +160,29 @@ public class AuthController {
 
         TokenReissueRequest effectiveRequest = new TokenReissueRequest();
         effectiveRequest.setRefreshToken(refreshToken);
-        effectiveRequest.setAccessToken(accessToken);
 
         LoginResponse res = authService.reissue(effectiveRequest);
 
         ResponseCookie cookie = createCookie(res.getRefreshToken(), res.isRememberMe());
 
-        AuthTokenResponse body = AuthTokenResponse.builder()
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(ApiResponse.ok(toAuthTokenResponse(res)));
+    }
+
+    private AuthTokenResponse toAuthTokenResponse(LoginResponse res) {
+        return AuthTokenResponse.builder()
                 .tokenType(res.getTokenType())
                 .accessToken(res.getAccessToken())
                 .refreshToken(res.getRefreshToken())
                 .expiresIn(res.getExpiresIn())
+                .uuid(res.getUuid())
+                .adminId(res.getAdminId())
+                .customId(res.getCustomId())
+                .userRealname(res.getUserRealname())
+                .userNickname(res.getUserNickname())
+                .profileImage(res.getProfileImage())
                 .build();
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(ApiResponse.ok(body));
     }
 
     private String extractRefreshTokenFromCookie(HttpServletRequest request) {

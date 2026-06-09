@@ -100,7 +100,6 @@ class AuthServiceRedisTest {
                 .build();
 
         when(jwtTokenProvider.getUuid("refresh-old")).thenReturn("uuid-001");
-        when(jwtTokenProvider.getUuidAllowExpired("access-old")).thenReturn("uuid-001");
         when(jwtTokenProvider.getRole("refresh-old")).thenReturn("ADMIN");
         when(jwtTokenProvider.generateAccessToken("uuid-001", "ADMIN")).thenReturn("access-new");
         when(jwtTokenProvider.generateRefreshToken("uuid-001", "ADMIN")).thenReturn("refresh-new");
@@ -116,7 +115,6 @@ class AuthServiceRedisTest {
 
         TokenReissueRequest request = new TokenReissueRequest();
         request.setRefreshToken("refresh-old");
-        request.setAccessToken("access-old");
 
         LoginResponse response = authService.reissue(request);
 
@@ -125,6 +123,9 @@ class AuthServiceRedisTest {
         assertThat(stored.getTtl()).isEqualTo(604_800L);
         assertThat(response.getAccessToken()).isEqualTo("access-new");
         assertThat(response.getRefreshToken()).isEqualTo("refresh-new");
+        assertThat(response.getUuid()).isEqualTo("uuid-001");
+        assertThat(response.getAdminId()).isEqualTo("admin");
+        assertThat(response.getCustomId()).isEqualTo("admin");
     }
 
     @Test
@@ -138,7 +139,6 @@ class AuthServiceRedisTest {
         jwtProperties.setRefreshExpirationMs(604_800_000L);
 
         when(jwtTokenProvider.getUuid("refresh-old")).thenReturn("uuid-001");
-        when(jwtTokenProvider.getUuidAllowExpired("access-old")).thenReturn("uuid-001");
         when(jwtTokenProvider.getRole("refresh-old")).thenReturn("ADMIN");
         when(refreshTokenRepository.findById("uuid-001")).thenReturn(Optional.empty());
 
@@ -151,61 +151,10 @@ class AuthServiceRedisTest {
 
         TokenReissueRequest request = new TokenReissueRequest();
         request.setRefreshToken("refresh-old");
-        request.setAccessToken("access-old");
 
         assertThatThrownBy(() -> authService.reissue(request))
                 .isInstanceOf(TokenInvalidException.class)
                 .hasMessageContaining("Invalid refresh token");
-    }
-
-    @Test
-    void reissue_rejectsRefreshTokenFromDifferentUser() {
-        UserRepository userRepository = mock(UserRepository.class);
-        RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
-        JwtTokenProvider jwtTokenProvider = mock(JwtTokenProvider.class);
-        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
-        JwtProperties jwtProperties = new JwtProperties();
-
-        when(jwtTokenProvider.getUuid("admin-refresh")).thenReturn("admin-uuid");
-        when(jwtTokenProvider.getUuidAllowExpired("user-access")).thenReturn("user-uuid");
-
-        AuthService authService = new AuthService(
-                userRepository,
-                refreshTokenRepository,
-                jwtTokenProvider,
-                passwordEncoder,
-                jwtProperties);
-
-        TokenReissueRequest request = new TokenReissueRequest();
-        request.setRefreshToken("admin-refresh");
-        request.setAccessToken("user-access");
-
-        assertThatThrownBy(() -> authService.reissue(request))
-                .isInstanceOf(TokenInvalidException.class)
-                .hasMessageContaining("different users");
-    }
-
-    @Test
-    void reissue_rejectsMissingAccessToken() {
-        UserRepository userRepository = mock(UserRepository.class);
-        RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
-        JwtTokenProvider jwtTokenProvider = mock(JwtTokenProvider.class);
-        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
-        JwtProperties jwtProperties = new JwtProperties();
-
-        AuthService authService = new AuthService(
-                userRepository,
-                refreshTokenRepository,
-                jwtTokenProvider,
-                passwordEncoder,
-                jwtProperties);
-
-        TokenReissueRequest request = new TokenReissueRequest();
-        request.setRefreshToken("admin-refresh");
-
-        assertThatThrownBy(() -> authService.reissue(request))
-                .isInstanceOf(TokenInvalidException.class)
-                .hasMessageContaining("Access token is required");
     }
 
     @Test
