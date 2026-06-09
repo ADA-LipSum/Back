@@ -76,7 +76,9 @@ public class NoticeService {
         List<String> urls = splitUrls(notice.getAttachmentUrls());
         List<String> proxyUrls = new ArrayList<>();
         for (int i = 0; i < urls.size(); i++) {
-            proxyUrls.add("/api/notices/" + seq + "/attachments/" + i);
+            String key = extractS3Key(urls.get(i));
+            String filename = key.substring(key.lastIndexOf('/') + 1);
+            proxyUrls.add("/api/notices/" + seq + "/attachments/" + i + "/" + filename);
         }
 
         return NoticeDetailResponse.builder()

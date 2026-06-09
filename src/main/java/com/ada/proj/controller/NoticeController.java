@@ -168,14 +168,15 @@ public class NoticeController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    @GetMapping("/{seq}/attachments/{index}")
+    @GetMapping("/{seq}/attachments/{index}/{filename:.+}")
     @Operation(
             summary = "공지사항 첨부파일 다운로드",
             description = "공지사항 첨부파일을 백엔드를 통해 프록시로 다운로드합니다. 인증 불필요."
     )
     public ResponseEntity<byte[]> downloadAttachment(
             @Parameter(description = "게시물 순번", example = "1") @PathVariable Long seq,
-            @Parameter(description = "첨부파일 인덱스 (0부터)", example = "0") @PathVariable int index
+            @Parameter(description = "첨부파일 인덱스 (0부터)", example = "0") @PathVariable int index,
+            @Parameter(description = "파일명", example = "uuid.jpg") @PathVariable String filename
     ) {
         NoticeService.AttachmentData data = noticeService.downloadAttachment(seq, index);
 
