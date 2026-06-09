@@ -12,6 +12,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.ada.proj.dto.NoticeCreateRequest;
 import com.ada.proj.dto.NoticeDetailResponse;
@@ -22,6 +23,7 @@ import com.ada.proj.dto.PageResponse;
 import com.ada.proj.entity.Notice;
 import com.ada.proj.entity.NoticeAttachment;
 import com.ada.proj.entity.User;
+import com.ada.proj.enums.AttachmentType;
 import com.ada.proj.enums.NoticeTag;
 import com.ada.proj.exception.ForbiddenException;
 import com.ada.proj.repository.NoticeAttachmentRepository;
@@ -42,6 +44,7 @@ public class NoticeService {
     private final NoticeRepository noticeRepository;
     private final NoticeAttachmentRepository noticeAttachmentRepository;
     private final UserRepository userRepository;
+    private final S3Service s3Service;
     private final JdbcTemplate jdbcTemplate;
 
     // ── 목록 조회 ────────────────────────────────────────────────────
@@ -51,12 +54,10 @@ public class NoticeService {
         NoticeTag tag = parseTag(tagStr);
         PageRequest pageable = PageRequest.of(page, size);
 
-        // 고정 게시물
         List<Notice> pinned = tag != null
                 ? noticeRepository.findPinnedByTag(tag)
                 : noticeRepository.findAllByIsPinnedTrueOrderByPinnedOrderAsc();
 
-        // 일반 게시물 (페이징)
         Page<Notice> generalPage = tag != null
                 ? noticeRepository.findGeneralByTag(tag, pageable)
                 : noticeRepository.findGeneralAll(pageable);
@@ -99,9 +100,8 @@ public class NoticeService {
     // ── 작성 (ADMIN) ─────────────────────────────────────────────────
 
     @Transactional
-    public Long create(NoticeCreateRequest req, Authentication auth) {
+    public Long create(NoticeCreateRequest req, List<MultipartFile> files, Authentication auth) {
         ensureAdmin(auth);
-        String writerUuid = auth.getName();
 
         Long seq = allocateSeq();
         String noticeUuid = UUID.randomUUID().toString();
@@ -109,7 +109,7 @@ public class NoticeService {
         Notice notice = Notice.builder()
                 .noticeUuid(noticeUuid)
                 .seq(seq)
-                .writerUuid(writerUuid)
+                .writerUuid(auth.getName())
                 .writer(resolveWriter(auth))
                 .title(req.getTitle())
                 .content(req.getContent())
@@ -118,8 +118,7 @@ public class NoticeService {
                 .build();
 
         noticeRepository.save(notice);
-
-        linkAttachments(noticeUuid, req.getAttachmentIds());
+        uploadAndLink(noticeUuid, files);
 
         return seq;
     }
@@ -127,7 +126,7 @@ public class NoticeService {
     // ── 수정 (ADMIN) ─────────────────────────────────────────────────
 
     @Transactional
-    public void update(Long seq, NoticeUpdateRequest req, Authentication auth) {
+    public void update(Long seq, NoticeUpdateRequest req, List<MultipartFile> files, Authentication auth) {
         ensureAdmin(auth);
         Notice notice = getBySeqOrThrow(seq);
 
@@ -135,9 +134,10 @@ public class NoticeService {
         if (req.getContent() != null) notice.setContent(req.getContent());
         if (req.getTag() != null) notice.setTag(parseTag(req.getTag()));
 
-        if (req.getAttachmentIds() != null) {
+        // 새 파일이 전달된 경우 기존 첨부파일을 교체
+        if (files != null && !files.isEmpty()) {
             noticeAttachmentRepository.deleteAllByNoticeUuid(notice.getNoticeUuid());
-            linkAttachments(notice.getNoticeUuid(), req.getAttachmentIds());
+            uploadAndLink(notice.getNoticeUuid(), files);
         }
     }
 
@@ -176,35 +176,47 @@ public class NoticeService {
         notice.setPinnedAt(null);
     }
 
-    // ── 첨부파일 임시 저장 ────────────────────────────────────────────
+    // ── 첨부파일 단건/다건 임시 저장 (사전 업로드 전용) ──────────────────
 
     @Transactional
     public NoticeAttachmentResponse saveAttachment(String originalFileName, String fileUrl, long fileSize) {
-        NoticeAttachment attachment = buildAttachment(originalFileName, fileUrl, fileSize);
-        return NoticeAttachmentResponse.from(noticeAttachmentRepository.save(attachment));
+        return NoticeAttachmentResponse.from(
+                noticeAttachmentRepository.save(buildAttachmentRecord(null, originalFileName, fileUrl, fileSize)));
     }
 
     @Transactional
-    public List<NoticeAttachmentResponse> saveAttachments(List<String> originalFileNames, List<String> fileUrls, List<Long> fileSizes) {
-        List<NoticeAttachment> attachments = new ArrayList<>();
-        for (int i = 0; i < originalFileNames.size(); i++) {
-            attachments.add(buildAttachment(originalFileNames.get(i), fileUrls.get(i), fileSizes.get(i)));
+    public List<NoticeAttachmentResponse> saveAttachments(List<String> names, List<String> urls, List<Long> sizes) {
+        List<NoticeAttachment> records = new ArrayList<>();
+        for (int i = 0; i < names.size(); i++) {
+            records.add(buildAttachmentRecord(null, names.get(i), urls.get(i), sizes.get(i)));
         }
-        return noticeAttachmentRepository.saveAll(attachments)
+        return noticeAttachmentRepository.saveAll(records)
                 .stream().map(NoticeAttachmentResponse::from).collect(Collectors.toList());
     }
 
-    private NoticeAttachment buildAttachment(String originalFileName, String fileUrl, long fileSize) {
+    // ── private helpers ──────────────────────────────────────────────
+
+    private void uploadAndLink(String noticeUuid, List<MultipartFile> files) {
+        if (files == null || files.isEmpty()) return;
+        List<NoticeAttachment> records = new ArrayList<>();
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) continue;
+            String url = s3Service.uploadNoticeAttachment(file);
+            String name = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
+            records.add(buildAttachmentRecord(noticeUuid, name, url, file.getSize()));
+        }
+        if (!records.isEmpty()) noticeAttachmentRepository.saveAll(records);
+    }
+
+    private NoticeAttachment buildAttachmentRecord(String noticeUuid, String originalFileName, String fileUrl, long fileSize) {
         return NoticeAttachment.builder()
-                .noticeUuid(null)
+                .noticeUuid(noticeUuid)
                 .originalFileName(originalFileName)
                 .fileUrl(fileUrl)
                 .fileSize(fileSize)
-                .attachmentType(com.ada.proj.enums.AttachmentType.fromFileName(originalFileName))
+                .attachmentType(AttachmentType.fromFileName(originalFileName))
                 .build();
     }
-
-    // ── private helpers ──────────────────────────────────────────────
 
     private Notice getBySeqOrThrow(Long seq) {
         return noticeRepository.findBySeq(seq)
@@ -227,13 +239,6 @@ public class NoticeService {
         User user = userRepository.findByUuid(auth.getName()).orElse(null);
         if (user == null) return null;
         return user.isUseNickname() ? user.getUserNickname() : user.getUserRealname();
-    }
-
-    private void linkAttachments(String noticeUuid, List<Long> attachmentIds) {
-        if (attachmentIds == null || attachmentIds.isEmpty()) return;
-        List<NoticeAttachment> attachments = noticeAttachmentRepository.findAllById(attachmentIds);
-        attachments.forEach(a -> a.setNoticeUuid(noticeUuid));
-        noticeAttachmentRepository.saveAll(attachments);
     }
 
     private Long allocateSeq() {

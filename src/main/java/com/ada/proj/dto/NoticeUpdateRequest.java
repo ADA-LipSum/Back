@@ -1,7 +1,5 @@
 package com.ada.proj.dto;
 
-import java.util.List;
-
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -19,7 +17,4 @@ public class NoticeUpdateRequest {
 
     @Schema(description = "태그 (EVENT/SERVICE/EMPLOYMENT/OTHER)", example = "SERVICE")
     private String tag;
-
-    @Schema(description = "교체할 첨부파일 ID 목록. null이면 변경 없음, 빈 배열이면 전체 삭제")
-    private List<Long> attachmentIds;
 }

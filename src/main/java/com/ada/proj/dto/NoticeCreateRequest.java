@@ -1,7 +1,5 @@
 package com.ada.proj.dto;
 
-import java.util.List;
-
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -21,7 +19,4 @@ public class NoticeCreateRequest {
 
     @Schema(description = "태그 (EVENT/SERVICE/EMPLOYMENT/OTHER)", example = "SERVICE")
     private String tag;
-
-    @Schema(description = "첨부파일 ID 목록 (업로드 후 반환된 ID)", example = "[1, 2]")
-    private List<Long> attachmentIds;
 }
