@@ -37,6 +37,7 @@ class PostServiceTest {
     private final PollService pollService = org.mockito.Mockito.mock(PollService.class);
     private final JdbcTemplate jdbcTemplate = org.mockito.Mockito.mock(JdbcTemplate.class);
     private final StringRedisTemplate redisTemplate = org.mockito.Mockito.mock(StringRedisTemplate.class);
+    private final RewardService rewardService = org.mockito.Mockito.mock(RewardService.class);
 
     private final PostService postService = new PostService(
             postRepository,
@@ -47,7 +48,8 @@ class PostServiceTest {
             userBanService,
             pollService,
             jdbcTemplate,
-            redisTemplate
+            redisTemplate,
+            rewardService
     );
 
     @Test

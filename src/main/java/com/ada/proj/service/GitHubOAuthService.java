@@ -32,6 +32,7 @@ import com.ada.proj.config.GitHubProperties;
 import com.ada.proj.config.JwtProperties;
 import com.ada.proj.entity.RefreshToken;
 import com.ada.proj.entity.User;
+import com.ada.proj.enums.RewardActionCode;
 import com.ada.proj.exception.ForbiddenException;
 import com.ada.proj.exception.UserNotFoundException;
 import com.ada.proj.repository.RefreshTokenRepository;
@@ -55,6 +56,7 @@ public class GitHubOAuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final RestTemplate restTemplate;
     private final CacheManager cacheManager;
+    private final RewardService rewardService;
 
     public GitHubOAuthService(
             GitHubProperties gitHubProperties,
@@ -62,13 +64,15 @@ public class GitHubOAuthService {
             UserRepository userRepository,
             JwtTokenProvider jwtTokenProvider,
             RefreshTokenRepository refreshTokenRepository,
-            CacheManager cacheManager) {
+            CacheManager cacheManager,
+            RewardService rewardService) {
         this.gitHubProperties = gitHubProperties;
         this.jwtProperties = jwtProperties;
         this.userRepository = userRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.refreshTokenRepository = refreshTokenRepository;
         this.cacheManager = cacheManager;
+        this.rewardService = rewardService;
         this.restTemplate = new RestTemplate();
     }
 
@@ -163,10 +167,15 @@ public class GitHubOAuthService {
 
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
+        boolean firstLink = user.getGithubId() == null;
         user.setGithubId(info.id());
         user.setGithubLogin(info.login());
         user.setGithubAccessToken(encryptToken(info.accessToken()));
         userRepository.save(user); // @Cacheable detached 엔티티이므로 명시적 저장
+
+        if (firstLink) {
+            rewardService.grant(uuid, RewardActionCode.GITHUB_LINK_FIRST);
+        }
     }
 
     @CacheEvict(cacheNames = "users", key = "#uuid")

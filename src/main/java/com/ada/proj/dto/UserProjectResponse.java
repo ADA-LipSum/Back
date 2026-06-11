@@ -29,6 +29,9 @@ public class UserProjectResponse {
     @Schema(description = "팀원 모집 여부")
     private boolean lookingForTeam;
 
+    @Schema(description = "우수 프로젝트(순위) 선정 여부")
+    private boolean selected;
+
     @Schema(description = "등록 시각")
     private Instant createdAt;
 }

@@ -18,6 +18,7 @@ import com.ada.proj.dto.TokenReissueRequest;
 import com.ada.proj.entity.RefreshToken;
 import com.ada.proj.entity.User;
 import com.ada.proj.enums.Role;
+import com.ada.proj.enums.RewardActionCode;
 import com.ada.proj.exception.ForbiddenException;
 import com.ada.proj.exception.InvalidCredentialsException;
 import com.ada.proj.exception.TokenExpiredException;
@@ -40,17 +41,20 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
     private final JwtProperties jwtProperties;
+    private final RewardService rewardService;
 
     public AuthService(UserRepository userRepository,
             RefreshTokenRepository refreshTokenRepository,
             JwtTokenProvider jwtTokenProvider,
             PasswordEncoder passwordEncoder,
-            JwtProperties jwtProperties) {
+            JwtProperties jwtProperties,
+            RewardService rewardService) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.passwordEncoder = passwordEncoder;
         this.jwtProperties = jwtProperties;
+        this.rewardService = rewardService;
     }
 
     @SuppressWarnings("null")
@@ -64,6 +68,7 @@ public class AuthService {
         user.setLastLoginAt(Instant.now());
         setDefaultAvatarIfFirstLogin(user, isFirstLogin);
         initCustomIdIfFirstLogin(user, isFirstLogin);
+        rewardService.grant(user.getUuid(), RewardActionCode.LOGIN_FIRST);
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());

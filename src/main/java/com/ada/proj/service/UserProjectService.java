@@ -3,6 +3,7 @@ package com.ada.proj.service;
 import com.ada.proj.dto.UserProjectRequest;
 import com.ada.proj.dto.UserProjectResponse;
 import com.ada.proj.entity.UserProject;
+import com.ada.proj.enums.RewardActionCode;
 import com.ada.proj.exception.ForbiddenException;
 import com.ada.proj.exception.UnauthenticatedException;
 import com.ada.proj.exception.UserNotFoundException;
@@ -23,11 +24,14 @@ public class UserProjectService {
 
     private final UserProjectRepository userProjectRepository;
     private final UserRepository userRepository;
+    private final RewardService rewardService;
 
     public UserProjectService(UserProjectRepository userProjectRepository,
-                              UserRepository userRepository) {
+                              UserRepository userRepository,
+                              RewardService rewardService) {
         this.userProjectRepository = userProjectRepository;
         this.userRepository = userRepository;
+        this.rewardService = rewardService;
     }
 
     @Transactional(readOnly = true)
@@ -77,6 +81,20 @@ public class UserProjectService {
         return toResponse(project);
     }
 
+    public UserProjectResponse setSelected(Long projectId, boolean selected) {
+        UserProject project = userProjectRepository.findById(projectId)
+                .orElseThrow(() -> new EntityNotFoundException("Project not found"));
+
+        project.setSelected(selected);
+
+        if (selected) {
+            rewardService.grant(project.getUserUuid(), RewardActionCode.PROJECT_RANKING_SELECTED,
+                    "project:" + project.getId());
+        }
+
+        return toResponse(project);
+    }
+
     public void deleteProject(String uuid, Long projectId, Authentication auth) {
         ensureSelfOrAdmin(auth, uuid);
         UserProject project = userProjectRepository.findById(projectId)
@@ -95,6 +113,7 @@ public class UserProjectService {
                 .description(p.getDescription())
                 .githubUrl(p.getGithubUrl())
                 .lookingForTeam(p.isLookingForTeam())
+                .selected(p.isSelected())
                 .createdAt(p.getCreatedAt())
                 .build();
     }

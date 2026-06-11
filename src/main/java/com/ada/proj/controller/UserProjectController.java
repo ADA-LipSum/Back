@@ -1,6 +1,7 @@
 package com.ada.proj.controller;
 
 import com.ada.proj.dto.ApiResponse;
+import com.ada.proj.dto.ProjectSelectionRequest;
 import com.ada.proj.dto.UserProjectRequest;
 import com.ada.proj.dto.UserProjectResponse;
 import com.ada.proj.service.UserProjectService;
@@ -9,6 +10,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -59,5 +61,20 @@ public class UserProjectController {
             Authentication auth) {
         userProjectService.deleteProject(uuid, projectId, auth);
         return ResponseEntity.ok(ApiResponse.okMessage("project deleted"));
+    }
+
+    @PatchMapping("/admin/user-projects/{projectId}/selection")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @Operation(
+            summary = "프로젝트 순위 선정",
+            description = """
+                    관리자/선생님이 프로젝트를 우수 프로젝트(순위)로 선정하거나 선정을 해제합니다.
+                    `selected`를 true로 설정하면 해당 프로젝트의 작성자에게 코인이 지급됩니다 (프로젝트당 1회).
+                    """
+    )
+    public ResponseEntity<ApiResponse<UserProjectResponse>> select(
+            @Parameter(description = "프로젝트 ID") @PathVariable Long projectId,
+            @Valid @RequestBody ProjectSelectionRequest req) {
+        return ResponseEntity.ok(ApiResponse.ok(userProjectService.setSelected(projectId, req.getSelected())));
     }
 }

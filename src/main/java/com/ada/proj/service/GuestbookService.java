@@ -4,6 +4,7 @@ import com.ada.proj.dto.GuestbookRequest;
 import com.ada.proj.dto.GuestbookResponse;
 import com.ada.proj.entity.GuestbookEntry;
 import com.ada.proj.entity.User;
+import com.ada.proj.enums.RewardActionCode;
 import com.ada.proj.exception.UnauthenticatedException;
 import com.ada.proj.exception.UserNotFoundException;
 import com.ada.proj.repository.GuestbookRepository;
@@ -24,11 +25,14 @@ public class GuestbookService {
 
     private final GuestbookRepository guestbookRepository;
     private final UserRepository userRepository;
+    private final RewardService rewardService;
 
     public GuestbookService(GuestbookRepository guestbookRepository,
-                            UserRepository userRepository) {
+                            UserRepository userRepository,
+                            RewardService rewardService) {
         this.guestbookRepository = guestbookRepository;
         this.userRepository = userRepository;
+        this.rewardService = rewardService;
     }
 
     private String resolveTargetUuid(String customId) {
@@ -61,7 +65,9 @@ public class GuestbookService {
                 .writerUuid(writerUuid)
                 .content(req.getContent())
                 .build();
-        return toResponse(guestbookRepository.save(entry));
+        GuestbookResponse response = toResponse(guestbookRepository.save(entry));
+        rewardService.grant(writerUuid, RewardActionCode.GUESTBOOK_WRITE, targetUuid);
+        return response;
     }
 
     public GuestbookResponse updateEntry(String customId, GuestbookRequest req, Authentication auth) {

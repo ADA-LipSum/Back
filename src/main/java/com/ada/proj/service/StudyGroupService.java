@@ -16,6 +16,7 @@ import com.ada.proj.entity.StudyGroupJoinRequest;
 import com.ada.proj.entity.User;
 import com.ada.proj.enums.GroupStatus;
 import com.ada.proj.enums.GroupVisibility;
+import com.ada.proj.enums.RewardActionCode;
 import com.ada.proj.enums.StudyMemberRole;
 import com.ada.proj.enums.JoinRequestStatus;
 import com.ada.proj.repository.StudyGroupMemberRepository;
@@ -46,6 +47,7 @@ public class StudyGroupService {
     private final StudyGroupMemberRepository memberRepository;
     private final StudyGroupJoinRequestRepository joinRequestRepository;
     private final UserRepository userRepository;
+    private final RewardService rewardService;
 
     private boolean hasAdminRole(Authentication auth) {
         if (auth == null) {
@@ -193,6 +195,8 @@ public class StudyGroupService {
                 .role(StudyMemberRole.LEADER)
                 .build();
         memberRepository.save(java.util.Objects.requireNonNull(leader));
+
+        rewardService.grant(ownerUuid, RewardActionCode.STUDY_GROUP_CREATE);
 
         return g.getGroupUuid();
     }
@@ -350,6 +354,7 @@ public class StudyGroupService {
                     .role(StudyMemberRole.MEMBER)
                     .build();
             memberRepository.save(java.util.Objects.requireNonNull(m));
+            rewardService.grant(targetUserUuid, RewardActionCode.STUDY_GROUP_JOIN);
         }
         jr.setStatus(JoinRequestStatus.APPROVED);
         jr.setDecidedAt(java.time.Instant.now());

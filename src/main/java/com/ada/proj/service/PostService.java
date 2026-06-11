@@ -73,6 +73,7 @@ public class PostService {
     private final PollService pollService;
     private final JdbcTemplate jdbcTemplate;
     private final StringRedisTemplate redisTemplate;
+    private final RewardService rewardService;
 
     private Post getPostByUuidOrThrow(@NonNull String uuid) {
         return postRepository.findById(uuid)
@@ -339,6 +340,9 @@ public class PostService {
 
     private PostDetailResponse buildDetailResponse(Post post, String requesterUuid) {
         postRepository.increaseViews(post.getPostUuid());
+        if (requesterUuid != null) {
+            rewardService.recordPostVisit(requesterUuid, post.getPostUuid());
+        }
 
         User user = userRepository.findByUuid(post.getWriterUuid()).orElse(null);
         boolean isLiked = requesterUuid != null

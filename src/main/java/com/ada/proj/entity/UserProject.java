@@ -35,6 +35,11 @@ public class UserProject {
     @Builder.Default
     private boolean isLookingForTeam = false;
 
+    // 관리자가 우수 프로젝트(순위)로 선정했는지 여부 - true로 처음 바뀔 때 작성자에게 코인 지급
+    @Column(name = "selected", nullable = false)
+    @Builder.Default
+    private boolean selected = false;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

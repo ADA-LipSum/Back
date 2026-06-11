@@ -52,12 +52,15 @@ class AuthServiceRedisTest {
         when(jwtTokenProvider.generateAccessToken("uuid-001", "ADMIN")).thenReturn("access-token");
         when(jwtTokenProvider.generateRefreshToken("uuid-001", "ADMIN")).thenReturn("refresh-token");
 
+        RewardService rewardService = mock(RewardService.class);
+
         AuthService authService = new AuthService(
                 userRepository,
                 refreshTokenRepository,
                 jwtTokenProvider,
                 passwordEncoder,
-                jwtProperties);
+                jwtProperties,
+                rewardService);
 
         LoginRequest request = new LoginRequest();
         request.setId("admin");
@@ -106,12 +109,15 @@ class AuthServiceRedisTest {
         when(refreshTokenRepository.findById("uuid-001")).thenReturn(Optional.of(stored));
         when(userRepository.findByUuid("uuid-001")).thenReturn(Optional.of(user));
 
+        RewardService rewardService = mock(RewardService.class);
+
         AuthService authService = new AuthService(
                 userRepository,
                 refreshTokenRepository,
                 jwtTokenProvider,
                 passwordEncoder,
-                jwtProperties);
+                jwtProperties,
+                rewardService);
 
         TokenReissueRequest request = new TokenReissueRequest();
         request.setRefreshToken("refresh-old");
@@ -142,12 +148,15 @@ class AuthServiceRedisTest {
         when(jwtTokenProvider.getRole("refresh-old")).thenReturn("ADMIN");
         when(refreshTokenRepository.findById("uuid-001")).thenReturn(Optional.empty());
 
+        RewardService rewardService = mock(RewardService.class);
+
         AuthService authService = new AuthService(
                 userRepository,
                 refreshTokenRepository,
                 jwtTokenProvider,
                 passwordEncoder,
-                jwtProperties);
+                jwtProperties,
+                rewardService);
 
         TokenReissueRequest request = new TokenReissueRequest();
         request.setRefreshToken("refresh-old");
@@ -172,12 +181,15 @@ class AuthServiceRedisTest {
         when(jwtTokenProvider.getUuid("admin-refresh")).thenReturn("admin-uuid");
         when(refreshTokenRepository.findById("admin-uuid")).thenReturn(Optional.of(stored));
 
+        RewardService rewardService = mock(RewardService.class);
+
         AuthService authService = new AuthService(
                 userRepository,
                 refreshTokenRepository,
                 jwtTokenProvider,
                 passwordEncoder,
-                jwtProperties);
+                jwtProperties,
+                rewardService);
 
         authService.logout(null, "admin-refresh");
 
@@ -199,12 +211,15 @@ class AuthServiceRedisTest {
         when(jwtTokenProvider.getUuid("stale-refresh")).thenReturn("admin-uuid");
         when(refreshTokenRepository.findById("admin-uuid")).thenReturn(Optional.of(stored));
 
+        RewardService rewardService = mock(RewardService.class);
+
         AuthService authService = new AuthService(
                 userRepository,
                 refreshTokenRepository,
                 jwtTokenProvider,
                 passwordEncoder,
-                jwtProperties);
+                jwtProperties,
+                rewardService);
 
         authService.logout(null, "stale-refresh");
 
