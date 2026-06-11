@@ -4,6 +4,7 @@ import com.ada.proj.dto.AdminGroupSummaryResponse;
 import com.ada.proj.dto.PageResponse;
 import com.ada.proj.dto.StudyGroupCreateRequest;
 import com.ada.proj.dto.StudyGroupMemberResponse;
+import com.ada.proj.dto.StudyGroupMemberSummaryResponse;
 import com.ada.proj.dto.StudyGroupResponse;
 import com.ada.proj.dto.StudyGroupSearchRequest;
 import com.ada.proj.dto.StudyGroupStatusUpdateRequest;
@@ -12,6 +13,7 @@ import com.ada.proj.dto.StudyJoinRequestResponse;
 import com.ada.proj.entity.StudyGroup;
 import com.ada.proj.entity.StudyGroupMember;
 import com.ada.proj.entity.StudyGroupJoinRequest;
+import com.ada.proj.entity.User;
 import com.ada.proj.enums.GroupStatus;
 import com.ada.proj.enums.GroupVisibility;
 import com.ada.proj.enums.StudyMemberRole;
@@ -99,6 +101,10 @@ public class StudyGroupService {
     }
 
     private StudyGroupResponse toResponse(StudyGroup g, String requesterUuid) {
+        return toResponse(g, requesterUuid, false);
+    }
+
+    private StudyGroupResponse toResponse(StudyGroup g, String requesterUuid, boolean includeMembers) {
         Long memberCount = memberRepository.countByGroup_GroupUuid(g.getGroupUuid());
         boolean isMember = false;
         String myRole = null;
@@ -117,6 +123,10 @@ public class StudyGroupService {
                     .orElse(null);
         }
 
+        List<StudyGroupMemberSummaryResponse> members = includeMembers
+                ? buildMemberSummaries(g.getGroupUuid())
+                : null;
+
         return StudyGroupResponse.builder()
                 .groupUuid(g.getGroupUuid())
                 .name(g.getName())
@@ -132,7 +142,27 @@ public class StudyGroupService {
                 .updatedAt(g.getUpdatedAt())
                 .isMember(isMember)
                 .myRole(myRole)
+                .members(members)
                 .build();
+    }
+
+    private List<StudyGroupMemberSummaryResponse> buildMemberSummaries(String groupUuid) {
+        return memberRepository.findAllByGroup_GroupUuid(groupUuid).stream()
+                .map(m -> {
+                    User user = userRepository.findByUuid(m.getUserUuid()).orElse(null);
+                    String name = user != null ? displayName(user) : null;
+                    String profileImage = user != null ? user.getProfileImage() : null;
+                    return StudyGroupMemberSummaryResponse.builder()
+                            .userUuid(m.getUserUuid())
+                            .name(name)
+                            .profileImage(profileImage)
+                            .build();
+                })
+                .toList();
+    }
+
+    private String displayName(User user) {
+        return user.isUseNickname() ? user.getUserNickname() : user.getUserRealname();
     }
 
     @Transactional
@@ -186,7 +216,7 @@ public class StudyGroupService {
             }
         }
 
-        return toResponse(g, requester);
+        return toResponse(g, requester, true);
     }
 
     @Transactional(readOnly = true)

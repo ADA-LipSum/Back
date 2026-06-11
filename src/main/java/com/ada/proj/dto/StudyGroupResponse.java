@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.Instant;
+import java.util.List;
 
 @Data
 @Builder
@@ -40,4 +41,6 @@ public class StudyGroupResponse {
     private Boolean isMember;
     @Schema(description = "요청자의 그룹 내 역할 (LEADER/MEMBER)")
     private String myRole;
+    @Schema(description = "가입된 멤버 목록")
+    private List<StudyGroupMemberSummaryResponse> members;
 }

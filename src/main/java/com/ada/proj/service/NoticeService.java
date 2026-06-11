@@ -1,5 +1,9 @@
 package com.ada.proj.service;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -108,9 +112,26 @@ public class NoticeService {
         }
         String s3Url = urls.get(index);
         String key = extractS3Key(s3Url);
-        S3Service.S3ObjectData data = s3Service.getObject(key);
         String filename = key.substring(key.lastIndexOf('/') + 1);
-        return new AttachmentData(data.bytes(), data.contentType(), filename);
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(s3Url))
+                    .GET()
+                    .build();
+            HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            if (response.statusCode() != 200) {
+                throw new IllegalStateException("첨부파일 다운로드 실패: HTTP " + response.statusCode());
+            }
+            String ct = response.headers().firstValue("content-type")
+                    .map(h -> h.contains(";") ? h.substring(0, h.indexOf(";")).trim() : h)
+                    .orElse("application/octet-stream");
+            return new AttachmentData(response.body(), ct, filename);
+        } catch (EntityNotFoundException | IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("첨부파일을 가져올 수 없습니다.", e);
+        }
     }
 
     private String extractS3Key(String url) {

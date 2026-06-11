@@ -69,6 +69,7 @@ public class StudyGroupController {
                     - `memberCount`: 현재 인원
                     - `ownerUuid`: 방장 UUID
                     - `createdAt`: 생성 시각
+                    - `members`: 가입된 멤버 목록 (각 항목: `userUuid`, `name`, `profileImage`)
 
                     PUBLIC 그룹은 누구나 조회 가능합니다. PRIVATE 그룹은 멤버/방장/관리자만 조회 가능합니다.
                     """
