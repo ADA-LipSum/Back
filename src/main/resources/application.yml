@@ -123,11 +123,17 @@ github:
     callback-url: ${GITHUB_CALLBACK_URL:http://localhost:8080/api/auth/github/callback}
     # 인증 완료 후 리다이렉트할 프론트엔드 도메인
     frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:8080}
-    link-success-path: ${GITHUB_LINK_SUCCESS_PATH:/admin/index.html}
-    login-success-path: ${GITHUB_LOGIN_SUCCESS_PATH:/admin/index.html}
-    error-path: ${GITHUB_ERROR_PATH:/admin/index.html}
+    link-success-path: ${GITHUB_LINK_SUCCESS_PATH:${app.admin.path}/index.html}
+    login-success-path: ${GITHUB_LOGIN_SUCCESS_PATH:${app.admin.path}/index.html}
+    error-path: ${GITHUB_ERROR_PATH:${app.admin.path}/index.html}
 
 app:
+  admin:
+    # 관리자 테스트 도구 페이지 경로 (추측하기 어려운 값으로 운영 환경변수에서 변경)
+    path: ${ADMIN_PATH:/mgmt-7f3a2b9c}
+    # 위 경로에 접근을 허용할 IP/CIDR 목록 (쉼표 구분, 비워두면 제한 없음)
+    allowed-ips: ${ADMIN_ALLOWED_IPS:}
+
   auto-increment:
     maintain:
       enabled: true

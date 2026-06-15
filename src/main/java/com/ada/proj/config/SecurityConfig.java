@@ -20,6 +20,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.ada.proj.security.AdminAccessFilter;
 import com.ada.proj.security.JwtAuthenticationFilter;
 import com.ada.proj.security.RequestLoggingFilter;
 import com.ada.proj.security.RestAccessDeniedHandler;
@@ -32,20 +33,26 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RequestLoggingFilter requestLoggingFilter;
+    private final AdminAccessFilter adminAccessFilter;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
     private final CorsProperties corsProperties;
+    private final AdminAccessProperties adminAccessProperties;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
             RequestLoggingFilter requestLoggingFilter,
+            AdminAccessFilter adminAccessFilter,
             RestAuthenticationEntryPoint restAuthenticationEntryPoint,
             RestAccessDeniedHandler restAccessDeniedHandler,
-            CorsProperties corsProperties) {
+            CorsProperties corsProperties,
+            AdminAccessProperties adminAccessProperties) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.requestLoggingFilter = requestLoggingFilter;
+        this.adminAccessFilter = adminAccessFilter;
         this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
         this.restAccessDeniedHandler = restAccessDeniedHandler;
         this.corsProperties = corsProperties;
+        this.adminAccessProperties = adminAccessProperties;
     }
 
     @Bean
@@ -83,7 +90,7 @@ public class SecurityConfig {
                         "/tools/**",
                         "/api/posts",
                         "/api/posts/view",
-                        "/admin/**",
+                        adminAccessProperties.getPath() + "/**",
                         "/error",
                         "/favicon.ico",
                         // WebSocket (SockJS fallback)
@@ -140,6 +147,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/upload/**").authenticated()
                 .anyRequest().authenticated()
                 )
+                .addFilterBefore(adminAccessFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(requestLoggingFilter, JwtAuthenticationFilter.class);
         return http.build();

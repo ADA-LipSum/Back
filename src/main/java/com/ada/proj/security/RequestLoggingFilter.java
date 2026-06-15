@@ -57,7 +57,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             String qs = request.getQueryString();
             String maskedQs = sanitizeQueryString(qs);
             String path = (maskedQs == null || maskedQs.isBlank()) ? uri : (uri + "?" + maskedQs);
-            String ip = resolveClientIp(request);
+            String ip = ClientIpResolver.resolve(request);
             String ua = maskHeader("user-agent", request.getHeader("User-Agent"));
             String contentLen = maskHeader("content-length", request.getHeader("Content-Length"));
             int status = response.getStatus();
@@ -93,18 +93,6 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         return uri.equals("/health") || uri.equals("/api/health") ||
                 uri.startsWith("/v3/api-docs") || uri.startsWith("/swagger-ui") ||
                 uri.startsWith("/error") || uri.startsWith("/favicon");
-    }
-
-    private String resolveClientIp(HttpServletRequest request) {
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) {
-            // In case of multiple IPs, first is original client
-            int comma = xff.indexOf(',');
-            return comma > -1 ? xff.substring(0, comma).trim() : xff.trim();
-        }
-        String realIp = request.getHeader("X-Real-IP");
-        if (realIp != null && !realIp.isBlank()) return realIp.trim();
-        return request.getRemoteAddr();
     }
 
     private String safeHeader(String value) {
