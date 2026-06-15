@@ -108,7 +108,7 @@ public class StudyGroupService {
     }
 
     private StudyGroupResponse toResponse(StudyGroup g, String requesterUuid, boolean includeMembers) {
-        Long memberCount = memberRepository.countByGroup_GroupUuid(g.getGroupUuid());
+        Long memberCount = memberRepository.countByGroup_GroupUuidAndUserUuidNot(g.getGroupUuid(), g.getOwnerUuid());
         boolean isMember = false;
         String myRole = null;
         if (requesterUuid != null) {

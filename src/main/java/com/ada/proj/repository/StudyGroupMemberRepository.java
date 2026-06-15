@@ -13,6 +13,8 @@ public interface StudyGroupMemberRepository extends JpaRepository<StudyGroupMemb
 
     long countByGroup_GroupUuid(String groupUuid);
 
+    long countByGroup_GroupUuidAndUserUuidNot(String groupUuid, String userUuid);
+
     List<StudyGroupMember> findByUserUuid(String userUuid);
 
     Optional<StudyGroupMember> findByGroup_GroupUuidAndUserUuid(String groupUuid, String userUuid);
