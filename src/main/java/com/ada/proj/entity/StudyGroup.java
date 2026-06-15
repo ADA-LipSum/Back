@@ -73,6 +73,9 @@ public class StudyGroup {
     @Column(name = "category", length = 50)
     private String category;
 
+    @Column(name = "thumbnail_image", length = 455)
+    private String thumbnailImage;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false)
     private Instant createdAt;

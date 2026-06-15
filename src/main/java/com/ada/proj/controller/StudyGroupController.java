@@ -3,13 +3,16 @@ package com.ada.proj.controller;
 import com.ada.proj.dto.*;
 import com.ada.proj.service.StudyGroupService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -19,13 +22,18 @@ public class StudyGroupController {
 
     private final StudyGroupService studyGroupService;
 
-    @PostMapping("/groups")
+    @PostMapping(value = "/groups", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "그룹 생성",
             description = """
-                    새 스터디 그룹을 생성합니다. 로그인이 필요합니다.
+                    새 스터디 그룹을 생성합니다. 로그인이 필요합니다. `multipart/form-data`로 전송합니다.
 
-                    **Request Body:**
+                    | 파트 | 타입 | 필수 | 설명 |
+                    |---|---|---|---|
+                    | `request` | JSON | ✅ | 그룹 정보 |
+                    | `thumbnail` | 파일 | ❌ | 썸네일 이미지 (jpeg/png/gif/webp/svg) |
+
+                    **`request` 필드:**
                     - `name` (필수): 그룹 이름
                     - `description` (선택): 그룹 설명
                     - `techTags` (선택): 기술 태그 문자열
@@ -39,13 +47,15 @@ public class StudyGroupController {
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<ApiResponse<?>> create(@Valid @RequestBody StudyGroupCreateRequest req,
+    public ResponseEntity<ApiResponse<?>> create(
+            @Parameter(description = "그룹 정보 (JSON)") @RequestPart("request") @Valid StudyGroupCreateRequest req,
+            @Parameter(description = "썸네일 이미지 (선택)") @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnail,
             Authentication authentication) {
         String ownerUuid = authentication != null ? authentication.getName() : null;
         if (ownerUuid == null) {
             return ResponseEntity.status(401).body(ApiResponse.error("UNAUTHORIZED", "인증이 필요합니다."));
         }
-        String uuid = studyGroupService.create(java.util.Objects.requireNonNull(req), java.util.Objects.requireNonNull(ownerUuid));
+        String uuid = studyGroupService.create(java.util.Objects.requireNonNull(req), thumbnail, java.util.Objects.requireNonNull(ownerUuid));
         return ResponseEntity.status(201).body(ApiResponse.success(uuid));
     }
 
@@ -76,6 +86,36 @@ public class StudyGroupController {
     )
     public ResponseEntity<ApiResponse<StudyGroupResponse>> detail(@PathVariable("uuid") String uuid) {
         return ResponseEntity.ok(ApiResponse.success(studyGroupService.getDetail(java.util.Objects.requireNonNull(uuid))));
+    }
+
+    @PutMapping(value = "/groups/{uuid}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "그룹 정보 수정",
+            description = """
+                    스터디 그룹 정보(이름/설명/기술태그/공개여부/정원/썸네일)를 수정합니다. 방장/관리자만 가능합니다.
+                    `multipart/form-data`로 전송합니다.
+
+                    | 파트 | 타입 | 필수 | 설명 |
+                    |---|---|---|---|
+                    | `request` | JSON | ✅ | 수정할 필드 (null이면 변경 없음) |
+                    | `thumbnail` | 파일 | ❌ | 새 썸네일 이미지 (전달하면 교체, 생략하면 기존 유지) |
+
+                    **Path Variable:**
+                    - `uuid` (필수): 그룹 UUID
+
+                    **Response:** 수정된 그룹 상세 정보
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<StudyGroupResponse>> update(@PathVariable("uuid") String uuid,
+            @Parameter(description = "수정 정보 (JSON)") @RequestPart("request") @Valid StudyGroupUpdateRequest req,
+            @Parameter(description = "새 썸네일 이미지 (선택)") @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnail,
+            Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(401).body(ApiResponse.errorWithData("UNAUTHORIZED", "인증이 필요합니다.", null));
+        }
+        return ResponseEntity.ok(ApiResponse.success(
+                studyGroupService.update(java.util.Objects.requireNonNull(uuid), java.util.Objects.requireNonNull(req), thumbnail)));
     }
 
     @GetMapping("/groups")

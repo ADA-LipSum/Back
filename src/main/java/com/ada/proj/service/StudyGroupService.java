@@ -8,6 +8,7 @@ import com.ada.proj.dto.StudyGroupMemberSummaryResponse;
 import com.ada.proj.dto.StudyGroupResponse;
 import com.ada.proj.dto.StudyGroupSearchRequest;
 import com.ada.proj.dto.StudyGroupStatusUpdateRequest;
+import com.ada.proj.dto.StudyGroupUpdateRequest;
 import com.ada.proj.dto.StudyMemberManageRequest;
 import com.ada.proj.dto.StudyJoinRequestResponse;
 import com.ada.proj.entity.StudyGroup;
@@ -33,6 +34,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Locale;
@@ -48,6 +50,7 @@ public class StudyGroupService {
     private final StudyGroupJoinRequestRepository joinRequestRepository;
     private final UserRepository userRepository;
     private final RewardService rewardService;
+    private final S3Service s3Service;
 
     private boolean hasAdminRole(Authentication auth) {
         if (auth == null) {
@@ -119,10 +122,13 @@ public class StudyGroupService {
         }
 
         String ownerCustomId = null;
+        String ownerProfileImage = null;
         if (g.getOwnerUuid() != null) {
-            ownerCustomId = userRepository.findByUuid(g.getOwnerUuid())
-                    .map(u -> u.getCustomId())
-                    .orElse(null);
+            User owner = userRepository.findByUuid(g.getOwnerUuid()).orElse(null);
+            if (owner != null) {
+                ownerCustomId = owner.getCustomId();
+                ownerProfileImage = owner.getProfileImage();
+            }
         }
 
         List<StudyGroupMemberSummaryResponse> members = includeMembers
@@ -131,6 +137,7 @@ public class StudyGroupService {
 
         return StudyGroupResponse.builder()
                 .groupUuid(g.getGroupUuid())
+                .thumbnailImage(g.getThumbnailImage())
                 .name(g.getName())
                 .description(g.getDescription())
                 .techTags(g.getTechTags())
@@ -139,6 +146,7 @@ public class StudyGroupService {
                 .capacity(g.getCapacity())
                 .ownerUuid(g.getOwnerUuid())
                 .ownerCustomId(ownerCustomId)
+                .ownerProfileImage(ownerProfileImage)
                 .memberCount(memberCount)
                 .createdAt(g.getCreatedAt())
                 .updatedAt(g.getUpdatedAt())
@@ -168,7 +176,7 @@ public class StudyGroupService {
     }
 
     @Transactional
-    public String create(@NonNull StudyGroupCreateRequest req, @NonNull String ownerUuid) {
+    public String create(@NonNull StudyGroupCreateRequest req, MultipartFile thumbnail, @NonNull String ownerUuid) {
         Objects.requireNonNull(req.getName(), "name");
         Objects.requireNonNull(req.getVisibility(), "visibility");
         Objects.requireNonNull(req.getCapacity(), "capacity");
@@ -176,6 +184,10 @@ public class StudyGroupService {
         if (req.getCapacity() < 1) {
             throw new IllegalArgumentException("정원은 1 이상이어야 합니다.");
         }
+
+        String thumbnailUrl = (thumbnail != null && !thumbnail.isEmpty())
+                ? s3Service.uploadStudyGroupThumbnail(thumbnail, ownerUuid)
+                : null;
 
         StudyGroup g = StudyGroup.builder()
                 .name(req.getName())
@@ -185,6 +197,7 @@ public class StudyGroupService {
                 .status(GroupStatus.OPEN)
                 .capacity(req.getCapacity())
                 .ownerUuid(ownerUuid)
+                .thumbnailImage(thumbnailUrl)
                 .build();
         g = studyGroupRepository.save(java.util.Objects.requireNonNull(g));
 
@@ -218,6 +231,44 @@ public class StudyGroupService {
             if (!allowed) {
                 throw new EntityNotFoundException("StudyGroup not found: " + groupUuid);
             }
+        }
+
+        return toResponse(g, requester, true);
+    }
+
+    @Transactional
+    public StudyGroupResponse update(@NonNull String groupUuid, @NonNull StudyGroupUpdateRequest req, MultipartFile thumbnail) {
+        StudyGroup g = studyGroupRepository.findByGroupUuid(groupUuid)
+                .orElseThrow(() -> new EntityNotFoundException("StudyGroup not found: " + groupUuid));
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String requester = auth != null ? auth.getName() : null;
+        boolean isOwner = requester != null && requester.equals(g.getOwnerUuid());
+        boolean isAdmin = hasAdminRole(auth);
+        if (!isOwner && !isAdmin) {
+            throw new SecurityException("그룹 수정 권한이 없습니다.");
+        }
+
+        if (req.getName() != null) {
+            g.setName(req.getName());
+        }
+        if (req.getDescription() != null) {
+            g.setDescription(req.getDescription());
+        }
+        if (req.getTechTags() != null) {
+            g.setTechTags(req.getTechTags());
+        }
+        if (req.getVisibility() != null) {
+            g.setVisibility(req.getVisibility());
+        }
+        if (req.getCapacity() != null) {
+            if (req.getCapacity() < 1) {
+                throw new IllegalArgumentException("정원은 1 이상이어야 합니다.");
+            }
+            g.setCapacity(req.getCapacity());
+        }
+        if (thumbnail != null && !thumbnail.isEmpty()) {
+            g.setThumbnailImage(s3Service.uploadStudyGroupThumbnail(thumbnail, g.getOwnerUuid()));
         }
 
         return toResponse(g, requester, true);

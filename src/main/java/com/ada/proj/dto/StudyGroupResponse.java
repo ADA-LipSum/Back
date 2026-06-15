@@ -15,6 +15,8 @@ public class StudyGroupResponse {
 
     @Schema(description = "그룹 UUID")
     private String groupUuid;
+    @Schema(description = "썸네일 이미지 URL")
+    private String thumbnailImage;
     @Schema(description = "그룹명")
     private String name;
     @Schema(description = "설명")
@@ -31,6 +33,8 @@ public class StudyGroupResponse {
     private String ownerUuid;
     @Schema(description = "방장 커스텀 ID")
     private String ownerCustomId;
+    @Schema(description = "방장 프로필 이미지 URL")
+    private String ownerProfileImage;
     @Schema(description = "현재 인원수")
     private Long memberCount;
     @Schema(description = "생성일")

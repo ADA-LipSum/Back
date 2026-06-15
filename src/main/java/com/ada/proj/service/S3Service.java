@@ -198,6 +198,16 @@ public class S3Service {
     }
 
     /**
+     * 스터디 그룹 썸네일 이미지를 S3에 업로드하고 퍼블릭 URL을 반환합니다.
+     */
+    public String uploadStudyGroupThumbnail(MultipartFile file, String userUuid) {
+        validateMedia(file, ALLOWED_COMMUNITY_IMAGE_TYPES, props.getMaxCommunityImageSizeMb(),
+                "허용되지 않는 파일 형식입니다. (jpeg, png, gif, webp, svg만 허용)");
+        String key = "studies/thumbnails/" + userUuid + "/" + UUID.randomUUID() + getExtension(file);
+        return upload(file, key);
+    }
+
+    /**
      * 이벤트 썸네일 이미지를 S3에 업로드하고 퍼블릭 URL을 반환합니다.
      */
     public String uploadEventThumbnail(MultipartFile file) {
