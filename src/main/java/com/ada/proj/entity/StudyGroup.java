@@ -76,6 +76,9 @@ public class StudyGroup {
     @Column(name = "thumbnail_image", length = 455)
     private String thumbnailImage;
 
+    @Column(name = "invite_link", length = 500)
+    private String inviteLink; // 승인된 멤버에게만 노출되는 초대 코드/링크(디스코드, 카카오톡 오픈채팅 등)
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false)
     private Instant createdAt;

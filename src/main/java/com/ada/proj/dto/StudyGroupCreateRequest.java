@@ -31,4 +31,7 @@ public class StudyGroupCreateRequest {
     @Max(1000)
     @Schema(description = "최대 인원", example = "10")
     private Integer capacity;
+
+    @Schema(description = "초대 코드/링크 (디스코드, 카카오톡 오픈채팅 등). 승인된 멤버에게만 노출됩니다", example = "https://discord.gg/abc1234")
+    private String inviteLink;
 }

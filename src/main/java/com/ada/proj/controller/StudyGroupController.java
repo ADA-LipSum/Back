@@ -39,6 +39,7 @@ public class StudyGroupController {
                     - `techTags` (선택): 기술 태그 문자열
                     - `visibility` (필수): 공개 여부 (PUBLIC | PRIVATE)
                     - `capacity` (필수): 최대 인원 수 (1~1000)
+                    - `inviteLink` (선택): 초대 코드/링크 (디스코드, 카카오톡 오픈채팅 등). 승인된 멤버에게만 노출되며, 모집 마감 시 전체 멤버에게 알림으로 발송됩니다.
 
                     **Response:**
                     - `data`: 생성된 그룹 UUID
@@ -80,6 +81,7 @@ public class StudyGroupController {
                     - `ownerUuid`: 방장 UUID
                     - `createdAt`: 생성 시각
                     - `members`: 가입된 멤버 목록 (각 항목: `userUuid`, `name`, `profileImage`)
+                    - `inviteLink`: 초대 코드/링크 (디스코드, 카카오톡 오픈채팅 등). 가입된 멤버/방장/관리자에게만 값이 노출되며, 그 외에는 `null`입니다.
 
                     PUBLIC 그룹은 누구나 조회 가능합니다. PRIVATE 그룹은 멤버/방장/관리자만 조회 가능합니다.
                     """
@@ -99,6 +101,8 @@ public class StudyGroupController {
                     |---|---|---|---|
                     | `request` | JSON | ✅ | 수정할 필드 (null이면 변경 없음) |
                     | `thumbnail` | 파일 | ❌ | 새 썸네일 이미지 (전달하면 교체, 생략하면 기존 유지) |
+
+                    `request.inviteLink`로 초대 코드/링크(디스코드, 카카오톡 오픈채팅 등)도 변경할 수 있습니다.
 
                     **Path Variable:**
                     - `uuid` (필수): 그룹 UUID

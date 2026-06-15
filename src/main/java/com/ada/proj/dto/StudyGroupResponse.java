@@ -47,4 +47,6 @@ public class StudyGroupResponse {
     private String myRole;
     @Schema(description = "가입된 멤버 목록")
     private List<StudyGroupMemberSummaryResponse> members;
+    @Schema(description = "초대 코드/링크 (디스코드, 카카오톡 오픈채팅 등). 승인된 멤버/방장/관리자에게만 노출됩니다")
+    private String inviteLink;
 }

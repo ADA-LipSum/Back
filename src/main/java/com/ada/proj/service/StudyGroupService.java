@@ -17,6 +17,7 @@ import com.ada.proj.entity.StudyGroupJoinRequest;
 import com.ada.proj.entity.User;
 import com.ada.proj.enums.GroupStatus;
 import com.ada.proj.enums.GroupVisibility;
+import com.ada.proj.enums.NotificationType;
 import com.ada.proj.enums.RewardActionCode;
 import com.ada.proj.enums.StudyMemberRole;
 import com.ada.proj.enums.JoinRequestStatus;
@@ -51,6 +52,7 @@ public class StudyGroupService {
     private final UserRepository userRepository;
     private final RewardService rewardService;
     private final S3Service s3Service;
+    private final NotificationService notificationService;
 
     private boolean hasAdminRole(Authentication auth) {
         if (auth == null) {
@@ -131,6 +133,9 @@ public class StudyGroupService {
                 ? buildMemberSummaries(g.getGroupUuid())
                 : null;
 
+        boolean isAdmin = hasAdminRole(SecurityContextHolder.getContext().getAuthentication());
+        String inviteLink = (isMember || isAdmin) ? g.getInviteLink() : null;
+
         return StudyGroupResponse.builder()
                 .groupUuid(g.getGroupUuid())
                 .thumbnailImage(g.getThumbnailImage())
@@ -149,6 +154,7 @@ public class StudyGroupService {
                 .isMember(isMember)
                 .myRole(myRole)
                 .members(members)
+                .inviteLink(inviteLink)
                 .build();
     }
 
@@ -194,6 +200,7 @@ public class StudyGroupService {
                 .capacity(req.getCapacity())
                 .ownerUuid(ownerUuid)
                 .thumbnailImage(thumbnailUrl)
+                .inviteLink(req.getInviteLink())
                 .build();
         g = studyGroupRepository.save(java.util.Objects.requireNonNull(g));
 
@@ -262,6 +269,9 @@ public class StudyGroupService {
                 throw new IllegalArgumentException("정원은 1 이상이어야 합니다.");
             }
             g.setCapacity(req.getCapacity());
+        }
+        if (req.getInviteLink() != null) {
+            g.setInviteLink(req.getInviteLink());
         }
         if (thumbnail != null && !thumbnail.isEmpty()) {
             g.setThumbnailImage(s3Service.uploadStudyGroupThumbnail(thumbnail, g.getOwnerUuid()));
@@ -337,7 +347,24 @@ public class StudyGroupService {
             throw new SecurityException("상태 변경 권한이 없습니다.");
         }
 
-        g.setStatus(Objects.requireNonNull(req.getStatus()));
+        GroupStatus newStatus = Objects.requireNonNull(req.getStatus());
+        boolean justClosed = newStatus == GroupStatus.CLOSED && g.getStatus() != GroupStatus.CLOSED;
+        g.setStatus(newStatus);
+
+        if (justClosed) {
+            String message = "'" + g.getName() + "' 그룹의 모집이 마감되었습니다." + inviteLinkSuffix(g, "초대 링크");
+            for (StudyGroupMember m : memberRepository.findAllByGroup_GroupUuid(groupUuid)) {
+                notificationService.create(m.getUserUuid(), NotificationType.STUDY_GROUP_CLOSED,
+                        "스터디 모집 마감", message, g.getGroupUuid());
+            }
+        }
+    }
+
+    private String inviteLinkSuffix(StudyGroup g, String label) {
+        if (g.getInviteLink() == null || g.getInviteLink().isBlank()) {
+            return "";
+        }
+        return " " + label + ": " + g.getInviteLink();
     }
 
     @Transactional(readOnly = true)
@@ -405,6 +432,11 @@ public class StudyGroupService {
         }
         jr.setStatus(JoinRequestStatus.APPROVED);
         jr.setDecidedAt(java.time.Instant.now());
+
+        notificationService.create(targetUserUuid, NotificationType.STUDY_GROUP_APPROVED,
+                "스터디 그룹 가입 승인",
+                "'" + g.getName() + "' 그룹 가입이 승인되었습니다." + inviteLinkSuffix(g, "초대 코드"),
+                g.getGroupUuid());
     }
 
     @Transactional

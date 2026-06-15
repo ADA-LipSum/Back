@@ -26,4 +26,7 @@ public class StudyGroupUpdateRequest {
     @Max(1000)
     @Schema(description = "최대 인원 (변경 시에만 전달)", example = "10")
     private Integer capacity;
+
+    @Schema(description = "초대 코드/링크 (디스코드, 카카오톡 오픈채팅 등) (변경 시에만 전달)", example = "https://discord.gg/abc1234")
+    private String inviteLink;
 }
