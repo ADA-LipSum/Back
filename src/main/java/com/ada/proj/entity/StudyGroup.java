@@ -1,6 +1,7 @@
 package com.ada.proj.entity;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -78,6 +79,15 @@ public class StudyGroup {
 
     @Column(name = "invite_link", length = 500)
     private String inviteLink; // 승인된 멤버에게만 노출되는 초대 코드/링크(디스코드, 카카오톡 오픈채팅 등)
+
+    @Column(name = "activity_start_date")
+    private LocalDate activityStartDate;
+
+    @Column(name = "activity_end_date")
+    private LocalDate activityEndDate;
+
+    @Column(name = "activity_type", length = 200)
+    private String activityType; // 활동 방식(예: 온/오프라인, 모임 주기 등 자유 텍스트)
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false)

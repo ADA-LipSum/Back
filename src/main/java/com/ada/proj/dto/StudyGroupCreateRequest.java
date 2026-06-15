@@ -9,6 +9,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 @Data
 public class StudyGroupCreateRequest {
 
@@ -34,4 +36,13 @@ public class StudyGroupCreateRequest {
 
     @Schema(description = "초대 코드/링크 (디스코드, 카카오톡 오픈채팅 등). 승인된 멤버에게만 노출됩니다", example = "https://discord.gg/abc1234")
     private String inviteLink;
+
+    @Schema(description = "활동 시작일", example = "2026-07-01")
+    private LocalDate activityStartDate;
+
+    @Schema(description = "활동 종료일", example = "2026-09-30")
+    private LocalDate activityEndDate;
+
+    @Schema(description = "활동 방식 (자유 텍스트)", example = "매주 화/목 19~21시 온라인(줌) 진행")
+    private String activityType;
 }

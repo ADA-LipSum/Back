@@ -7,6 +7,8 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 @Data
 public class StudyGroupUpdateRequest {
 
@@ -29,4 +31,13 @@ public class StudyGroupUpdateRequest {
 
     @Schema(description = "초대 코드/링크 (디스코드, 카카오톡 오픈채팅 등) (변경 시에만 전달)", example = "https://discord.gg/abc1234")
     private String inviteLink;
+
+    @Schema(description = "활동 시작일 (변경 시에만 전달)", example = "2026-07-01")
+    private LocalDate activityStartDate;
+
+    @Schema(description = "활동 종료일 (변경 시에만 전달)", example = "2026-09-30")
+    private LocalDate activityEndDate;
+
+    @Schema(description = "활동 방식 (자유 텍스트) (변경 시에만 전달)", example = "매주 화/목 19~21시 온라인(줌) 진행")
+    private String activityType;
 }

@@ -130,7 +130,7 @@ public class StudyGroupService {
         }
 
         List<StudyGroupMemberSummaryResponse> members = includeMembers
-                ? buildMemberSummaries(g.getGroupUuid())
+                ? buildMemberSummaries(g)
                 : null;
 
         boolean isAdmin = hasAdminRole(SecurityContextHolder.getContext().getAuthentication());
@@ -155,11 +155,15 @@ public class StudyGroupService {
                 .myRole(myRole)
                 .members(members)
                 .inviteLink(inviteLink)
+                .activityStartDate(g.getActivityStartDate())
+                .activityEndDate(g.getActivityEndDate())
+                .activityType(g.getActivityType())
                 .build();
     }
 
-    private List<StudyGroupMemberSummaryResponse> buildMemberSummaries(String groupUuid) {
-        return memberRepository.findAllByGroup_GroupUuid(groupUuid).stream()
+    private List<StudyGroupMemberSummaryResponse> buildMemberSummaries(StudyGroup g) {
+        return memberRepository.findAllByGroup_GroupUuid(g.getGroupUuid()).stream()
+                .filter(m -> !m.getUserUuid().equals(g.getOwnerUuid()))
                 .map(m -> {
                     User user = userRepository.findByUuid(m.getUserUuid()).orElse(null);
                     String name = user != null ? displayName(user) : null;
@@ -201,6 +205,9 @@ public class StudyGroupService {
                 .ownerUuid(ownerUuid)
                 .thumbnailImage(thumbnailUrl)
                 .inviteLink(req.getInviteLink())
+                .activityStartDate(req.getActivityStartDate())
+                .activityEndDate(req.getActivityEndDate())
+                .activityType(req.getActivityType())
                 .build();
         g = studyGroupRepository.save(java.util.Objects.requireNonNull(g));
 
@@ -272,6 +279,15 @@ public class StudyGroupService {
         }
         if (req.getInviteLink() != null) {
             g.setInviteLink(req.getInviteLink());
+        }
+        if (req.getActivityStartDate() != null) {
+            g.setActivityStartDate(req.getActivityStartDate());
+        }
+        if (req.getActivityEndDate() != null) {
+            g.setActivityEndDate(req.getActivityEndDate());
+        }
+        if (req.getActivityType() != null) {
+            g.setActivityType(req.getActivityType());
         }
         if (thumbnail != null && !thumbnail.isEmpty()) {
             g.setThumbnailImage(s3Service.uploadStudyGroupThumbnail(thumbnail, g.getOwnerUuid()));
