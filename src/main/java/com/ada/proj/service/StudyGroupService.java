@@ -105,10 +105,6 @@ public class StudyGroupService {
         };
     }
 
-    private StudyGroupResponse toResponse(StudyGroup g, String requesterUuid) {
-        return toResponse(g, requesterUuid, false);
-    }
-
     private StudyGroupResponse toResponse(StudyGroup g, String requesterUuid, boolean includeMembers) {
         Long memberCount = memberRepository.countByGroup_GroupUuid(g.getGroupUuid());
         boolean isMember = false;
@@ -289,7 +285,7 @@ public class StudyGroupService {
         Page<StudyGroup> result = studyGroupRepository.findAll(buildSpec(req, forcePublicOnly), pageable);
         String requester = currentUserUuidOrNull();
 
-        List<StudyGroupResponse> list = result.map(g -> toResponse(g, requester)).getContent();
+        List<StudyGroupResponse> list = result.map(g -> toResponse(g, requester, true)).getContent();
         return new PageResponse<>(result.getNumber(), result.getSize(), result.getTotalElements(), result.getTotalPages(), list);
     }
 
