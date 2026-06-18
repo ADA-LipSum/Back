@@ -295,7 +295,7 @@ public class StudyGroupController {
                     **Path Variable:**
                     - `uuid` (필수): 그룹 UUID
 
-                    **Response:** 참가 요청 목록 배열 (userUuid, requestedAt 등)
+                    **Response:** 참가 요청 목록 배열 (userUuid, customId, profileImage, requestedAt 등)
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )

@@ -13,6 +13,10 @@ public class StudyJoinRequestResponse {
 
     @Schema(description = "사용자 UUID")
     private String userUuid;
+    @Schema(description = "사용자 커스텀 ID")
+    private String customId;
+    @Schema(description = "사용자 프로필 이미지 URL")
+    private String profileImage;
     @Schema(description = "요청 상태")
     private JoinRequestStatus status;
     @Schema(description = "요청 시각")

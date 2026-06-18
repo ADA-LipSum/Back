@@ -409,12 +409,17 @@ public class StudyGroupService {
 
         return joinRequestRepository.findAllByGroup_GroupUuidAndStatusOrderByRequestedAtDesc(groupUuid, JoinRequestStatus.PENDING)
                 .stream()
-                .map(r -> StudyJoinRequestResponse.builder()
-                .userUuid(r.getUserUuid())
-                .status(r.getStatus())
-                .requestedAt(r.getRequestedAt())
-                .decidedAt(r.getDecidedAt())
-                .build())
+                .map(r -> {
+                    User user = userRepository.findByUuid(r.getUserUuid()).orElse(null);
+                    return StudyJoinRequestResponse.builder()
+                            .userUuid(r.getUserUuid())
+                            .customId(user != null ? user.getCustomId() : null)
+                            .profileImage(user != null ? user.getProfileImage() : null)
+                            .status(r.getStatus())
+                            .requestedAt(r.getRequestedAt())
+                            .decidedAt(r.getDecidedAt())
+                            .build();
+                })
                 .toList();
     }
 
