@@ -41,6 +41,7 @@ public class GuestbookService {
 
     private String resolveTargetUuid(String customId) {
         return userRepository.findByCustomId(customId)
+                .or(() -> userRepository.findByAdminId(customId))
                 .orElseThrow(() -> new UserNotFoundException("User not found"))
                 .getUuid();
     }
@@ -69,9 +70,10 @@ public class GuestbookService {
                 .writerUuid(writerUuid)
                 .content(req.getContent())
                 .build();
+        boolean firstEverWrite = !rewardService.hasGranted(writerUuid, RewardActionCode.GUESTBOOK_WRITE, targetUuid);
         GuestbookResponse response = toResponse(guestbookRepository.save(entry));
         rewardService.grant(writerUuid, RewardActionCode.GUESTBOOK_WRITE, targetUuid);
-        if (!targetUuid.equals(writerUuid)) {
+        if (firstEverWrite && !targetUuid.equals(writerUuid)) {
             notificationService.create(
                     targetUuid,
                     NotificationType.GUESTBOOK_WRITTEN,

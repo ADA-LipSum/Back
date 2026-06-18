@@ -135,6 +135,17 @@ public class RewardService {
     }
 
     /**
+     * 해당 행동에 대해 이전에 보상이 지급된 적이 있는지 확인한다 (ONCE_PER_TARGET 등 제한과 무관하게
+     * 영구 보존되는 RewardGrantLog 기준이라, 원본 데이터(예: 방명록 글)가 삭제된 뒤에도 "이미 한 적 있음"을 판단할 수 있다).
+     */
+    @Transactional(readOnly = true)
+    public boolean hasGranted(String userUuid, RewardActionCode actionCode, String targetKey) {
+        return targetKey != null
+                ? grantLogRepository.existsByUserUuidAndActionCodeAndTargetKey(userUuid, actionCode, targetKey)
+                : grantLogRepository.existsByUserUuidAndActionCode(userUuid, actionCode);
+    }
+
+    /**
      * 게시물 방문을 기록하고, 사용자가 방문한 게시물 수(중복 제외)가 규칙에 설정된 threshold의
      * 배수에 도달할 때마다 POST_VISIT_MILESTONE 보상을 지급한다.
      */
