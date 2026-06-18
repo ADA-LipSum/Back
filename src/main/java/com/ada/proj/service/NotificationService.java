@@ -40,12 +40,25 @@ public class NotificationService {
             @NonNull String message,
             String postUuid
     ) {
+        create(recipientUuid, type, title, message, postUuid, null);
+    }
+
+    @Transactional
+    public void create(
+            @NonNull String recipientUuid,
+            @NonNull NotificationType type,
+            @NonNull String title,
+            @NonNull String message,
+            String postUuid,
+            String senderUuid
+    ) {
         Notification notification = Notification.builder()
                 .recipientUuid(recipientUuid)
                 .type(type)
                 .title(title)
                 .message(message)
                 .postUuid(postUuid)
+                .senderUuid(senderUuid)
                 .build();
         notificationRepository.save(notification);
     }

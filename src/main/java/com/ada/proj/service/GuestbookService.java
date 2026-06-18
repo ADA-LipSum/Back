@@ -4,6 +4,7 @@ import com.ada.proj.dto.GuestbookRequest;
 import com.ada.proj.dto.GuestbookResponse;
 import com.ada.proj.entity.GuestbookEntry;
 import com.ada.proj.entity.User;
+import com.ada.proj.enums.NotificationType;
 import com.ada.proj.enums.RewardActionCode;
 import com.ada.proj.exception.UnauthenticatedException;
 import com.ada.proj.exception.UserNotFoundException;
@@ -26,13 +27,16 @@ public class GuestbookService {
     private final GuestbookRepository guestbookRepository;
     private final UserRepository userRepository;
     private final RewardService rewardService;
+    private final NotificationService notificationService;
 
     public GuestbookService(GuestbookRepository guestbookRepository,
                             UserRepository userRepository,
-                            RewardService rewardService) {
+                            RewardService rewardService,
+                            NotificationService notificationService) {
         this.guestbookRepository = guestbookRepository;
         this.userRepository = userRepository;
         this.rewardService = rewardService;
+        this.notificationService = notificationService;
     }
 
     private String resolveTargetUuid(String customId) {
@@ -67,6 +71,15 @@ public class GuestbookService {
                 .build();
         GuestbookResponse response = toResponse(guestbookRepository.save(entry));
         rewardService.grant(writerUuid, RewardActionCode.GUESTBOOK_WRITE, targetUuid);
+        if (!targetUuid.equals(writerUuid)) {
+            notificationService.create(
+                    targetUuid,
+                    NotificationType.GUESTBOOK_WRITTEN,
+                    "방명록",
+                    response.getWriterName() + "님이 방명록을 남겼습니다.",
+                    null,
+                    writerUuid);
+        }
         return response;
     }
 
