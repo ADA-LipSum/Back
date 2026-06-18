@@ -2,6 +2,7 @@ package com.ada.proj.dto;
 
 import com.ada.proj.enums.GroupStatus;
 import com.ada.proj.enums.GroupVisibility;
+import com.ada.proj.enums.StudyGroupCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
@@ -22,6 +23,8 @@ public class StudyGroupResponse {
     private String name;
     @Schema(description = "설명")
     private String description;
+    @Schema(description = "카테고리 (언어공부 | 프로젝트)")
+    private StudyGroupCategory category;
     @Schema(description = "기술 태그(쉼표구분)")
     private String techTags;
     @Schema(description = "공개 여부")

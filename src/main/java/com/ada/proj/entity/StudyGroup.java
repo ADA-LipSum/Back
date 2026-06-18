@@ -9,6 +9,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import com.ada.proj.enums.GroupStatus;
 import com.ada.proj.enums.GroupVisibility;
+import com.ada.proj.enums.StudyGroupCategory;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -71,8 +72,9 @@ public class StudyGroup {
     @Column(name = "owner_uuid", length = 36, nullable = false)
     private String ownerUuid;
 
-    @Column(name = "category", length = 50)
-    private String category;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category", length = 20, nullable = false)
+    private StudyGroupCategory category;
 
     @Column(name = "thumbnail_image", length = 455)
     private String thumbnailImage;

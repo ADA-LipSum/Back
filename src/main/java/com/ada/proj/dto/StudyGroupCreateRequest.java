@@ -1,6 +1,7 @@
 package com.ada.proj.dto;
 
 import com.ada.proj.enums.GroupVisibility;
+import com.ada.proj.enums.StudyGroupCategory;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
@@ -20,6 +21,10 @@ public class StudyGroupCreateRequest {
 
     @Schema(description = "그룹 설명")
     private String description;
+
+    @NotNull
+    @Schema(description = "카테고리 (언어공부 | 프로젝트)", example = "LANGUAGE_STUDY")
+    private StudyGroupCategory category;
 
     @Schema(description = "기술 태그(쉼표구분)", example = "spring,java,jpa")
     private String techTags;

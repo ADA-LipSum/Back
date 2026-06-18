@@ -36,6 +36,7 @@ public class StudyGroupController {
                     **`request` 필드:**
                     - `name` (필수): 그룹 이름
                     - `description` (선택): 그룹 설명
+                    - `category` (필수): 카테고리 (LANGUAGE_STUDY: 언어공부 | PROJECT: 프로젝트)
                     - `techTags` (선택): 기술 태그 문자열
                     - `visibility` (필수): 공개 여부 (PUBLIC | PRIVATE)
                     - `capacity` (필수): 최대 인원 수 (1~1000)
@@ -73,6 +74,7 @@ public class StudyGroupController {
                     - `uuid`: 그룹 UUID
                     - `name`: 그룹 이름
                     - `description`: 그룹 설명
+                    - `category`: 카테고리 (LANGUAGE_STUDY | PROJECT)
                     - `techTags`: 기술 태그
                     - `visibility`: 공개 여부 (PUBLIC | PRIVATE)
                     - `status`: 모집 상태 (OPEN | CLOSED)
@@ -94,7 +96,7 @@ public class StudyGroupController {
     @Operation(
             summary = "그룹 정보 수정",
             description = """
-                    스터디 그룹 정보(이름/설명/기술태그/공개여부/정원/썸네일)를 수정합니다. 방장/관리자만 가능합니다.
+                    스터디 그룹 정보(이름/설명/카테고리/기술태그/공개여부/정원/썸네일)를 수정합니다. 방장/관리자만 가능합니다.
                     `multipart/form-data`로 전송합니다.
 
                     | 파트 | 타입 | 필수 | 설명 |
@@ -130,6 +132,7 @@ public class StudyGroupController {
 
                     **Query Parameters:**
                     - `keyword` (선택): 그룹 이름/설명 검색어
+                    - `category` (선택): 카테고리 필터 (LANGUAGE_STUDY | PROJECT)
                     - `visibility` (선택): 공개 여부 필터 (PUBLIC | PRIVATE) — 인증 시 사용 가능
                     - `status` (선택): 모집 상태 필터 (OPEN | CLOSED)
                     - `page` (선택): 페이지 번호, 0부터 시작 (기본값: 0)

@@ -1,6 +1,7 @@
 package com.ada.proj.controller;
 
 import com.ada.proj.dto.*;
+import com.ada.proj.enums.StudyGroupCategory;
 import com.ada.proj.service.AdminPostService;
 import com.ada.proj.service.AdminStatsService;
 import com.ada.proj.service.AutoIncrementMaintenanceService;
@@ -236,7 +237,7 @@ public class AdminController {
                     특정 카테고리의 스터디 그룹 목록을 관리자 관점으로 조회합니다. ADMIN/TEACHER 전용입니다.
 
                     **Path Variable:**
-                    - `id` (필수): 조회할 카테고리명 (예: backend, frontend, design)
+                    - `id` (필수): 조회할 카테고리 (LANGUAGE_STUDY | PROJECT)
 
                     **Query Parameters:**
                     - `page` (선택): 페이지 번호 (기본값: 0)
@@ -251,7 +252,7 @@ public class AdminController {
             }
     )
     public ResponseEntity<com.ada.proj.dto.ApiResponse<PageResponse<AdminGroupSummaryResponse>>> getAdminGroupsByCategory(
-            @Parameter(description = "카테고리명") @PathVariable String id,
+            @Parameter(description = "카테고리 (LANGUAGE_STUDY | PROJECT)") @PathVariable StudyGroupCategory id,
             @Parameter(description = "페이지 번호 (0부터)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size,
             Authentication auth) {

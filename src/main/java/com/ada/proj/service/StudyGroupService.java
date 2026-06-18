@@ -19,6 +19,7 @@ import com.ada.proj.enums.GroupStatus;
 import com.ada.proj.enums.GroupVisibility;
 import com.ada.proj.enums.NotificationType;
 import com.ada.proj.enums.RewardActionCode;
+import com.ada.proj.enums.StudyGroupCategory;
 import com.ada.proj.enums.StudyMemberRole;
 import com.ada.proj.enums.JoinRequestStatus;
 import com.ada.proj.repository.StudyGroupMemberRepository;
@@ -89,6 +90,10 @@ public class StudyGroupService {
                 predicates.getExpressions().add(cb.equal(root.get("status"), req.getStatus()));
             }
 
+            if (req.getCategory() != null) {
+                predicates.getExpressions().add(cb.equal(root.get("category"), req.getCategory()));
+            }
+
             if (req.getKeyword() != null && !req.getKeyword().isBlank()) {
                 String like = "%" + req.getKeyword().toLowerCase(Locale.ROOT) + "%";
                 predicates.getExpressions().add(cb.or(
@@ -141,6 +146,7 @@ public class StudyGroupService {
                 .thumbnailImage(g.getThumbnailImage())
                 .name(g.getName())
                 .description(g.getDescription())
+                .category(g.getCategory())
                 .techTags(g.getTechTags())
                 .visibility(g.getVisibility())
                 .status(g.getStatus())
@@ -184,6 +190,7 @@ public class StudyGroupService {
     @Transactional
     public String create(@NonNull StudyGroupCreateRequest req, MultipartFile thumbnail, @NonNull String ownerUuid) {
         Objects.requireNonNull(req.getName(), "name");
+        Objects.requireNonNull(req.getCategory(), "category");
         Objects.requireNonNull(req.getVisibility(), "visibility");
         Objects.requireNonNull(req.getCapacity(), "capacity");
 
@@ -198,6 +205,7 @@ public class StudyGroupService {
         StudyGroup g = StudyGroup.builder()
                 .name(req.getName())
                 .description(req.getDescription())
+                .category(req.getCategory())
                 .techTags(req.getTechTags())
                 .visibility(req.getVisibility())
                 .status(GroupStatus.OPEN)
@@ -264,6 +272,9 @@ public class StudyGroupService {
         }
         if (req.getDescription() != null) {
             g.setDescription(req.getDescription());
+        }
+        if (req.getCategory() != null) {
+            g.setCategory(req.getCategory());
         }
         if (req.getTechTags() != null) {
             g.setTechTags(req.getTechTags());
@@ -554,7 +565,7 @@ public class StudyGroupService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<AdminGroupSummaryResponse> getAdminGroupsByCategory(String category, int page, int size) {
+    public PageResponse<AdminGroupSummaryResponse> getAdminGroupsByCategory(StudyGroupCategory category, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<StudyGroup> result = studyGroupRepository.findByCategory(category, pageable);
         return toAdminGroupPageResponse(result);
