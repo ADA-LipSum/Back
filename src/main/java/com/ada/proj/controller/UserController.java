@@ -278,6 +278,7 @@ public class UserController {
                     - `notionUrl`: Notion 페이지 URL
                     - `linkedinUrl`: LinkedIn 프로필 URL
                     - `personalWebsiteUrl`: 개인 웹사이트 URL
+                    - `profileBanner`: 프로필 배너 이미지 URL
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )

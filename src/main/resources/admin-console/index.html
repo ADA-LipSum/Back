@@ -972,7 +972,7 @@
 
     // 배너
     const bannerArea = document.getElementById('profileBannerArea');
-    const bannerUrl  = d.banner || d.bannerUrl || d.bannerImage || d.bannerImageUrl;
+    const bannerUrl  = d.profileBanner || d.banner || d.bannerUrl || d.bannerImage || d.bannerImageUrl;
     bannerArea.innerHTML = '';
     if (bannerUrl) {
       const img = document.createElement('img');
@@ -996,7 +996,7 @@
 
     // 상세
     const skip = new Set(['profileImage','profileImageUrl','avatarUrl','avatar',
-      'banner','bannerUrl','bannerImage','bannerImageUrl',
+      'profileBanner','banner','bannerUrl','bannerImage','bannerImageUrl',
       'userNickname','nickname','userRealname','name','customId','adminId']);
     const detail = document.getElementById('profileDetail');
     detail.innerHTML = '';

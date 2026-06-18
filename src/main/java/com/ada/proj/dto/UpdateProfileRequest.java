@@ -32,4 +32,8 @@ public class UpdateProfileRequest {
 
     @Schema(description = "개인 웹사이트 URL", example = "https://mysite.dev")
     private String personalWebsiteUrl;
+
+    @Size(max = 455)
+    @Schema(description = "프로필 배너 이미지 URL", example = "https://example.com/banner.png")
+    private String profileBanner;
 }

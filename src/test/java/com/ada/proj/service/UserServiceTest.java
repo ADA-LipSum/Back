@@ -1,6 +1,7 @@
 package com.ada.proj.service;
 
 import com.ada.proj.dto.CreateUserRequest;
+import com.ada.proj.dto.UpdateProfileRequest;
 import com.ada.proj.entity.User;
 import com.ada.proj.enums.Role;
 import com.ada.proj.repository.CommentRepository;
@@ -109,6 +110,43 @@ class UserServiceTest {
                 .hasMessageContaining("userNickname");
 
         verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void updateProfile_savesProfileBanner_whenProvided() {
+        UserRepository userRepository = mock(UserRepository.class);
+        UserDataRepository userDataRepository = mock(UserDataRepository.class);
+        PostRepository postRepository = mock(PostRepository.class);
+        CommentRepository commentRepository = mock(CommentRepository.class);
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        CacheManager cacheManager = mock(CacheManager.class);
+        UserCoinsBalanceRepository coinsBalanceRepository = mock(UserCoinsBalanceRepository.class);
+        UserPointsBalanceRepository pointsBalanceRepository = mock(UserPointsBalanceRepository.class);
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        User user = User.builder()
+                .uuid("uuid-001")
+                .adminId("st12345")
+                .customId("student")
+                .userRealname("source")
+                .userNickname("nickname")
+                .profileBanner("https://example.com/old-banner.png")
+                .role(Role.STUDENT)
+                .build();
+
+        when(userRepository.findByUuid("uuid-001")).thenReturn(Optional.of(user));
+        when(userDataRepository.findByUuid("uuid-001")).thenReturn(Optional.empty());
+
+        UserService userService = new UserService(userRepository, userDataRepository, postRepository, commentRepository,
+                passwordEncoder, objectMapper, cacheManager, coinsBalanceRepository, pointsBalanceRepository);
+
+        UpdateProfileRequest req = new UpdateProfileRequest();
+        req.setProfileBanner("https://example.com/new-banner.png");
+
+        userService.updateProfile("uuid-001", req);
+
+        assertThat(user.getProfileBanner()).isEqualTo("https://example.com/new-banner.png");
+        verify(userRepository).save(user);
     }
 
     @Test

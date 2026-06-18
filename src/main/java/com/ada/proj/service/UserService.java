@@ -177,6 +177,9 @@ public class UserService {
         if (req.getNickname() != null) {
             user.setUserNickname(req.getNickname());
         }
+        if (req.getProfileBanner() != null) {
+            user.setProfileBanner(req.getProfileBanner());
+        }
 
         // upsert user_data
         UserData ud = userDataRepository.findByUuid(uuid).orElseGet(() ->
