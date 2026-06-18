@@ -70,10 +70,9 @@ public class GuestbookService {
                 .writerUuid(writerUuid)
                 .content(req.getContent())
                 .build();
-        boolean firstEverWrite = !rewardService.hasGranted(writerUuid, RewardActionCode.GUESTBOOK_WRITE, targetUuid);
         GuestbookResponse response = toResponse(guestbookRepository.save(entry));
         rewardService.grant(writerUuid, RewardActionCode.GUESTBOOK_WRITE, targetUuid);
-        if (firstEverWrite && !targetUuid.equals(writerUuid)) {
+        if (!targetUuid.equals(writerUuid)) {
             notificationService.create(
                     targetUuid,
                     NotificationType.GUESTBOOK_WRITTEN,
@@ -95,17 +94,6 @@ public class GuestbookService {
                 .orElseThrow(() -> new EntityNotFoundException("Entry not found"));
         entry.setContent(req.getContent());
         return toResponse(entry);
-    }
-
-    public void deleteEntry(String customId, Authentication auth) {
-        if (auth == null) {
-            throw new UnauthenticatedException("Unauthenticated");
-        }
-        String targetUuid = resolveTargetUuid(customId);
-        String callerUuid = auth.getName();
-        GuestbookEntry entry = guestbookRepository.findByTargetUuidAndWriterUuid(targetUuid, callerUuid)
-                .orElseThrow(() -> new EntityNotFoundException("Entry not found"));
-        guestbookRepository.delete(entry);
     }
 
     private GuestbookResponse toResponse(GuestbookEntry entry) {

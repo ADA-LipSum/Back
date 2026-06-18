@@ -114,24 +114,4 @@ public class GuestbookController {
             Authentication auth) {
         return ResponseEntity.ok(ApiResponse.ok(guestbookService.updateEntry(customId, req, auth)));
     }
-
-    @DeleteMapping("/users/{customId}/guestbook")
-    @Operation(
-            summary = "방명록 삭제",
-            description = """
-                    로그인한 사용자가 본인이 작성한 방명록을 삭제합니다. **JWT 인증 필요.**
-
-                    **Path Variable:**
-                    - `customId` (필수): 방명록 주인의 Custom ID
-
-                    **Response:**
-                    - `message` : "entry deleted" (String)
-                    """
-    )
-    public ResponseEntity<ApiResponse<Void>> delete(
-            @Parameter(description = "방명록 주인 Custom ID", example = "hong123") @PathVariable String customId,
-            Authentication auth) {
-        guestbookService.deleteEntry(customId, auth);
-        return ResponseEntity.ok(ApiResponse.okMessage("entry deleted"));
-    }
 }
