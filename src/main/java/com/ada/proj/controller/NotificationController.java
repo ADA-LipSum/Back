@@ -78,4 +78,18 @@ public class NotificationController {
         notificationService.markRead(id, authentication);
         return ResponseEntity.ok(ApiResponse.success());
     }
+
+    @PutMapping("/read-all")
+    @Operation(
+            summary = "전체 알림 읽음 처리",
+            description = """
+                    로그인 사용자의 읽지 않은 알림을 모두 읽음 처리합니다.
+
+                    **Response:** 읽음 처리된 알림 수 메시지
+                    """
+    )
+    public ResponseEntity<ApiResponse<Void>> markAllRead(Authentication authentication) {
+        int count = notificationService.markAllRead(authentication);
+        return ResponseEntity.ok(ApiResponse.successMessage(count + "개의 알림을 읽음 처리했습니다."));
+    }
 }

@@ -176,6 +176,40 @@ public class AdminController {
         return ResponseEntity.ok(com.ada.proj.dto.ApiResponse.successMessage("알림 " + count + "명에게 발송되었습니다."));
     }
 
+    @PostMapping("/notifications/users/{uuid}/send")
+    @Operation(
+            summary = "특정 사용자에게 알림 직접 발송 (관리자/선생님)",
+            description = """
+                    특정 사용자 한 명에게 알림을 직접 발송합니다. ADMIN/TEACHER 전용입니다.
+
+                    **Path Variable:**
+                    - `uuid` (필수): 알림을 받을 사용자 UUID
+
+                    **Request Body:**
+                    - `title` (필수): 알림 제목
+                    - `message` (필수): 알림 내용
+                    - `postUuid` (선택): 관련 게시글 UUID
+                    - `targetRole`: 이 API에서는 사용하지 않습니다.
+
+                    **Response:** 성공 메시지
+                    """,
+            responses = {
+                @ApiResponse(responseCode = "200", description = "발송 성공"),
+                @ApiResponse(responseCode = "400", description = "필수 필드 누락", content = @Content),
+                @ApiResponse(responseCode = "401", description = "인증 실패", content = @Content),
+                @ApiResponse(responseCode = "403", description = "권한 없음 (ADMIN/TEACHER만 가능)", content = @Content),
+                @ApiResponse(responseCode = "404", description = "대상 사용자를 찾을 수 없음", content = @Content)
+            }
+    )
+    public ResponseEntity<com.ada.proj.dto.ApiResponse<Void>> sendDirectNotification(
+            @Parameter(description = "알림을 받을 사용자 UUID") @PathVariable String uuid,
+            @Valid @RequestBody AdminNotificationSendRequest req,
+            Authentication auth) {
+        requireAdminOrTeacher(auth);
+        notificationService.sendDirect(uuid, req, auth.getName());
+        return ResponseEntity.ok(com.ada.proj.dto.ApiResponse.successMessage("알림이 발송되었습니다."));
+    }
+
     @GetMapping("/notifications/history")
     @Operation(
             summary = "알림 발송 이력 조회 (관리자/선생님)",

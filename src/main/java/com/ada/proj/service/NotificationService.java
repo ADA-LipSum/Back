@@ -19,6 +19,7 @@ import com.ada.proj.dto.PageResponse;
 import com.ada.proj.entity.Notification;
 import com.ada.proj.entity.User;
 import com.ada.proj.enums.NotificationType;
+import com.ada.proj.exception.UserNotFoundException;
 import com.ada.proj.repository.NotificationRepository;
 import com.ada.proj.repository.UserRepository;
 
@@ -92,6 +93,22 @@ public class NotificationService {
         if (notification.getReadAt() == null) {
             notification.setReadAt(java.time.LocalDateTime.now());
         }
+    }
+
+    @Transactional
+    public int markAllRead(Authentication auth) {
+        String userUuid = requireUserUuid(auth);
+        List<Notification> unread = notificationRepository.findByRecipientUuidAndReadAtIsNull(userUuid);
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        unread.forEach(n -> n.setReadAt(now));
+        return unread.size();
+    }
+
+    @Transactional
+    public void sendDirect(@NonNull String targetUuid, @NonNull AdminNotificationSendRequest req, @NonNull String senderUuid) {
+        User target = userRepository.findByUuid(targetUuid)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + targetUuid));
+        create(target.getUuid(), NotificationType.ANNOUNCEMENT, req.getTitle(), req.getMessage(), req.getPostUuid(), senderUuid);
     }
 
     private NotificationResponse toResponse(Notification notification) {
