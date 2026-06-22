@@ -20,6 +20,7 @@ import com.ada.proj.enums.GroupVisibility;
 import com.ada.proj.enums.NotificationType;
 import com.ada.proj.enums.RewardActionCode;
 import com.ada.proj.enums.StudyGroupCategory;
+import com.ada.proj.enums.StudyGroupCategoryFilter;
 import com.ada.proj.enums.StudyMemberRole;
 import com.ada.proj.enums.JoinRequestStatus;
 import com.ada.proj.repository.StudyGroupMemberRepository;
@@ -27,6 +28,7 @@ import com.ada.proj.repository.StudyGroupRepository;
 import com.ada.proj.repository.StudyGroupJoinRequestRepository;
 import com.ada.proj.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
@@ -38,6 +40,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -78,25 +81,25 @@ public class StudyGroupService {
 
     private Specification<StudyGroup> buildSpec(StudyGroupSearchRequest req, boolean forcePublicOnly) {
         return (root, query, cb) -> {
-            var predicates = cb.conjunction();
+            List<Predicate> predicates = new ArrayList<>();
 
             if (forcePublicOnly) {
-                predicates.getExpressions().add(cb.equal(root.get("visibility"), GroupVisibility.PUBLIC));
+                predicates.add(cb.equal(root.get("visibility"), GroupVisibility.PUBLIC));
             } else if (req.getVisibility() != null) {
-                predicates.getExpressions().add(cb.equal(root.get("visibility"), req.getVisibility()));
+                predicates.add(cb.equal(root.get("visibility"), req.getVisibility()));
             }
 
             if (req.getStatus() != null) {
-                predicates.getExpressions().add(cb.equal(root.get("status"), req.getStatus()));
+                predicates.add(cb.equal(root.get("status"), req.getStatus()));
             }
 
-            if (req.getCategory() != null) {
-                predicates.getExpressions().add(cb.equal(root.get("category"), req.getCategory()));
+            if (req.getCategory() != null && req.getCategory() != StudyGroupCategoryFilter.ALL) {
+                predicates.add(cb.equal(root.get("category"), StudyGroupCategory.valueOf(req.getCategory().name())));
             }
 
             if (req.getKeyword() != null && !req.getKeyword().isBlank()) {
                 String like = "%" + req.getKeyword().toLowerCase(Locale.ROOT) + "%";
-                predicates.getExpressions().add(cb.or(
+                predicates.add(cb.or(
                         cb.like(cb.lower(root.get("name")), like),
                         cb.like(cb.lower(root.get("description")), like)
                 ));
@@ -105,10 +108,10 @@ public class StudyGroupService {
             if (req.getTechTags() != null && !req.getTechTags().isBlank()) {
                 // 간단히 부분일치. CSV 저장 구조 상 contains로 검색 처리
                 String likeTag = "%" + req.getTechTags().toLowerCase(Locale.ROOT) + "%";
-                predicates.getExpressions().add(cb.like(cb.lower(root.get("techTags")), likeTag));
+                predicates.add(cb.like(cb.lower(root.get("techTags")), likeTag));
             }
 
-            return predicates;
+            return cb.and(predicates.toArray(new Predicate[0]));
         };
     }
 
@@ -140,6 +143,7 @@ public class StudyGroupService {
 
         boolean isAdmin = hasAdminRole(SecurityContextHolder.getContext().getAuthentication());
         String inviteLink = (isMember || isAdmin) ? g.getInviteLink() : null;
+        String inviteCode = (isMember || isAdmin) ? g.getInviteCode() : null;
 
         return StudyGroupResponse.builder()
                 .groupUuid(g.getGroupUuid())
@@ -161,6 +165,7 @@ public class StudyGroupService {
                 .myRole(myRole)
                 .members(members)
                 .inviteLink(inviteLink)
+                .inviteCode(inviteCode)
                 .activityStartDate(g.getActivityStartDate())
                 .activityEndDate(g.getActivityEndDate())
                 .activityType(g.getActivityType())
@@ -213,6 +218,7 @@ public class StudyGroupService {
                 .ownerUuid(ownerUuid)
                 .thumbnailImage(thumbnailUrl)
                 .inviteLink(req.getInviteLink())
+                .inviteCode(req.getVisibility() == GroupVisibility.PRIVATE ? generateInviteCode() : null)
                 .activityStartDate(req.getActivityStartDate())
                 .activityEndDate(req.getActivityEndDate())
                 .activityType(req.getActivityType())
@@ -281,6 +287,9 @@ public class StudyGroupService {
         }
         if (req.getVisibility() != null) {
             g.setVisibility(req.getVisibility());
+            if (req.getVisibility() == GroupVisibility.PRIVATE && (g.getInviteCode() == null || g.getInviteCode().isBlank())) {
+                g.setInviteCode(generateInviteCode());
+            }
         }
         if (req.getCapacity() != null) {
             if (req.getCapacity() < 1) {
@@ -345,6 +354,83 @@ public class StudyGroupService {
                 .status(JoinRequestStatus.PENDING)
                 .build();
         joinRequestRepository.save(java.util.Objects.requireNonNull(req));
+    }
+
+    /**
+     * 비공개 그룹 입장 코드로 즉시 가입합니다. 방장 승인 절차 없이 코드가 일치하면 바로 멤버가 됩니다.
+     */
+    @Transactional
+    public void joinWithCode(@NonNull String groupUuid, @NonNull String userUuid, @NonNull String code) {
+        StudyGroup g = studyGroupRepository.findByGroupUuid(groupUuid)
+                .orElseThrow(() -> new EntityNotFoundException("StudyGroup not found: " + groupUuid));
+
+        if (g.getVisibility() != GroupVisibility.PRIVATE) {
+            throw new IllegalStateException("초대 코드는 비공개 그룹에서만 사용할 수 있습니다.");
+        }
+        if (g.getInviteCode() == null || !g.getInviteCode().equalsIgnoreCase(code.trim())) {
+            throw new IllegalArgumentException("초대 코드가 올바르지 않습니다.");
+        }
+        if (g.getStatus() != GroupStatus.OPEN) {
+            throw new IllegalStateException("모집중이 아닙니다.");
+        }
+        if (memberRepository.existsByGroup_GroupUuidAndUserUuid(groupUuid, userUuid)) {
+            return; // 이미 멤버면 무시
+        }
+        long count = memberRepository.countByGroup_GroupUuid(groupUuid);
+        if (count >= g.getCapacity()) {
+            throw new IllegalStateException("정원이 가득 찼습니다.");
+        }
+
+        StudyGroupMember m = StudyGroupMember.builder()
+                .group(g)
+                .userUuid(userUuid)
+                .role(StudyMemberRole.MEMBER)
+                .build();
+        memberRepository.save(java.util.Objects.requireNonNull(m));
+        rewardService.grant(userUuid, RewardActionCode.STUDY_GROUP_JOIN);
+
+        // 코드 입장 전에 보류중인 요청이 있었다면 정리
+        joinRequestRepository.findByGroup_GroupUuidAndUserUuid(groupUuid, userUuid).ifPresent(jr -> {
+            if (jr.getStatus() == JoinRequestStatus.PENDING) {
+                jr.setStatus(JoinRequestStatus.APPROVED);
+                jr.setDecidedAt(java.time.Instant.now());
+            }
+        });
+    }
+
+    /**
+     * 비공개 그룹의 입장 코드를 새로 발급합니다. 방장/관리자만 가능합니다.
+     */
+    @Transactional
+    public String regenerateInviteCode(@NonNull String groupUuid) {
+        StudyGroup g = studyGroupRepository.findByGroupUuid(groupUuid)
+                .orElseThrow(() -> new EntityNotFoundException("StudyGroup not found: " + groupUuid));
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String requester = auth != null ? auth.getName() : null;
+        boolean isOwner = requester != null && requester.equals(g.getOwnerUuid());
+        boolean isAdmin = hasAdminRole(auth);
+        if (!isOwner && !isAdmin) {
+            throw new SecurityException("초대 코드 재발급 권한이 없습니다.");
+        }
+        if (g.getVisibility() != GroupVisibility.PRIVATE) {
+            throw new IllegalStateException("초대 코드는 비공개 그룹에서만 사용할 수 있습니다.");
+        }
+
+        String code = generateInviteCode();
+        g.setInviteCode(code);
+        return code;
+    }
+
+    private static final String INVITE_CODE_CHARS = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"; // 혼동되는 0/O/1/I/L 제외
+    private static final java.security.SecureRandom INVITE_CODE_RANDOM = new java.security.SecureRandom();
+
+    private String generateInviteCode() {
+        StringBuilder sb = new StringBuilder(6);
+        for (int i = 0; i < 6; i++) {
+            sb.append(INVITE_CODE_CHARS.charAt(INVITE_CODE_RANDOM.nextInt(INVITE_CODE_CHARS.length())));
+        }
+        return sb.toString();
     }
 
     @Transactional

@@ -42,6 +42,8 @@ public class StudyGroupController {
                     - `capacity` (필수): 최대 인원 수 (1~1000)
                     - `inviteLink` (선택): 초대 코드/링크 (디스코드, 카카오톡 오픈채팅 등). 승인된 멤버에게만 노출되며, 모집 마감 시 전체 멤버에게 알림으로 발송됩니다.
 
+                    `visibility`가 `PRIVATE`이면 6자리 입장 코드(`inviteCode`)가 자동 발급됩니다. 비공개 그룹은 방장의 승인 또는 이 코드 입력으로만 가입할 수 있습니다.
+
                     **Response:**
                     - `data`: 생성된 그룹 UUID
 
@@ -84,6 +86,7 @@ public class StudyGroupController {
                     - `createdAt`: 생성 시각
                     - `members`: 가입된 멤버 목록 (각 항목: `userUuid`, `name`, `profileImage`)
                     - `inviteLink`: 초대 코드/링크 (디스코드, 카카오톡 오픈채팅 등). 가입된 멤버/방장/관리자에게만 값이 노출되며, 그 외에는 `null`입니다.
+                    - `inviteCode`: 비공개 그룹 입장 코드(6자리). 가입된 멤버/방장/관리자에게만 값이 노출되며, 그 외에는 `null`입니다.
 
                     PUBLIC 그룹은 누구나 조회 가능합니다. PRIVATE 그룹은 멤버/방장/관리자만 조회 가능합니다.
                     """
@@ -132,7 +135,7 @@ public class StudyGroupController {
 
                     **Query Parameters:**
                     - `keyword` (선택): 그룹 이름/설명 검색어
-                    - `category` (선택): 카테고리 필터 (LANGUAGE_STUDY | PROJECT)
+                    - `category` (선택): 카테고리 필터 (ALL | LANGUAGE_STUDY | PROJECT). 생략하거나 ALL이면 전체 카테고리 조회
                     - `visibility` (선택): 공개 여부 필터 (PUBLIC | PRIVATE) — 인증 시 사용 가능
                     - `status` (선택): 모집 상태 필터 (OPEN | CLOSED)
                     - `page` (선택): 페이지 번호, 0부터 시작 (기본값: 0)
@@ -189,6 +192,54 @@ public class StudyGroupController {
         }
         studyGroupService.join(java.util.Objects.requireNonNull(uuid), java.util.Objects.requireNonNull(userUuid)); // 참가요청 생성
         return ResponseEntity.ok(ApiResponse.successMessage("참가요청이 등록되었습니다."));
+    }
+
+    @PostMapping("/groups/{uuid}/join-with-code")
+    @Operation(
+            summary = "초대 코드로 그룹 가입 (비공개 그룹)",
+            description = """
+                    비공개(PRIVATE) 그룹에 초대 코드를 입력해 즉시 가입합니다. 방장 승인 절차 없이 바로 멤버가 됩니다. 로그인이 필요합니다.
+
+                    **Path Variable:**
+                    - `uuid` (필수): 가입할 그룹 UUID
+
+                    **Request Body:**
+                    - `code` (필수): 그룹의 6자리 초대 코드
+
+                    **Response:** 성공 메시지 반환 (`"가입되었습니다."`)
+
+                    공개(PUBLIC) 그룹에는 사용할 수 없으며, 코드가 일치하지 않으면 400을 반환합니다.
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<Void>> joinWithCode(@PathVariable("uuid") String uuid,
+            @Valid @RequestBody StudyGroupJoinWithCodeRequest req,
+            Authentication authentication) {
+        String userUuid = authentication != null ? authentication.getName() : null;
+        if (userUuid == null) {
+            return ResponseEntity.status(401).body(ApiResponse.error("UNAUTHORIZED", "인증이 필요합니다."));
+        }
+        studyGroupService.joinWithCode(java.util.Objects.requireNonNull(uuid), java.util.Objects.requireNonNull(userUuid),
+                java.util.Objects.requireNonNull(req.getCode()));
+        return ResponseEntity.ok(ApiResponse.successMessage("가입되었습니다."));
+    }
+
+    @PostMapping("/groups/{uuid}/invite-code/regenerate")
+    @Operation(
+            summary = "초대 코드 재발급 (비공개 그룹)",
+            description = """
+                    비공개 그룹의 입장 코드를 새로 발급합니다. 기존 코드는 즉시 무효화됩니다. 방장/관리자만 가능합니다.
+
+                    **Path Variable:**
+                    - `uuid` (필수): 그룹 UUID
+
+                    **Response:**
+                    - `data`: 새로 발급된 6자리 초대 코드
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<String>> regenerateInviteCode(@PathVariable("uuid") String uuid) {
+        return ResponseEntity.ok(ApiResponse.success(studyGroupService.regenerateInviteCode(java.util.Objects.requireNonNull(uuid))));
     }
 
     @DeleteMapping("/groups/{uuid}/leave")

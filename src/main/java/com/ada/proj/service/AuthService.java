@@ -43,6 +43,10 @@ public class AuthService {
     private final JwtProperties jwtProperties;
     private final RewardService rewardService;
 
+    // "로그인 유지"를 체크하지 않은 경우의 refresh token 유효기간.
+    // 체크 시에는 jwtProperties.refreshExpirationMs(기본 7일)를 그대로 사용한다.
+    private static final long SESSION_REFRESH_EXPIRATION_MS = 24 * 60 * 60 * 1000L; // 1일
+
     public AuthService(UserRepository userRepository,
             RefreshTokenRepository refreshTokenRepository,
             JwtTokenProvider jwtTokenProvider,
@@ -70,16 +74,17 @@ public class AuthService {
         initCustomIdIfFirstLogin(user, isFirstLogin);
         rewardService.grant(user.getUuid(), RewardActionCode.LOGIN_FIRST);
 
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name());
-
         boolean rememberMe = request.isRememberMe();
+        long refreshTtlMs = rememberMe ? jwtProperties.getRefreshExpirationMs() : SESSION_REFRESH_EXPIRATION_MS;
+
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getUuid(), user.getRole().name());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUuid(), user.getRole().name(), refreshTtlMs);
 
         refreshTokenRepository.save(RefreshToken.builder()
                 .uuid(user.getUuid())
                 .token(refreshToken)
                 .rememberMe(rememberMe)
-                .ttl(jwtProperties.getRefreshExpirationMs() / 1000)
+                .ttl(refreshTtlMs / 1000)
                 .build());
 
         return LoginResponse.builder()
@@ -211,13 +216,14 @@ public class AuthService {
                 .orElseThrow(() -> new TokenInvalidException("Invalid refresh token"));
         String role = user.getRole().name();
 
-        String newAccess = jwtTokenProvider.generateAccessToken(uuid, role);
-        String newRefresh = jwtTokenProvider.generateRefreshToken(uuid, role);
-
         boolean rememberMe = stored.isRememberMe();
+        long refreshTtlMs = rememberMe ? jwtProperties.getRefreshExpirationMs() : SESSION_REFRESH_EXPIRATION_MS;
+
+        String newAccess = jwtTokenProvider.generateAccessToken(uuid, role);
+        String newRefresh = jwtTokenProvider.generateRefreshToken(uuid, role, refreshTtlMs);
 
         stored.setToken(newRefresh);
-        stored.setTtl(jwtProperties.getRefreshExpirationMs() / 1000);
+        stored.setTtl(refreshTtlMs / 1000);
         refreshTokenRepository.save(stored);
 
         return LoginResponse.builder()

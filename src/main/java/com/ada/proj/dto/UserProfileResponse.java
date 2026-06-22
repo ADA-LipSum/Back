@@ -21,6 +21,7 @@ public class UserProfileResponse {
     private boolean useNickname;
     private String profileImage;
     private String profileBanner;
+    private String profileImageOutlineColor;
     private Role role;
     private String githubAccount;
 

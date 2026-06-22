@@ -82,6 +82,9 @@ public class StudyGroup {
     @Column(name = "invite_link", length = 500)
     private String inviteLink; // 승인된 멤버에게만 노출되는 초대 코드/링크(디스코드, 카카오톡 오픈채팅 등)
 
+    @Column(name = "invite_code", length = 6)
+    private String inviteCode; // PRIVATE 그룹 입장용 6자리 코드. 코드를 입력하면 승인 절차 없이 즉시 가입됨
+
     @Column(name = "activity_start_date")
     private LocalDate activityStartDate;
 

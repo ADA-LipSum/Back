@@ -136,6 +136,7 @@ public class UserService {
                 .useNickname(user.isUseNickname())
                 .profileImage(user.getProfileImage())
                 .profileBanner(user.getProfileBanner())
+                .profileImageOutlineColor(user.getProfileImageOutlineColor())
                 .role(user.getRole())
                 .githubAccount(user.getGithubLogin())
                 .intro(ud == null ? null : ud.getIntro())
@@ -179,6 +180,9 @@ public class UserService {
         }
         if (req.getProfileBanner() != null) {
             user.setProfileBanner(req.getProfileBanner());
+        }
+        if (req.getProfileImageOutlineColor() != null) {
+            user.setProfileImageOutlineColor(req.getProfileImageOutlineColor());
         }
 
         // upsert user_data

@@ -78,6 +78,10 @@ public class User {
     @Column(name = "profile_banner", length = 455)
     private String profileBanner;
 
+    // 프로필 이미지 아웃라인(테두리) 색상, 예: "#3b82f6"
+    @Column(name = "profile_image_outline_color", length = 7)
+    private String profileImageOutlineColor;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;

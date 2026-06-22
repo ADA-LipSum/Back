@@ -37,6 +37,10 @@ public class JwtTokenProvider {
         return generate(uuid, role, refreshExpirationMs);
     }
 
+    public String generateRefreshToken(String uuid, String role, long ttlMs) {
+        return generate(uuid, role, ttlMs);
+    }
+
     private String generate(String uuid, String role, long ttlMs) {
         Instant now = Instant.now();
         return Jwts.builder()

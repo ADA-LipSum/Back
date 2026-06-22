@@ -279,6 +279,7 @@ public class UserController {
                     - `linkedinUrl`: LinkedIn 프로필 URL
                     - `personalWebsiteUrl`: 개인 웹사이트 URL
                     - `profileBanner`: 프로필 배너 이미지 URL
+                    - `profileImageOutlineColor`: 프로필 이미지 아웃라인 색상 (HEX, 예: `#3b82f6`)
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )

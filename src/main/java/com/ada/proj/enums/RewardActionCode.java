@@ -12,7 +12,7 @@ import lombok.Getter;
 public enum RewardActionCode {
 
     LOGIN_FIRST("최초 로그인", "최초 로그인 시 지급", 20, 0, RewardLimitType.ONCE, null),
-    STUDY_GROUP_CREATE("스터디 그룹 생성", "스터디 그룹을 새로 만들었을 때 지급", 50, 20, RewardLimitType.NONE, null),
+    STUDY_GROUP_CREATE("스터디 그룹 생성", "스터디 그룹을 처음 만들었을 때 지급 (평생 1회)", 50, 20, RewardLimitType.ONCE, null),
     STUDY_GROUP_JOIN("스터디 그룹 가입", "스터디 그룹 가입이 승인되었을 때 지급", 20, 10, RewardLimitType.NONE, null),
     GUESTBOOK_WRITE("방명록 작성", "다른 사용자의 프로필에 방명록을 처음 작성했을 때 지급 (대상 프로필별 1회)", 5, 0, RewardLimitType.ONCE_PER_TARGET, null),
     GITHUB_LINK_FIRST("깃허브 최초 연동", "깃허브 계정을 최초로 연동했을 때 지급", 30, 0, RewardLimitType.ONCE, null),

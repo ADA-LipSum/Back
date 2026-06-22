@@ -3,6 +3,7 @@ package com.ada.proj.dto;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -36,4 +37,8 @@ public class UpdateProfileRequest {
     @Size(max = 455)
     @Schema(description = "프로필 배너 이미지 URL", example = "https://example.com/banner.png")
     private String profileBanner;
+
+    @Pattern(regexp = "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$", message = "색상은 #RRGGBB 또는 #RGB 형식의 HEX 코드여야 합니다.")
+    @Schema(description = "프로필 이미지 아웃라인 색상 (HEX)", example = "#3b82f6")
+    private String profileImageOutlineColor;
 }
